@@ -1,0 +1,59 @@
+{
+  "name": "@pickai/core",
+  "version": "0.1.0",
+  "description": "Model intelligence - classify, score, filter, and recommend AI models. Zero runtime dependencies.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": [
+    "ai",
+    "models",
+    "llm",
+    "model-selection",
+    "scoring",
+    "classification",
+    "anthropic",
+    "openai",
+    "google",
+    "openrouter"
+  ],
+  "author": "Mark Lozano <mark.d.lozano@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/niftymonkey/pickai",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/niftymonkey/pickai/tree/main/packages/core",
+  "bugs": {
+    "url": "https://github.com/niftymonkey/pickai/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

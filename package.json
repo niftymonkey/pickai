@@ -1,0 +1,22 @@
+{
+  "name": "pickai",
+  "private": true,
+  "description": "Model intelligence library - classify, score, filter, and recommend AI models",
+  "author": "Mark Lozano <mark.d.lozano@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/niftymonkey/pickai"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean"
+  },
+  "packageManager": "pnpm@10.26.2",
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

@@ -1,0 +1,8 @@
+settings.local.json
+
+node_modules/
+dist/
+
+*.tsbuildinfo
+.turbo/
+
