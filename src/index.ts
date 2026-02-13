@@ -71,6 +71,6 @@ export type { ProviderGroup } from "./group";
 export { Purpose, purposes, recommend } from "./purpose";
 export type { PurposeName, RecommendOptions } from "./purpose";
 
-// Adapters (also available via @pickai/core/adapters subpath)
+// Adapters (also available via pickai/adapters subpath)
 export { parseOpenRouterModel, parseOpenRouterCatalog } from "./adapters/openrouter";
 export type { OpenRouterModel } from "./adapters/openrouter";

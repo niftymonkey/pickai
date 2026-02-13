@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-FIXTURE="packages/core/src/__fixtures__/openrouter-models.json"
+FIXTURE="src/__fixtures__/openrouter-models.json"
 
 echo "Fetching OpenRouter model catalog..."
 curl -sf https://openrouter.ai/api/v1/models | python3 -c "
