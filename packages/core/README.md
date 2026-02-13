@@ -25,10 +25,10 @@ interface Model {
 
 ## Adapters
 
-Adapters convert raw provider API responses into pickai `Model[]`. Import from the `@pickai/core/adapters` subpath:
+Adapters convert raw provider API responses into pickai `Model[]`:
 
 ```typescript
-import { parseOpenRouterCatalog } from "@pickai/core/adapters";
+import { parseOpenRouterCatalog } from "@pickai/core";
 
 const response = await fetch("https://openrouter.ai/api/v1/models");
 const models = parseOpenRouterCatalog(await response.json());
@@ -43,9 +43,11 @@ Direct provider APIs (OpenAI, Google, Anthropic) return minimal model metadata �
 
 Pricing conversion (per-token strings to per-million numbers), capability detection from `supported_parameters`, modality mapping, and name cleanup. You handle the fetch, pickai handles the parsing — keeping the core 100% pure functions with zero side effects.
 
+Adapters are also available via the `@pickai/core/adapters` subpath if you prefer a separate import.
+
 ## Recommendation
 
-The high-level API — pass a purpose name and get back the best model(s). Handles scoring, tier filtering, and provider diversity internally.
+The high-level API — pass a purpose name and get back the best model(s). Handles scoring and tier filtering internally. Non-text-focused models (image/audio/video generators) are filtered out by default.
 
 ```typescript
 import { recommend, Purpose } from "@pickai/core";
@@ -53,8 +55,14 @@ import { recommend, Purpose } from "@pickai/core";
 const top = recommend(models, Purpose.Balanced);
 // → ScoredModel[] (default: 1 result)
 
-// Multiple results with provider diversity
+// Multiple results — ranked purely by score
 const picks = recommend(models, Purpose.Coding, { count: 3 });
+
+// Prefer different providers in results
+recommend(models, Purpose.Coding, { count: 3, providerDiversity: true });
+
+// Include non-text models (image generators, etc.)
+recommend(models, Purpose.Quality, { textOnly: false });
 ```
 
 `preferredTier` is a hard filter, not a weight. Models in the preferred tier are always considered first. Adjacent tiers are only used as fallbacks when the preferred tier can't fill the requested count.
@@ -84,6 +92,61 @@ recommend(models, {
   exclude: { patterns: ["gpt"] },
 });
 ```
+
+## Enrichment
+
+Pre-compute display fields for UI rendering. `enrich()` decorates each model with tier, cost tier, formatted labels, and provider name:
+
+```typescript
+import { enrich, recommend, Purpose } from "@pickai/core";
+
+// Single model
+const model = enrich(rawModel);
+model.tier;          // Tier.Flagship
+model.costTier;      // Cost.Premium
+model.providerName;  // "Anthropic"
+model.priceLabel;    // "$15/$75 per 1M"
+model.contextLabel;  // "200K"
+
+// Works with .map()
+const models = rawModels.map(enrich);
+
+// Chains with .filter()
+const affordable = models
+  .map(enrich)
+  .filter(m => m.costTier <= Cost.Standard);
+```
+
+`EnrichedModel` extends `Model` — all original fields preserved, enrichment added.
+
+## Grouping
+
+Group models by provider for section-based UI rendering:
+
+```typescript
+import { groupByProvider, enrich } from "@pickai/core";
+
+const groups = groupByProvider(models.map(enrich));
+// → [
+//   { provider: "anthropic", providerName: "Anthropic", models: [...] },
+//   { provider: "openai",    providerName: "OpenAI",    models: [...] },
+//   ...
+// ]
+
+// Render with .map()
+groups.map(({ providerName, models }) =>
+  renderSection(providerName, models.map(renderItem))
+);
+```
+
+Providers are sorted alphabetically by default. Pin specific providers to the top with `priority`:
+
+```typescript
+// Major providers first, then alphabetical
+groupByProvider(models, { priority: ["anthropic", "openai", "google"] });
+```
+
+Generic preserves enrichment — pass `EnrichedModel[]`, get `ProviderGroup<EnrichedModel>[]` back.
 
 ---
 
@@ -139,12 +202,17 @@ models.filter(maxCost(Cost.Standard));
 
 // Capable models (standard + flagship)
 models.filter(minTier(Tier.Standard));
-
-// Combine: affordable AND capable
-models.filter(m => maxCost(Cost.Standard)(m) && minTier(Tier.Standard)(m));
 ```
 
-All four: `maxTier`, `minTier`, `maxCost`, `minCost`.
+For combining multiple filters, enriched models read more naturally:
+
+```typescript
+models.map(enrich).filter(m =>
+  m.costTier <= Cost.Standard && m.tier >= Tier.Standard
+);
+```
+
+All four predicates: `maxTier`, `minTier`, `maxCost`, `minCost`.
 
 #### Capability Checks
 

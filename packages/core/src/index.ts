@@ -59,6 +59,18 @@ export {
 // Selection
 export { providerDiversity, minContextWindow, selectModels } from "./select";
 
+// Enrichment
+export { enrich } from "./enrich";
+export type { EnrichedModel } from "./enrich";
+
+// Grouping
+export { groupByProvider } from "./group";
+export type { ProviderGroup } from "./group";
+
 // Purpose
 export { Purpose, purposes, recommend } from "./purpose";
 export type { PurposeName, RecommendOptions } from "./purpose";
+
+// Adapters (also available via @pickai/core/adapters subpath)
+export { parseOpenRouterModel, parseOpenRouterCatalog } from "./adapters/openrouter";
+export type { OpenRouterModel } from "./adapters/openrouter";

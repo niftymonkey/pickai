@@ -108,10 +108,10 @@ export function tierFit(targetTier: ModelTier): ScoringCriterion {
  * - Returns ScoredModel[] sorted by score descending
  * - All-zero weights produce all-zero scores
  */
-export function scoreModels(
-  models: Model[],
+export function scoreModels<T extends Model>(
+  models: T[],
   criteria: WeightedCriterion[]
-): ScoredModel[] {
+): ScoredModel<T>[] {
   if (models.length === 0) return [];
 
   const totalWeight = criteria.reduce((sum, c) => sum + c.weight, 0);

@@ -87,11 +87,12 @@ export interface Model {
 
 /**
  * Model with a computed score attached.
+ * Generic preserves enrichment: score EnrichedModel[], get ScoredModel<EnrichedModel>[] back.
  */
-export interface ScoredModel extends Model {
+export type ScoredModel<T extends Model = Model> = T & {
   /** Computed score (0-1 range, higher is better) */
   score: number;
-}
+};
 
 /**
  * A scoring function that evaluates a model relative to the full set.

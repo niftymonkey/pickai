@@ -178,23 +178,26 @@ describe("recommend (real OpenRouter catalog)", () => {
   // -----------------------------------------
 
   describe("provider diversity", () => {
-    it("applies provider diversity when count > 1 by default", () => {
-      const result = recommend(realTextModels, "balanced", { count: 5 });
+    it("does not apply provider diversity by default", () => {
+      const result = recommend(realTextModels, "balanced", { count: 10 });
+      // Without diversity, top results may cluster on one provider
+      expect(result.length).toBe(10);
+    });
+
+    it("providerDiversity: true prefers different providers", () => {
+      const result = recommend(realTextModels, "balanced", {
+        count: 5,
+        providerDiversity: true,
+      });
       const providers = new Set(result.map((m) => m.provider));
       expect(providers.size).toBeGreaterThan(1);
     });
 
-    it("providerDiversity: false allows duplicate providers", () => {
+    it("diversity spans across tier groups", () => {
       const result = recommend(realTextModels, "balanced", {
         count: 10,
-        providerDiversity: false,
+        providerDiversity: true,
       });
-      // Should have many models from the same provider
-      expect(result.length).toBe(10);
-    });
-
-    it("diversity spans across tier groups", () => {
-      const result = recommend(realTextModels, "balanced", { count: 10 });
       const providers = result.map((m) => m.provider);
       expect(new Set(providers).size).toBeGreaterThan(2);
     });
@@ -205,12 +208,18 @@ describe("recommend (real OpenRouter catalog)", () => {
   // -----------------------------------------
 
   describe("filtering", () => {
-    it("filters non-text-focused models from full catalog", () => {
+    it("filters non-text-focused models by default", () => {
       // Use realCatalog (includes image/audio generators)
       const result = recommend(realCatalog, "balanced", { count: 500 });
       for (const m of result) {
         expect(isTextFocused(m)).toBe(true);
       }
+    });
+
+    it("includes non-text-focused models when textOnly is false", () => {
+      const result = recommend(realCatalog, "balanced", { count: 500, textOnly: false });
+      const nonText = result.filter((m) => !isTextFocused(m));
+      expect(nonText.length).toBeGreaterThan(0);
     });
 
     it("coding profile excludes models without tools from real catalog", () => {

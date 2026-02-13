@@ -48,10 +48,10 @@ export function minContextWindow(tokens: number): Constraint {
  *
  * Models should already be sorted by score descending (as returned by scoreModels).
  */
-export function selectModels(
-  scored: ScoredModel[],
+export function selectModels<T extends Model>(
+  scored: ScoredModel<T>[],
   options: SelectionOptions = {}
-): ScoredModel[] {
+): ScoredModel<T>[] {
   const { count = 1, constraints = [], filter } = options;
 
   // Apply pre-filter
@@ -59,7 +59,7 @@ export function selectModels(
 
   if (candidates.length === 0) return [];
 
-  const selected: ScoredModel[] = [];
+  const selected: ScoredModel<T>[] = [];
   const usedInFirstPass = new Set<number>();
 
   // First pass: respect constraints

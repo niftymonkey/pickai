@@ -46,8 +46,10 @@ export const Purpose = {
 export interface RecommendOptions {
   /** Number of models to return (default: 1) */
   count?: number;
-  /** Apply provider diversity when count > 1 (default: true) */
+  /** Prefer different providers when count > 1 (default: false) */
   providerDiversity?: boolean;
+  /** Filter to text-focused models only (default: true). Set false to include image/audio/video generators. */
+  textOnly?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -105,7 +107,8 @@ function tierDistance(a: ModelTier, b: ModelTier): number {
  * Recommend the best model(s) for a purpose.
  *
  * Accepts a built-in purpose name ("balanced") or a custom PurposeProfile.
- * Always filters non-text-focused models. Applies require/exclude rules
+ * Filters non-text-focused models by default (set `textOnly: false` to
+ * include image/audio/video generators). Applies require/exclude rules
  * from the profile.
  *
  * Tier selection is structural: models in the preferred tier are scored
@@ -114,19 +117,19 @@ function tierDistance(a: ModelTier, b: ModelTier): number {
  *
  * When count > 1, applies provider diversity by default.
  */
-export function recommend(
-  models: Model[],
+export function recommend<T extends Model>(
+  models: T[],
   purpose: PurposeName | PurposeProfile,
   options: RecommendOptions = {}
-): ScoredModel[] {
-  const { count = 1, providerDiversity: useDiversity = true } = options;
+): ScoredModel<T>[] {
+  const { count = 1, providerDiversity: useDiversity = false, textOnly = true } = options;
 
   // Resolve profile
   const profile: PurposeProfile =
     typeof purpose === "string" ? purposes[purpose] : purpose;
 
   // Filter models by require/exclude rules
-  const filtered = applyFilters(models, profile);
+  const filtered = applyFilters(models, profile, textOnly);
   if (filtered.length === 0) return [];
 
   // Build scoring criteria from profile weights
@@ -149,9 +152,9 @@ export function recommend(
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-function applyFilters(models: Model[], profile: PurposeProfile): Model[] {
+function applyFilters<T extends Model>(models: T[], profile: PurposeProfile, textOnly: boolean): T[] {
   return models.filter((m) => {
-    if (!isTextFocused(m)) return false;
+    if (textOnly && !isTextFocused(m)) return false;
     if (profile.require?.tools && !m.capabilities?.tools) return false;
     if (
       profile.require?.minContext &&
@@ -192,11 +195,11 @@ function buildCriteria(profile: PurposeProfile): WeightedCriterion[] {
 }
 
 /** Group scored models into buckets by distance from preferred tier. */
-function groupByTierDistance(
-  scored: ScoredModel[],
+function groupByTierDistance<T extends Model>(
+  scored: ScoredModel<T>[],
   preferredTier: ModelTier
-): ScoredModel[][] {
-  const groups: ScoredModel[][] = [[], [], []]; // distance 0, 1, 2
+): ScoredModel<T>[][] {
+  const groups: ScoredModel<T>[][] = [[], [], []]; // distance 0, 1, 2
   for (const m of scored) {
     const d = tierDistance(classifyTier(m), preferredTier);
     groups[d].push(m);
@@ -209,12 +212,12 @@ function groupByTierDistance(
  * Constraints (e.g., provider diversity) are applied across all groups —
  * a provider used in the preferred tier counts against adjacent/distant tiers.
  */
-function selectFromTierGroups(
-  groups: ScoredModel[][],
+function selectFromTierGroups<T extends Model>(
+  groups: ScoredModel<T>[][],
   count: number,
   constraints: ((selected: Model[], candidate: Model) => boolean)[]
-): ScoredModel[] {
-  const result: ScoredModel[] = [];
+): ScoredModel<T>[] {
+  const result: ScoredModel<T>[] = [];
 
   for (const group of groups) {
     if (result.length >= count) break;
@@ -227,8 +230,8 @@ function selectFromTierGroups(
       result.push(...group.slice(0, remaining));
     } else {
       // Two-pass selection aware of previously selected models
-      const firstPass: ScoredModel[] = [];
-      const skipped: ScoredModel[] = [];
+      const firstPass: ScoredModel<T>[] = [];
+      const skipped: ScoredModel<T>[] = [];
 
       for (const m of group) {
         if (firstPass.length >= remaining) break;
