@@ -1,6 +1,6 @@
 {
   "name": "@pickai/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Classify, score, and recommend AI models across providers. Normalize IDs, compare pricing, filter by capabilities. Zero deps.",
   "type": "module",
   "exports": {
@@ -12,6 +12,16 @@
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
+      }
+    },
+    "./adapters": {
+      "import": {
+        "types": "./dist/adapters/index.d.ts",
+        "default": "./dist/adapters/index.js"
+      },
+      "require": {
+        "types": "./dist/adapters/index.d.cts",
+        "default": "./dist/adapters/index.cjs"
       }
     }
   },

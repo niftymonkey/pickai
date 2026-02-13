@@ -25,20 +25,23 @@ interface Model {
 
 ## Adapters
 
-Adapters convert raw provider API responses into pickai `Model[]`. Each handles the provider's specific format — pricing units, capability fields, ID conventions — so downstream code works uniformly.
-
-### OpenRouter
+Adapters convert raw provider API responses into pickai `Model[]`. Import from the `@pickai/core/adapters` subpath:
 
 ```typescript
-import { parseOpenRouterCatalog } from "@pickai/core";
+import { parseOpenRouterCatalog } from "@pickai/core/adapters";
 
 const response = await fetch("https://openrouter.ai/api/v1/models");
-const data = await response.json();
-const models = parseOpenRouterCatalog(data);
+const models = parseOpenRouterCatalog(await response.json());
 // → Model[] ready for classify, score, recommend
 ```
 
-Handles pricing conversion (per-token strings to per-million numbers), capability detection from `supported_parameters`, modality mapping, and name cleanup.
+### Why OpenRouter only?
+
+Direct provider APIs (OpenAI, Google, Anthropic) return minimal model metadata — no pricing, limited capabilities, and inconsistent context window data. OpenRouter aggregates all of this into a single rich catalog. For direct provider model data, see `@pickai/models` (planned).
+
+### What the adapter handles
+
+Pricing conversion (per-token strings to per-million numbers), capability detection from `supported_parameters`, modality mapping, and name cleanup. You handle the fetch, pickai handles the parsing — keeping the core 100% pure functions with zero side effects.
 
 ## Recommendation
 

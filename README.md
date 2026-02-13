@@ -20,13 +20,13 @@ pnpm add @pickai/core
 ```typescript
 import {
   recommend, Purpose,
-  parseOpenRouterCatalog,
   matchesModel,
   classifyTier, Tier,
   classifyCostTier, Cost,
   maxCost, minTier,
   formatPricing,
 } from "@pickai/core";
+import { parseOpenRouterCatalog } from "@pickai/core/adapters";
 
 // Convert OpenRouter API response → Model[]
 const response = await fetch("https://openrouter.ai/api/v1/models");
