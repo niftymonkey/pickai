@@ -1,4 +1,4 @@
-// Types
+// Types and constants
 export type {
   Model,
   ScoredModel,
@@ -10,6 +10,7 @@ export type {
   Constraint,
   SelectionOptions,
 } from "./types";
+export { Tier, Cost } from "./types";
 
 // ID utilities
 export {
@@ -31,3 +32,16 @@ export {
   formatContextWindow,
   formatProviderName,
 } from "./format";
+
+// Classification
+export {
+  classifyTier,
+  classifyCostTier,
+  maxTier,
+  minTier,
+  maxCost,
+  minCost,
+  supportsTools,
+  supportsVision,
+  isTextFocused,
+} from "./classify";

@@ -4,15 +4,37 @@
  * The shared vocabulary for model intelligence.
  */
 
-/**
- * Model tier based on capability/size.
- */
-export type ModelTier = "efficient" | "standard" | "flagship";
+// Branded types — ModelTier and CostTier are nominally distinct even though
+// both contain a "standard" string value. The brand exists only at compile time;
+// runtime values are plain strings.
+declare const __brand: unique symbol;
+type Branded<T, B> = T & { readonly [__brand]: B };
+
+/** Model tier based on capability/size. */
+export type ModelTier = Branded<string, "ModelTier">;
+
+/** Cost tier based on pricing per 1M input tokens. */
+export type CostTier = Branded<string, "CostTier">;
 
 /**
- * Cost tier based on pricing.
+ * Capability tier constants. Use `Tier.Flagship` instead of raw `"flagship"`.
  */
-export type CostTier = "free" | "budget" | "standard" | "premium";
+export const Tier = {
+  Efficient: "efficient" as ModelTier,
+  Standard: "standard" as ModelTier,
+  Flagship: "flagship" as ModelTier,
+} as const;
+
+/**
+ * Cost tier constants. Use `Cost.Premium` instead of raw `"premium"`.
+ */
+export const Cost = {
+  Free: "free" as CostTier,
+  Budget: "budget" as CostTier,
+  Standard: "standard" as CostTier,
+  Premium: "premium" as CostTier,
+  Ultra: "ultra" as CostTier,
+} as const;
 
 /**
  * Normalized model representation across all providers.

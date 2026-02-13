@@ -1,6 +1,6 @@
 # @pickai/core
 
-Pure functions for AI model intelligence — ID normalization, cross-format matching, scoring, and recommendation. Zero runtime dependencies, works everywhere (browser, Node, edge).
+Classify, score, and recommend AI models across providers. Normalize IDs, compare pricing, filter by capabilities. Zero runtime dependencies, works everywhere (browser, Node, edge).
 
 ## Install
 
@@ -8,9 +8,7 @@ Pure functions for AI model intelligence — ID normalization, cross-format matc
 pnpm add @pickai/core
 ```
 
-## API
-
-### Model Type
+## Model Type
 
 Every model carries three pre-computed IDs for different calling conventions:
 
@@ -21,11 +19,78 @@ interface Model {
   openRouterId: string;  // For OpenRouter: "anthropic/claude-sonnet-4-5"
   provider: string;      // Provider slug: "anthropic"
   name: string;          // Display name: "Claude Sonnet 4.5"
-  // ...pricing, capabilities, context window, etc.
+  // ...pricing, capabilities, context window, modality
 }
 ```
 
-### ID Utilities
+## Classification
+
+### Capability Tier
+
+`classifyTier` categorizes models by capability based on naming patterns and pricing:
+
+| Tier | Signal | Examples |
+|------|--------|----------|
+| `Tier.Efficient` | mini, nano, flash, haiku, lite, tiny, small | Haiku, GPT-4o Mini, Gemini Flash |
+| `Tier.Standard` | Everything else | Sonnet, GPT-4o, Gemini |
+| `Tier.Flagship` | opus, ultra, pro, or input >= $10/M | Opus, GPT-5 Pro, o1 Pro |
+
+```typescript
+import { classifyTier, Tier } from "@pickai/core";
+
+classifyTier(model) === Tier.Flagship
+```
+
+### Cost Tier
+
+`classifyCostTier` categorizes models by input pricing per 1M tokens. Boundaries based on the OpenRouter catalog (Feb 2026):
+
+| Tier | Input Price | Examples |
+|------|-------------|----------|
+| `Cost.Free` | $0 | Free-tier models |
+| `Cost.Budget` | < $2/M | Haiku ($1), GPT-4o Mini ($0.15) |
+| `Cost.Standard` | $2 - $10/M | Sonnet ($3), GPT-4o ($2.50), Opus 4.5 ($5) |
+| `Cost.Premium` | $10 - $20/M | Opus 4 ($15), o1 ($15), GPT-4 Turbo ($10) |
+| `Cost.Ultra` | >= $20/M | o3-pro ($20), GPT-5.2 Pro ($21), o1-pro ($150) |
+
+```typescript
+import { classifyCostTier, Cost } from "@pickai/core";
+
+classifyCostTier(model) === Cost.Premium
+```
+
+### Filtering by Range
+
+Ordinal helpers return predicates for use with `.filter()`:
+
+```typescript
+import { maxCost, minTier, Tier, Cost } from "@pickai/core";
+
+// Affordable models (free + budget + standard)
+models.filter(maxCost(Cost.Standard));
+
+// Capable models (standard + flagship)
+models.filter(minTier(Tier.Standard));
+
+// Combine: affordable AND capable
+models.filter(m => maxCost(Cost.Standard)(m) && minTier(Tier.Standard)(m));
+```
+
+All four: `maxTier`, `minTier`, `maxCost`, `minCost`.
+
+### Capability Checks
+
+```typescript
+import { supportsTools, supportsVision, isTextFocused } from "@pickai/core";
+
+supportsTools(model);  // true if capabilities.tools is set
+supportsVision(model); // true if capabilities.vision or image input modality
+isTextFocused(model);  // true if outputs text only (no image/audio/video)
+```
+
+## ID Utilities
+
+Every provider uses a different format for the same model — OpenRouter prefixes with `anthropic/`, direct APIs append date suffixes, some use dots where others use hyphens. These helpers let you compare and resolve models regardless of where the ID came from.
 
 ```typescript
 import {
@@ -36,7 +101,7 @@ import {
   parseModelId,
 } from "@pickai/core";
 
-// Normalize for comparison (strips prefix, dots→hyphens, removes dates)
+// Normalize for comparison (strips prefix, dots->hyphens, removes dates)
 normalizeModelId("anthropic/claude-3.5-haiku");  // "claude-3-5-haiku"
 normalizeModelId("claude-3-5-haiku-20241022");   // "claude-3-5-haiku"
 
@@ -53,7 +118,9 @@ extractVersion("anthropic/claude-sonnet-4.5"); // 450
 extractVersion("mistralai/mixtral-8x22b");     // 0 (size, not version)
 ```
 
-### Formatting
+## Formatting
+
+Raw model data comes as numbers and slugs — `128000` tokens, `meta-llama` as a provider, `15` dollars per million. These turn that into display-ready strings.
 
 ```typescript
 import {
@@ -75,7 +142,3 @@ formatContextWindow(1000000); // "1.0M"
 formatProviderName("meta-llama"); // "Meta Llama"
 formatProviderName("x-ai");      // "xAI"
 ```
-
-## License
-
-MIT

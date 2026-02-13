@@ -1,7 +1,7 @@
 {
   "name": "@pickai/core",
   "version": "0.1.0",
-  "description": "Model intelligence - classify, score, filter, and recommend AI models. Zero runtime dependencies.",
+  "description": "Classify, score, and recommend AI models across providers. Normalize IDs, compare pricing, filter by capabilities. Zero deps.",
   "type": "module",
   "exports": {
     ".": {

@@ -1,7 +1,7 @@
 {
   "name": "pickai",
   "private": true,
-  "description": "Model intelligence library - classify, score, filter, and recommend AI models",
+  "description": "Stop rewriting model selection logic — classify, score, and recommend AI models across providers",
   "author": "Mark Lozano <mark.d.lozano@gmail.com>",
   "license": "MIT",
   "repository": {
