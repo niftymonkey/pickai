@@ -68,11 +68,35 @@ matchesModel("anthropic/claude-3.5-haiku", "claude-3-5-haiku-20241022"); // true
 
 ## Development
 
+pnpm workspace monorepo. Packages live in `packages/`.
+
 ```bash
-pnpm install
-pnpm build
-pnpm test
+pnpm install        # install all dependencies
+pnpm build          # build all packages (tsup → ESM + CJS + .d.ts)
+pnpm test           # run all tests (vitest)
 ```
+
+To work on a single package:
+
+```bash
+pnpm --filter @pickai/core test    # run core tests only
+pnpm --filter @pickai/core build   # build core only
+```
+
+### Project structure
+
+```
+packages/
+  core/           # @pickai/core — pure functions, zero deps
+    src/
+      adapters/   # Provider-specific parsers (OpenRouter)
+      *.ts        # One module per concern (classify, score, enrich, group, etc.)
+      *.test.ts   # Co-located tests
+```
+
+### Workflow
+
+Tests use shared fixtures from `src/test-utils.ts`. Run `pnpm build` before committing to catch type errors that vitest might miss.
 
 ## License
 
