@@ -117,7 +117,6 @@ export interface PurposeProfile {
   weights: {
     cost: number;
     quality: number;
-    speed: number;
     context: number;
   };
   /** Hard requirements */

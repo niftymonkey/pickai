@@ -246,6 +246,11 @@ describe("matchesModel", () => {
       ),
     ).toBe(false);
   });
+
+  it("matches case-insensitively", () => {
+    expect(matchesModel("GPT-4O", "gpt-4o")).toBe(true);
+    expect(matchesModel("Claude-Sonnet-4-5", "claude-sonnet-4-5")).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -310,6 +315,13 @@ describe("parseModelId", () => {
     const result = parseModelId("some-unknown-model");
     expect(result.provider).toBeNull();
     expect(result.model).toBe("some-unknown-model");
+  });
+
+  it("parses direct format with variant (no slash, has colon)", () => {
+    const result = parseModelId("claude-3-7-sonnet:thinking");
+    expect(result.provider).toBe("anthropic");
+    expect(result.model).toBe("claude-3-7-sonnet");
+    expect(result.variant).toBe("thinking");
   });
 });
 

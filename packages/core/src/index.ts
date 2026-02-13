@@ -45,3 +45,24 @@ export {
   supportsVision,
   isTextFocused,
 } from "./classify";
+
+// Scoring
+export {
+  costEfficiency,
+  contextCapacity,
+  recency,
+  versionFreshness,
+  tierFit,
+  scoreModels,
+} from "./score";
+
+// Selection
+export { providerDiversity, minContextWindow, selectModels } from "./select";
+
+// Purpose
+export { Purpose, purposes, recommend } from "./purpose";
+export type { PurposeName, RecommendOptions } from "./purpose";
+
+// Adapters
+export { parseOpenRouterModel, parseOpenRouterCatalog } from "./adapters/openrouter";
+export type { OpenRouterModel } from "./adapters/openrouter";

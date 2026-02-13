@@ -39,6 +39,14 @@ describe("formatPrice", () => {
     expect(formatPrice(10)).toBe("$10.0/M");
     expect(formatPrice(150)).toBe("$150.0/M");
   });
+
+  it("handles exact boundary at $0.01 (sub-dollar, not sub-cent)", () => {
+    expect(formatPrice(0.01)).toBe("$0.01/M");
+  });
+
+  it("handles exact boundary at $1.00 (dollar-plus, not sub-dollar)", () => {
+    expect(formatPrice(1.0)).toBe("$1.0/M");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -59,6 +67,10 @@ describe("formatPricing", () => {
     expect(formatPricing({ input: 0.25, output: 1.25 })).toBe(
       "$0.25/$1.25 per 1M",
     );
+  });
+
+  it("handles mixed zero and non-zero (free input, paid output)", () => {
+    expect(formatPricing({ input: 0, output: 5 })).toBe("$0/$5 per 1M");
   });
 });
 
@@ -83,6 +95,15 @@ describe("formatContextWindow", () => {
 
   it("handles non-round thousands", () => {
     expect(formatContextWindow(200000)).toBe("200K");
+  });
+
+  it("handles sub-thousand values", () => {
+    expect(formatContextWindow(500)).toBe("1K");
+    expect(formatContextWindow(100)).toBe("0K");
+  });
+
+  it("handles zero", () => {
+    expect(formatContextWindow(0)).toBe("0K");
   });
 });
 

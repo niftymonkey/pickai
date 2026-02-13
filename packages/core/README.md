@@ -23,9 +23,74 @@ interface Model {
 }
 ```
 
-## Classification
+## Adapters
 
-### Capability Tier
+Adapters convert raw provider API responses into pickai `Model[]`. Each handles the provider's specific format — pricing units, capability fields, ID conventions — so downstream code works uniformly.
+
+### OpenRouter
+
+```typescript
+import { parseOpenRouterCatalog } from "@pickai/core";
+
+const response = await fetch("https://openrouter.ai/api/v1/models");
+const data = await response.json();
+const models = parseOpenRouterCatalog(data);
+// → Model[] ready for classify, score, recommend
+```
+
+Handles pricing conversion (per-token strings to per-million numbers), capability detection from `supported_parameters`, modality mapping, and name cleanup.
+
+## Recommendation
+
+The high-level API — pass a purpose name and get back the best model(s). Handles scoring, tier filtering, and provider diversity internally.
+
+```typescript
+import { recommend, Purpose } from "@pickai/core";
+
+const top = recommend(models, Purpose.Balanced);
+// → ScoredModel[] (default: 1 result)
+
+// Multiple results with provider diversity
+const picks = recommend(models, Purpose.Coding, { count: 3 });
+```
+
+`preferredTier` is a hard filter, not a weight. Models in the preferred tier are always considered first. Adjacent tiers are only used as fallbacks when the preferred tier can't fill the requested count.
+
+### Built-in Profiles
+
+Each profile maps to a tier preference, scoring weights, and optional requirements:
+
+| Constant | Tier | Emphasis | Notes |
+|----------|------|----------|-------|
+| `Purpose.Cheap` | Efficient | Cost 60% | Cheapest models |
+| `Purpose.Balanced` | Standard | Quality 40% | General purpose |
+| `Purpose.Quality` | Flagship | Quality 70% | Best quality |
+| `Purpose.Coding` | Standard | Quality 50% | Requires tool calling |
+| `Purpose.Creative` | Flagship | Quality 70% | Creative writing |
+| `Purpose.Reviewer` | Standard | Quality 50% | Requires tools + 8K context, excludes code/vision models |
+
+### Custom Profiles
+
+For use cases that don't fit a built-in profile, pass a `PurposeProfile` object directly:
+
+```typescript
+recommend(models, {
+  preferredTier: Tier.Standard,
+  weights: { cost: 0.5, quality: 0.3, context: 0.2 },
+  require: { tools: true },
+  exclude: { patterns: ["gpt"] },
+});
+```
+
+---
+
+## Composable API
+
+`recommend()` handles the full pipeline internally. The sections below cover the individual functions it's built from — use these when you need custom scoring logic, specific filters, or more control over model selection.
+
+### Classification
+
+#### Capability Tier
 
 `classifyTier` categorizes models by capability based on naming patterns and pricing:
 
@@ -41,7 +106,7 @@ import { classifyTier, Tier } from "@pickai/core";
 classifyTier(model) === Tier.Flagship
 ```
 
-### Cost Tier
+#### Cost Tier
 
 `classifyCostTier` categorizes models by input pricing per 1M tokens. Boundaries based on the OpenRouter catalog (Feb 2026):
 
@@ -59,7 +124,7 @@ import { classifyCostTier, Cost } from "@pickai/core";
 classifyCostTier(model) === Cost.Premium
 ```
 
-### Filtering by Range
+#### Filtering by Range
 
 Ordinal helpers return predicates for use with `.filter()`:
 
@@ -78,7 +143,7 @@ models.filter(m => maxCost(Cost.Standard)(m) && minTier(Tier.Standard)(m));
 
 All four: `maxTier`, `minTier`, `maxCost`, `minCost`.
 
-### Capability Checks
+#### Capability Checks
 
 ```typescript
 import { supportsTools, supportsVision, isTextFocused } from "@pickai/core";
@@ -88,7 +153,7 @@ supportsVision(model); // true if capabilities.vision or image input modality
 isTextFocused(model);  // true if outputs text only (no image/audio/video)
 ```
 
-## ID Utilities
+### ID Utilities
 
 Every provider uses a different format for the same model — OpenRouter prefixes with `anthropic/`, direct APIs append date suffixes, some use dots where others use hyphens. These helpers let you compare and resolve models regardless of where the ID came from.
 
@@ -118,7 +183,7 @@ extractVersion("anthropic/claude-sonnet-4.5"); // 450
 extractVersion("mistralai/mixtral-8x22b");     // 0 (size, not version)
 ```
 
-## Formatting
+### Formatting
 
 Raw model data comes as numbers and slugs — `128000` tokens, `meta-llama` as a provider, `15` dollars per million. These turn that into display-ready strings.
 
@@ -142,3 +207,43 @@ formatContextWindow(1000000); // "1.0M"
 formatProviderName("meta-llama"); // "Meta Llama"
 formatProviderName("x-ai");      // "xAI"
 ```
+
+### Scoring
+
+Score models using weighted criteria. Each criterion returns 0-1, normalized across the model set via min-max.
+
+```typescript
+import {
+  scoreModels,
+  costEfficiency,
+  contextCapacity,
+  recency,
+  versionFreshness,
+  tierFit,
+  Tier,
+} from "@pickai/core";
+
+const scored = scoreModels(models, [
+  { criterion: costEfficiency, weight: 0.4 },
+  { criterion: contextCapacity, weight: 0.3 },
+  { criterion: recency, weight: 0.3 },
+]);
+// → ScoredModel[] sorted by score descending
+```
+
+Built-in criteria: `costEfficiency` (cheaper = higher), `contextCapacity` (larger = higher), `recency` (newer = higher), `versionFreshness` (higher version = higher), `tierFit(targetTier)` (closer to target tier = higher).
+
+### Selection
+
+Select top models with constraints (operates on pre-scored models):
+
+```typescript
+import { selectModels, providerDiversity, minContextWindow } from "@pickai/core";
+
+const picks = selectModels(scored, {
+  count: 3,
+  constraints: [providerDiversity(), minContextWindow(128000)],
+});
+```
+
+Uses a two-pass algorithm: first pass respects constraints, second pass fills remaining slots ignoring constraints (so you always get results).

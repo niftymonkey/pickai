@@ -11,23 +11,8 @@ import {
   isTextFocused,
 } from "./classify";
 import { Tier, Cost } from "./types";
-import type { Model, ModelTier, CostTier } from "./types";
-
-/** Helper to create a minimal Model for testing */
-function createModel(overrides: Partial<Model> = {}): Model {
-  return {
-    id: overrides.id || "test-model",
-    apiId: overrides.apiId || overrides.id || "test-model",
-    openRouterId: overrides.openRouterId || `test/${overrides.id || "test-model"}`,
-    name: overrides.name || "Test Model",
-    provider: overrides.provider || "test",
-    contextWindow: overrides.contextWindow ?? 128000,
-    pricing: overrides.pricing ?? { input: 1, output: 2 },
-    modality: overrides.modality ?? { input: ["text"], output: ["text"] },
-    capabilities: overrides.capabilities ?? { tools: true },
-    ...overrides,
-  };
-}
+import type { ModelTier, CostTier } from "./types";
+import { createModel } from "./test-utils";
 
 // ============================================
 // classifyTier
@@ -95,6 +80,31 @@ describe("classifyTier", () => {
     it("classifies o1-pro as flagship", () => {
       expect(classifyTier(createModel({ id: "o1-pro", name: "O1 Pro" }))).toBe(Tier.Flagship);
     });
+
+    it("classifies model at exactly $10/M as flagship", () => {
+      expect(classifyTier(createModel({
+        id: "borderline-model",
+        name: "Borderline Model",
+        pricing: { input: 10, output: 30 },
+      }))).toBe(Tier.Flagship);
+    });
+  });
+
+  describe("conflicting signals", () => {
+    it("efficient check runs first — haiku with high price is still efficient", () => {
+      expect(classifyTier(createModel({
+        id: "claude-haiku-expensive",
+        name: "Claude Haiku Expensive",
+        pricing: { input: 15, output: 75 },
+      }))).toBe(Tier.Efficient);
+    });
+
+    it("efficient check runs first — mini-pro is efficient not flagship", () => {
+      expect(classifyTier(createModel({
+        id: "model-mini-pro",
+        name: "Model Mini Pro",
+      }))).toBe(Tier.Efficient);
+    });
   });
 
   describe("standard tier", () => {
@@ -149,6 +159,20 @@ describe("classifyCostTier", () => {
 
   it("treats models without pricing as free", () => {
     expect(classifyCostTier(createModel({ pricing: undefined }))).toBe(Cost.Free);
+  });
+
+  describe("exact boundary values", () => {
+    it("$2.00 input is standard (not budget)", () => {
+      expect(classifyCostTier(createModel({ pricing: { input: 2, output: 10 } }))).toBe(Cost.Standard);
+    });
+
+    it("$10.00 input is premium (not standard)", () => {
+      expect(classifyCostTier(createModel({ pricing: { input: 10, output: 30 } }))).toBe(Cost.Premium);
+    });
+
+    it("$20.00 input is ultra (not premium)", () => {
+      expect(classifyCostTier(createModel({ pricing: { input: 20, output: 80 } }))).toBe(Cost.Ultra);
+    });
   });
 });
 

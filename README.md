@@ -19,12 +19,23 @@ pnpm add @pickai/core
 
 ```typescript
 import {
+  recommend, Purpose,
+  parseOpenRouterCatalog,
   matchesModel,
   classifyTier, Tier,
   classifyCostTier, Cost,
   maxCost, minTier,
   formatPricing,
 } from "@pickai/core";
+
+// Convert OpenRouter API response → Model[]
+const response = await fetch("https://openrouter.ai/api/v1/models");
+const models = parseOpenRouterCatalog(await response.json());
+
+// Recommend the best model for a purpose
+recommend(models, Purpose.Balanced);              // → top standard-tier model
+recommend(models, Purpose.Cheap, { count: 3 });   // → top 3 efficient-tier models
+recommend(models, Purpose.Coding);                // → standard-tier with tool calling
 
 // Cross-format model matching
 matchesModel("anthropic/claude-3.5-haiku", "claude-3-5-haiku-20241022"); // true
