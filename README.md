@@ -392,9 +392,15 @@ scripts/
   update-openrouter-fixture.sh
 ```
 
-### Workflow
+### Testing
 
-Tests use shared fixtures from `src/test-utils.ts`. Run `pnpm build` before committing to catch type errors that vitest might miss.
+Three layers of tests catch different classes of problems:
+
+- **Unit tests** (`*.test.ts` co-located with each module) — verify individual functions in isolation using synthetic fixtures from `src/test-utils.ts`. Catch logic regressions in classification, scoring, formatting, ID normalization, etc.
+- **Integration tests** (`integration.test.ts`) — exercise the full pipeline (`parseOpenRouterCatalog → enrich → recommend/score/select/group`) against the real OpenRouter fixture. Catch cross-module regressions where changes in one module (e.g., tier classification thresholds) silently break downstream behavior (e.g., recommendation results).
+- **Smoke tests** (`smoke.test.ts`) — verify that every public export from both entry points (`pickai` and `pickai/adapters`) resolves correctly. Catch broken barrel exports — the kind of bug where the library builds fine but consumers get `undefined` at runtime because an export was renamed or removed.
+
+Run `pnpm build` before committing to catch type errors that vitest might miss.
 
 ## License
 
