@@ -1,6 +1,6 @@
 {
   "name": "pickai",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Classify, score, and recommend AI models across providers. Normalize IDs, compare pricing, filter by capabilities. Zero deps.",
   "type": "module",
   "exports": {
@@ -28,7 +28,9 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
   "engines": {
     "node": ">=18"
@@ -73,6 +75,8 @@
     "vitest": "^4.0.18"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }
