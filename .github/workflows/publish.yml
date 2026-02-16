@@ -29,6 +29,11 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm test
