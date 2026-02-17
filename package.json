@@ -1,6 +1,6 @@
 {
   "name": "pickai",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Classify, score, and recommend AI models across providers. Normalize IDs, compare pricing, filter by capabilities. Zero deps.",
   "type": "module",
   "exports": {
