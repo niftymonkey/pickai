@@ -24,9 +24,9 @@ const response = await fetch("https://openrouter.ai/api/v1/models");
 const models = parseOpenRouterCatalog(await response.json()).map(enrich);
 
 // Recommend the best model for a purpose
-recommend(models, Purpose.Balanced);              // → top standard-tier model
-recommend(models, Purpose.Cheap, { count: 3 });   // → top 3 efficient-tier models
-recommend(models, Purpose.Coding);                // → standard-tier with tool calling
+const model = recommend(models, Purpose.Balanced); // → top standard-tier model
+recommend(models, Purpose.Cheap, { count: 3 });    // → top 3 efficient-tier models
+recommend(models, Purpose.Coding);                 // → standard-tier with tool calling
 
 // Group by provider for dropdowns, sections, or any grouped UI
 const groups = groupByProvider(models);
@@ -39,6 +39,19 @@ const groups = groupByProvider(models);
 // Filter on enriched fields
 models.filter(m => m.costTier <= Cost.Standard);  // affordable models
 models.filter(m => m.tier >= Tier.Standard);       // capable models
+
+// Call the model — every result has ready-to-use IDs
+
+// Call OpenRouter with model.openRouterId
+const routed = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  body: JSON.stringify({ model: model.openRouterId, messages }), // "anthropic/claude-sonnet-4-5"
+});
+// Call a provider API directly with model.apiId
+const direct = await fetch("https://api.anthropic.com/v1/messages", {
+  body: JSON.stringify({ model: model.apiId, messages }), // "claude-sonnet-4-5-20250929"
+});
+// Call Vercel AI SDK's generateText with model.apiId
+const { text } = await generateText({ model: anthropic(model.apiId), messages });
 ```
 
 ### Custom Profiles
