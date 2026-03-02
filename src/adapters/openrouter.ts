@@ -42,7 +42,12 @@ export interface OpenRouterModel {
  */
 export function parseOpenRouterModel(raw: OpenRouterModel): Model {
   const provider = raw.id.split("/")[0];
-  const apiId = extractDirectModelId(raw.id);
+  let apiId = extractDirectModelId(raw.id);
+  // Anthropic uses dashes in version numbers (claude-opus-4-6) while
+  // OpenRouter uses dots (anthropic/claude-opus-4.6)
+  if (provider === "anthropic") {
+    apiId = apiId.replace(/\./g, "-");
+  }
   const id = normalizeModelId(raw.id);
 
   // Strip "Provider: " prefix from name
