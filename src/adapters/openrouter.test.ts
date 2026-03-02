@@ -25,9 +25,9 @@ describe("parseOpenRouterModel", () => {
       expect(model.openRouterId).toBe("anthropic/claude-opus-4.6");
     });
 
-    it("sets apiId by stripping provider prefix", () => {
+    it("sets apiId to the provider's actual API model ID", () => {
       const model = parseOpenRouterModel(claudeOpus);
-      expect(model.apiId).toBe("claude-opus-4.6");
+      expect(model.apiId).toBe("claude-opus-4-6");
     });
 
     it("normalizes id (dots to hyphens, no provider)", () => {
@@ -40,6 +40,11 @@ describe("parseOpenRouterModel", () => {
       expect(model.id).toBe("gpt-4o");
       expect(model.apiId).toBe("gpt-4o");
       expect(model.openRouterId).toBe("openai/gpt-4o");
+    });
+
+    it("preserves dots in apiId for non-Anthropic providers", () => {
+      const model = parseOpenRouterModel(flash);
+      expect(model.apiId).toBe("gemini-2.5-flash");
     });
   });
 
