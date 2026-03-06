@@ -5,27 +5,18 @@
  * formatted strings — designed for .map():
  *
  *   const models = raw.map(enrich);
+ *
+ * Convenience wrapper over withClassification() + withDisplayLabels().
  */
 
-import type { Model, ModelTier, CostTier } from "./types";
-import { classifyTier, classifyCostTier } from "./classify";
-import { formatPricing, formatContextWindow, formatProviderName } from "./format";
+import type { Model } from "./types";
+import { withClassification, type ClassifiedModel } from "./with-classification";
+import { withDisplayLabels, type LabeledModel } from "./with-display-labels";
 
 /**
  * A Model decorated with pre-computed classification and display fields.
  */
-export interface EnrichedModel extends Model {
-  /** Capability tier: Tier.Efficient, Tier.Standard, Tier.Flagship */
-  tier: ModelTier;
-  /** Cost tier: Cost.Free through Cost.Ultra */
-  costTier: CostTier;
-  /** Human-readable provider name: "Anthropic", "OpenAI", "Google" */
-  providerName: string;
-  /** Formatted pricing: "$3/$15 per 1M" or "Free", empty string if unknown */
-  priceLabel: string;
-  /** Formatted context window: "128K", "1.0M", empty string if unknown */
-  contextLabel: string;
-}
+export type EnrichedModel = ClassifiedModel & LabeledModel;
 
 /**
  * Enrich a model with classification and formatted display fields.
@@ -36,12 +27,5 @@ export interface EnrichedModel extends Model {
  * ```
  */
 export function enrich(model: Model): EnrichedModel {
-  return {
-    ...model,
-    tier: classifyTier(model),
-    costTier: classifyCostTier(model),
-    providerName: formatProviderName(model.provider),
-    priceLabel: model.pricing ? formatPricing(model.pricing) : "",
-    contextLabel: model.contextWindow ? formatContextWindow(model.contextWindow) : "",
-  };
+  return withDisplayLabels(withClassification(model));
 }

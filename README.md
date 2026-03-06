@@ -42,16 +42,34 @@ models.filter(m => m.tier >= Tier.Standard);       // capable models
 
 // Call the model — every result has ready-to-use IDs
 
-// Call OpenRouter with model.openRouterId
+// Call OpenRouter with model.apiSlugs.openRouter
 const routed = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-  body: JSON.stringify({ model: model.openRouterId, messages }), // "anthropic/claude-sonnet-4-5"
+  body: JSON.stringify({ model: model.apiSlugs.openRouter, messages }), // "anthropic/claude-sonnet-4-5"
 });
-// Call a provider API directly with model.apiId
+// Call a provider API directly with model.apiSlugs.direct
 const direct = await fetch("https://api.anthropic.com/v1/messages", {
-  body: JSON.stringify({ model: model.apiId, messages }), // "claude-sonnet-4-5-20250929"
+  body: JSON.stringify({ model: model.apiSlugs.direct, messages }), // "claude-sonnet-4-5-20250929"
 });
-// Call Vercel AI SDK's generateText with model.apiId
-const { text } = await generateText({ model: anthropic(model.apiId), messages });
+// Call Vercel AI SDK's generateText with model.apiSlugs.direct
+const { text } = await generateText({ model: anthropic(model.apiSlugs.direct!), messages });
+```
+
+### Composable Enrichment
+
+Use individual enrichers when you only need specific fields, or compose them freely:
+
+```typescript
+import { withClassification, withAaSlug, enrich } from "pickai";
+
+// Just classification (tier + costTier)
+models.map(withClassification);
+
+// Derive Artificial Analysis slugs for benchmark lookups
+models.map(withAaSlug);
+
+// Compose: full enrichment + AA slugs
+models.map(enrich).map(withAaSlug);
+// → each model has tier, costTier, providerName, priceLabel, contextLabel, AND apiSlugs.artificialAnalysis
 ```
 
 ### Custom Profiles
@@ -93,11 +111,14 @@ pnpm update-fixture # refresh OpenRouter model fixture
 
 ```
 src/
-  adapters/   # Provider-specific parsers (OpenRouter)
-  *.ts        # One module per concern (classify, score, enrich, group, etc.)
-  *.test.ts   # Co-located tests
+  adapters/           # Provider-specific parsers (OpenRouter)
+  with-*.ts           # Composable enrichers (classification, display labels, AA slug)
+  enrich.ts           # Convenience wrapper composing with* functions
+  *.ts                # One module per concern (classify, score, group, etc.)
+  *.test.ts           # Co-located tests
 scripts/
   update-openrouter-fixture.sh
+  check-aa-slugs.ts   # Validate AA slug derivation against live data
 ```
 
 ### Testing

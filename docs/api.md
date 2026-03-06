@@ -8,8 +8,11 @@ Data flows through a pipeline, with each step adding fields:
 
 | Type | Source | Adds |
 |------|--------|------|
-| `Model` | Adapters | `id`, `apiId`, `openRouterId`, provider, name, pricing, capabilities |
-| `EnrichedModel` | `.map(enrich)` | `tier`, `costTier`, `providerName`, `priceLabel`, `contextLabel` |
+| `Model` | Adapters | `id`, `apiSlugs` (`openRouter`, `direct?`, `artificialAnalysis?`), provider, name, pricing, capabilities |
+| `ClassifiedModel` | `.map(withClassification)` | `tier`, `costTier` |
+| `LabeledModel` | `.map(withDisplayLabels)` | `providerName`, `priceLabel`, `contextLabel` |
+| `EnrichedModel` | `.map(enrich)` | All of `ClassifiedModel` + `LabeledModel` |
+| `AaSlugModel` | `.map(withAaSlug)` | `apiSlugs.artificialAnalysis` (required string) |
 | `ScoredModel<T>` | `recommend()`, `scoreModels()` | `score` (0-1) |
 | `ProviderGroup<T>` | `groupByProvider()` | `provider`, `providerName`, `models: T[]` |
 
@@ -17,13 +20,18 @@ Generic types preserve what you pass in — score `EnrichedModel[]` and you get 
 
 ### Model
 
-Every model carries three pre-computed IDs for different calling conventions:
+Every model carries pre-computed API identifiers in `apiSlugs`:
 
 ```typescript
+interface ApiSlugs {
+  openRouter: string;              // "anthropic/claude-sonnet-4-5"
+  direct?: string;                 // "claude-sonnet-4-5-20250929"
+  artificialAnalysis?: string;     // "claude-sonnet-4-5" (populated by withAaSlug())
+}
+
 interface Model {
   id: string;            // Base identity: "claude-sonnet-4-5"
-  apiId: string;         // For direct APIs / AI SDK: "claude-sonnet-4-5-20250929"
-  openRouterId: string;  // For OpenRouter: "anthropic/claude-sonnet-4-5"
+  apiSlugs: ApiSlugs;    // Pre-computed IDs for different calling conventions
   provider: string;      // Provider slug: "anthropic"
   name: string;          // Display name: "Claude Sonnet 4.5"
   // ...pricing, capabilities, context window, modality
@@ -102,12 +110,11 @@ recommend(models, {
 
 ## Enrichment
 
-Pre-compute display fields for UI rendering. `enrich()` decorates each model with tier, cost tier, formatted labels, and provider name:
+Pre-compute display fields for UI rendering. `enrich()` is a convenience wrapper that adds tier, cost tier, and display labels in one step:
 
 ```typescript
-import { enrich, recommend, Purpose } from "pickai";
+import { enrich } from "pickai";
 
-// Single model
 const model = enrich(rawModel);
 model.tier;          // Tier.Flagship
 model.costTier;      // Cost.Premium
@@ -115,16 +122,31 @@ model.providerName;  // "Anthropic"
 model.priceLabel;    // "$15/$75 per 1M"
 model.contextLabel;  // "200K"
 
-// Works with .map()
 const models = rawModels.map(enrich);
-
-// Chains with .filter()
-const affordable = models
-  .map(enrich)
-  .filter(m => m.costTier <= Cost.Standard);
 ```
 
-`EnrichedModel` extends `Model` — all original fields preserved, enrichment added.
+### Composable Enrichers
+
+Use individual enrichers when you only need a subset of fields:
+
+```typescript
+import { withClassification, withDisplayLabels, withAaSlug } from "pickai";
+
+// Just tier + costTier
+models.map(withClassification);
+
+// Just display labels
+models.map(withDisplayLabels);
+
+// Derive Artificial Analysis slugs for benchmark data lookups
+models.map(withAaSlug);
+// → model.apiSlugs.artificialAnalysis = "claude-opus-4-6"
+
+// Compose freely — each returns a type intersection
+models.map(enrich).map(withAaSlug);
+```
+
+`EnrichedModel` is `ClassifiedModel & LabeledModel`. All enrichers preserve original Model fields.
 
 ## Grouping
 
