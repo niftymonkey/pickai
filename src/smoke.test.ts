@@ -100,6 +100,13 @@ describe("smoke: main entry (pickai)", () => {
     expect(typeof mod.minContextWindow).toBe("function");
   });
 
+  it("exports composable enrichers", async () => {
+    const mod = await import("./index");
+    expect(typeof mod.withClassification).toBe("function");
+    expect(typeof mod.withDisplayLabels).toBe("function");
+    expect(typeof mod.withAaSlug).toBe("function");
+  });
+
   it("exports adapter functions from main entry", async () => {
     const mod = await import("./index");
     expect(typeof mod.parseOpenRouterModel).toBe("function");

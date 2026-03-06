@@ -37,23 +37,29 @@ export const Cost = {
 } as const;
 
 /**
+ * Pre-computed API identifiers for different calling conventions.
+ */
+export interface ApiSlugs {
+  /** For OpenRouter API: "anthropic/claude-sonnet-4-5" */
+  openRouter: string;
+  /** For direct provider APIs / Vercel AI SDK: "claude-sonnet-4-5-20250929" */
+  direct?: string;
+  /** For Artificial Analysis benchmark lookups: "claude-sonnet-4-5" */
+  artificialAnalysis?: string;
+}
+
+/**
  * Normalized model representation across all providers.
  *
- * Three pre-computed IDs for different calling conventions:
- * - `id` — the model's identity ("claude-sonnet-4-5", "gpt-4o", "gemini-2.5-flash")
- * - `apiId` — for direct provider APIs / Vercel AI SDK ("claude-sonnet-4-5-20250929")
- * - `openRouterId` — for OpenRouter API ("anthropic/claude-sonnet-4-5")
- *
- * All three are set once when a Model is created (by an adapter or static data).
- * Consumers just grab the one they need — no conversion at call time.
+ * `id` is the model's base identity ("claude-sonnet-4-5", "gpt-4o").
+ * `apiSlugs` holds pre-computed IDs for different calling conventions —
+ * consumers just grab the one they need, no conversion at call time.
  */
 export interface Model {
   /** The model's base identity: "claude-sonnet-4-5", "gpt-4o", "gemini-2.5-flash" */
   id: string;
-  /** For direct provider APIs and Vercel AI SDK: "claude-sonnet-4-5-20250929" */
-  apiId: string;
-  /** For OpenRouter API: "anthropic/claude-sonnet-4-5" */
-  openRouterId: string;
+  /** Pre-computed API identifiers for different calling conventions */
+  apiSlugs: ApiSlugs;
   /** Human-readable display name */
   name: string;
   /** Provider slug (e.g., "anthropic", "openai", "google") */

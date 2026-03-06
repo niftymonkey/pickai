@@ -33,7 +33,7 @@ describe("integration: full pipeline", () => {
     for (const m of models) {
       expect(m.id).toBeTruthy();
       expect(m.provider).toBeTruthy();
-      expect(m.openRouterId).toContain("/");
+      expect(m.apiSlugs.openRouter).toContain("/");
     }
   });
 

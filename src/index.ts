@@ -1,6 +1,7 @@
 // Types and constants
 export type {
   Model,
+  ApiSlugs,
   ScoredModel,
   ScoringCriterion,
   WeightedCriterion,
@@ -62,6 +63,14 @@ export { providerDiversity, minContextWindow, selectModels } from "./select";
 // Enrichment
 export { enrich } from "./enrich";
 export type { EnrichedModel } from "./enrich";
+
+// Composable enrichers
+export { withClassification } from "./with-classification";
+export type { ClassifiedModel } from "./with-classification";
+export { withDisplayLabels } from "./with-display-labels";
+export type { LabeledModel } from "./with-display-labels";
+export { withAaSlug } from "./with-aa-slug";
+export type { AaSlugModel } from "./with-aa-slug";
 
 // Grouping
 export { groupByProvider } from "./group";

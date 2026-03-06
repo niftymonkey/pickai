@@ -20,14 +20,14 @@ const flash: OpenRouterModel = fixture.data.find(
 
 describe("parseOpenRouterModel", () => {
   describe("ID mapping", () => {
-    it("sets openRouterId as-is from the raw id", () => {
+    it("sets apiSlugs.openRouter as-is from the raw id", () => {
       const model = parseOpenRouterModel(claudeOpus);
-      expect(model.openRouterId).toBe("anthropic/claude-opus-4.6");
+      expect(model.apiSlugs.openRouter).toBe("anthropic/claude-opus-4.6");
     });
 
-    it("sets apiId to the provider's actual API model ID", () => {
+    it("sets apiSlugs.direct to the provider's actual API model ID", () => {
       const model = parseOpenRouterModel(claudeOpus);
-      expect(model.apiId).toBe("claude-opus-4-6");
+      expect(model.apiSlugs.direct).toBe("claude-opus-4-6");
     });
 
     it("normalizes id (dots to hyphens, no provider)", () => {
@@ -38,13 +38,13 @@ describe("parseOpenRouterModel", () => {
     it("handles model IDs without dots", () => {
       const model = parseOpenRouterModel(gpt4o);
       expect(model.id).toBe("gpt-4o");
-      expect(model.apiId).toBe("gpt-4o");
-      expect(model.openRouterId).toBe("openai/gpt-4o");
+      expect(model.apiSlugs.direct).toBe("gpt-4o");
+      expect(model.apiSlugs.openRouter).toBe("openai/gpt-4o");
     });
 
-    it("preserves dots in apiId for non-Anthropic providers", () => {
+    it("preserves dots in apiSlugs.direct for non-Anthropic providers", () => {
       const model = parseOpenRouterModel(flash);
-      expect(model.apiId).toBe("gemini-2.5-flash");
+      expect(model.apiSlugs.direct).toBe("gemini-2.5-flash");
     });
   });
 
@@ -186,11 +186,11 @@ describe("parseOpenRouterCatalog", () => {
 
   it("every model has required fields", () => {
     for (const m of catalog) {
-      expect(m.id, `${m.openRouterId} missing id`).toBeTruthy();
-      expect(m.apiId, `${m.openRouterId} missing apiId`).toBeTruthy();
-      expect(m.openRouterId, `${m.openRouterId} missing openRouterId`).toBeTruthy();
-      expect(m.name, `${m.openRouterId} missing name`).toBeTruthy();
-      expect(m.provider, `${m.openRouterId} missing provider`).toBeTruthy();
+      expect(m.id, `${m.apiSlugs.openRouter} missing id`).toBeTruthy();
+      expect(m.apiSlugs.direct, `${m.apiSlugs.openRouter} missing apiSlugs.direct`).toBeTruthy();
+      expect(m.apiSlugs.openRouter, `${m.apiSlugs.openRouter} missing apiSlugs.openRouter`).toBeTruthy();
+      expect(m.name, `${m.apiSlugs.openRouter} missing name`).toBeTruthy();
+      expect(m.provider, `${m.apiSlugs.openRouter} missing provider`).toBeTruthy();
     }
   });
 
@@ -212,12 +212,12 @@ describe("parseOpenRouterCatalog", () => {
     expect(nonTextFocused.length).toBeGreaterThan(0);
 
     // Non-text models should include known image/audio generators
-    const nonTextIds = nonTextFocused.map((m) => m.openRouterId);
+    const nonTextIds = nonTextFocused.map((m) => m.apiSlugs.openRouter);
     expect(nonTextIds).toContain("openai/gpt-5-image");
   });
 
   it("well-known models are classified into expected tiers", () => {
-    const byId = new Map(catalog.map((m) => [m.openRouterId, m]));
+    const byId = new Map(catalog.map((m) => [m.apiSlugs.openRouter, m]));
 
     const opus = byId.get("anthropic/claude-opus-4.6")!;
     expect(classifyTier(opus)).toBe(Tier.Flagship);

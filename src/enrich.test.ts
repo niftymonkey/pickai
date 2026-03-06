@@ -49,8 +49,7 @@ describe("enrich", () => {
   it("preserves all original Model fields", () => {
     const result = enrich(fixtures.sonnet);
     expect(result.id).toBe(fixtures.sonnet.id);
-    expect(result.apiId).toBe(fixtures.sonnet.apiId);
-    expect(result.openRouterId).toBe(fixtures.sonnet.openRouterId);
+    expect(result.apiSlugs).toEqual(fixtures.sonnet.apiSlugs);
     expect(result.name).toBe(fixtures.sonnet.name);
     expect(result.provider).toBe(fixtures.sonnet.provider);
     expect(result.pricing).toEqual(fixtures.sonnet.pricing);
