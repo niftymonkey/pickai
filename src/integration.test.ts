@@ -64,8 +64,16 @@ describe("integration: full pipeline", () => {
       }
     });
 
-    it("Purpose.Coding returns models with tool support", () => {
-      const result = recommend(enriched, Purpose.Coding, { count: 5 });
+    it("custom profile with require.tools returns models with tool support", () => {
+      const result = recommend(enriched, {
+        preferredTier: Tier.Standard,
+        criteria: [
+          { criterion: costEfficiency, weight: 0.3 },
+          { criterion: recency, weight: 0.4 },
+          { criterion: contextCapacity, weight: 0.3 },
+        ],
+        require: { tools: true },
+      }, { count: 5 });
       expect(result.length).toBeGreaterThan(0);
       for (const m of result) {
         expect(supportsTools(m)).toBe(true);

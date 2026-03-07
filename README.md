@@ -11,81 +11,53 @@ pnpm add pickai
 ```
 
 ```typescript
-import {
-  parseOpenRouterCatalog,
-  enrich, groupByProvider,
-  recommend, Purpose,
-  Tier, Cost,
-} from "pickai";
+import { parseOpenRouterCatalog, enrich, recommend, Purpose } from "pickai";
 
-// Fetch the full model catalog from OpenRouter
 const response = await fetch("https://openrouter.ai/api/v1/models");
-// Parse and enrich with tier, cost, and display fields
 const models = parseOpenRouterCatalog(await response.json()).map(enrich);
 
-// Recommend the best model for a purpose
-const model = recommend(models, Purpose.Balanced); // → top standard-tier model
-recommend(models, Purpose.Cheap, { count: 3 });    // → top 3 efficient-tier models
-recommend(models, Purpose.Coding);                 // → standard-tier with tool calling
-
-// Group by provider for dropdowns, sections, or any grouped UI
-const groups = groupByProvider(models);
-// → [
-//   { provider: "anthropic", providerName: "Anthropic", models: [...] },
-//   { provider: "openai",    providerName: "OpenAI",    models: [...] },
-//   ...
-// ]
-
-// Filter on enriched fields
-models.filter(m => m.costTier <= Cost.Standard);  // affordable models
-models.filter(m => m.tier >= Tier.Standard);       // capable models
-
-// Call the model — every result has ready-to-use IDs
-
-// Call OpenRouter with model.apiSlugs.openRouter
-const routed = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-  body: JSON.stringify({ model: model.apiSlugs.openRouter, messages }), // "anthropic/claude-sonnet-4-5"
-});
-// Call a provider API directly with model.apiSlugs.direct
-const direct = await fetch("https://api.anthropic.com/v1/messages", {
-  body: JSON.stringify({ model: model.apiSlugs.direct, messages }), // "claude-sonnet-4-5-20250929"
-});
-// Call Vercel AI SDK's generateText with model.apiSlugs.direct
-const { text } = await generateText({ model: anthropic(model.apiSlugs.direct!), messages });
+const [model] = recommend(models, Purpose.Balanced); // → top standard-tier model
 ```
 
-### Composable Enrichment
-
-Use individual enrichers when you only need specific fields, or compose them freely:
+Every result has ready-to-use IDs for calling the model:
 
 ```typescript
-import { withClassification, withAaSlug, enrich } from "pickai";
-
-// Just classification (tier + costTier)
-models.map(withClassification);
-
-// Derive Artificial Analysis slugs for benchmark lookups
-models.map(withAaSlug);
-
-// Compose: full enrichment + AA slugs
-models.map(enrich).map(withAaSlug);
-// → each model has tier, costTier, providerName, priceLabel, contextLabel, AND apiSlugs.artificialAnalysis
+model.apiSlugs.openRouter;  // "anthropic/claude-sonnet-4-5" — for OpenRouter API
+model.apiSlugs.direct;      // "claude-sonnet-4-5-20250929"  — for provider APIs / Vercel AI SDK
 ```
 
-### Custom Profiles
-
-The built-in purposes cover common cases, but `recommend()` also accepts a profile object directly — define your own tier preference, scoring weights, and requirements:
+### More you can do
 
 ```typescript
+import { groupByProvider, Tier, Cost } from "pickai";
+
+recommend(models, Purpose.Cheap, { count: 3 });      // top 3 efficient-tier models
+recommend(models, Purpose.Quality);                  // newest flagship-tier models
+
+const groups = groupByProvider(models);             // organize by provider for UI
+models.filter(m => m.costTier <= Cost.Standard);    // affordable models
+models.filter(m => m.tier >= Tier.Standard);        // capable models
+```
+
+### Customize
+
+`recommend()` accepts custom profiles with any mix of built-in and custom scoring criteria — including external benchmark data:
+
+```typescript
+import { recommend, costEfficiency, recency, contextCapacity, Tier } from "pickai";
+
 recommend(models, {
   preferredTier: Tier.Standard,
-  weights: { cost: 0.5, quality: 0.3, context: 0.2 },
+  criteria: [
+    { criterion: costEfficiency, weight: 0.5 },
+    { criterion: recency, weight: 0.3 },
+    { criterion: contextCapacity, weight: 0.2 },
+  ],
   require: { tools: true },
-  exclude: { patterns: ["gpt"] },
 });
 ```
 
-See [Built-in Profiles](docs/api.md#built-in-profiles) for the full list and [Custom Profiles](docs/api.md#custom-profiles) for all available options.
+See [Built-in Profiles](docs/getting-started.md#built-in-profiles), [Custom Profiles](docs/getting-started.md#custom-profiles), and the [Scoring guide](docs/scoring.md) for external benchmark integration.
 
 ## API
 
@@ -94,9 +66,9 @@ See [Built-in Profiles](docs/api.md#built-in-profiles) for the full list and [Cu
 | Get data in | `parseOpenRouterCatalog()` — turns the OpenRouter response into `Model[]` |
 | Pick a model | `recommend(models, purpose)` — scores, filters, and returns the best match |
 | Prepare for UI | `enrich()` adds display labels and tiers; `groupByProvider()` organizes into provider sections |
-| Go deeper | `scoreModels()` and `selectModels()` for custom scoring weights and selection constraints |
+| Blend in benchmarks | `recommend()` with custom criteria, or `scoreModels()` for full control — see [Scoring](docs/scoring.md) |
 
-See the full [API Reference](docs/api.md) for detailed usage, code examples, and configuration options.
+See the full [API Reference](docs/api.md) for types, and the topic guides for [Getting Started](docs/getting-started.md), [Scoring](docs/scoring.md), [Classification](docs/classification.md), and [Utilities](docs/utilities.md).
 
 ## Development
 

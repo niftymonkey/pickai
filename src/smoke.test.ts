@@ -31,9 +31,6 @@ describe("smoke: main entry (pickai)", () => {
     expect(mod.Purpose.Balanced).toBe("balanced");
     expect(mod.Purpose.Cheap).toBe("cheap");
     expect(mod.Purpose.Quality).toBe("quality");
-    expect(mod.Purpose.Coding).toBe("coding");
-    expect(mod.Purpose.Creative).toBe("creative");
-    expect(mod.Purpose.Reviewer).toBe("reviewer");
   });
 
   it("exports Tier constant namespace", async () => {

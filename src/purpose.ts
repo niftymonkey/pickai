@@ -8,19 +8,14 @@
  * Models in the preferred tier are always considered first. Adjacent and
  * distant tiers are only used as fallbacks when the preferred tier can't
  * fill the requested count. This makes tier selection structural and
- * deterministic — the profile weights only control ranking within a tier
+ * deterministic — the profile criteria only control ranking within a tier
  * where models are meaningfully comparable.
- *
- * Weight mappings:
- * - cost → costEfficiency (cheaper is better)
- * - quality → versionFreshness + recency (newer/higher version is better)
- * - context → contextCapacity (larger context is better)
  */
 
-import type { Model, ScoredModel, PurposeProfile, ModelTier, WeightedCriterion } from "./types";
+import type { Model, ScoredModel, PurposeProfile, ModelTier } from "./types";
 import { Tier } from "./types";
 import { classifyTier, isTextFocused } from "./classify";
-import { costEfficiency, contextCapacity, recency, versionFreshness, scoreModels } from "./score";
+import { costEfficiency, contextCapacity, recency, scoreModels } from "./score";
 import { providerDiversity } from "./select";
 
 // ---------------------------------------------------------------------------
@@ -28,7 +23,7 @@ import { providerDiversity } from "./select";
 // ---------------------------------------------------------------------------
 
 /** Union of built-in purpose profile names. */
-export type PurposeName = "cheap" | "balanced" | "quality" | "coding" | "creative" | "reviewer";
+export type PurposeName = "cheap" | "balanced" | "quality";
 
 /**
  * Purpose name constants. Use `Purpose.Balanced` instead of raw `"balanced"`.
@@ -37,9 +32,6 @@ export const Purpose = {
   Cheap: "cheap" as PurposeName,
   Balanced: "balanced" as PurposeName,
   Quality: "quality" as PurposeName,
-  Coding: "coding" as PurposeName,
-  Creative: "creative" as PurposeName,
-  Reviewer: "reviewer" as PurposeName,
 } as const;
 
 /** Options for the recommend() function. */
@@ -59,33 +51,26 @@ export interface RecommendOptions {
 export const purposes: Record<PurposeName, PurposeProfile> = {
   cheap: {
     preferredTier: Tier.Efficient,
-    weights: { cost: 0.6, quality: 0.2, context: 0.2 },
+    criteria: [
+      { criterion: costEfficiency, weight: 0.7 },
+      { criterion: contextCapacity, weight: 0.3 },
+    ],
   },
   balanced: {
     preferredTier: Tier.Standard,
-    weights: { cost: 0.3, quality: 0.4, context: 0.3 },
+    criteria: [
+      { criterion: costEfficiency, weight: 0.3 },
+      { criterion: recency, weight: 0.4 },
+      { criterion: contextCapacity, weight: 0.3 },
+    ],
   },
   quality: {
     preferredTier: Tier.Flagship,
-    weights: { cost: 0.1, quality: 0.7, context: 0.2 },
-  },
-  coding: {
-    preferredTier: Tier.Standard,
-    weights: { cost: 0.2, quality: 0.5, context: 0.3 },
-    require: { tools: true },
-  },
-  creative: {
-    preferredTier: Tier.Flagship,
-    weights: { cost: 0.1, quality: 0.7, context: 0.2 },
-  },
-  reviewer: {
-    preferredTier: Tier.Standard,
-    weights: { cost: 0.2, quality: 0.5, context: 0.3 },
-    require: { tools: true, minContext: 8000 },
-    exclude: {
-      tiers: [Tier.Efficient],
-      patterns: ["code", "coder", "codex", "vision", "-vl", "omni"],
-    },
+    criteria: [
+      { criterion: costEfficiency, weight: 0.1 },
+      { criterion: recency, weight: 0.7 },
+      { criterion: contextCapacity, weight: 0.2 },
+    ],
   },
 };
 
@@ -132,11 +117,8 @@ export function recommend<T extends Model>(
   const filtered = applyFilters(models, profile, textOnly);
   if (filtered.length === 0) return [];
 
-  // Build scoring criteria from profile weights
-  const criteria = buildCriteria(profile);
-
   // Score all filtered models (consistent normalization context)
-  const scored = scoreModels(filtered, criteria);
+  const scored = scoreModels(filtered, profile.criteria);
 
   // Group by tier distance from preferred, then select tier-first
   const tiered = groupByTierDistance(scored, profile.preferredTier);
@@ -175,23 +157,6 @@ function applyFilters<T extends Model>(models: T[], profile: PurposeProfile, tex
     }
     return true;
   });
-}
-
-function buildCriteria(profile: PurposeProfile): WeightedCriterion[] {
-  const criteria: WeightedCriterion[] = [];
-  if (profile.weights.cost > 0) {
-    criteria.push({ criterion: costEfficiency, weight: profile.weights.cost });
-  }
-  if (profile.weights.quality > 0) {
-    // quality = newer/higher version is better (split between version and recency)
-    const half = profile.weights.quality / 2;
-    criteria.push({ criterion: versionFreshness, weight: half });
-    criteria.push({ criterion: recency, weight: half });
-  }
-  if (profile.weights.context > 0) {
-    criteria.push({ criterion: contextCapacity, weight: profile.weights.context });
-  }
-  return criteria;
 }
 
 /** Group scored models into buckets by distance from preferred tier. */
