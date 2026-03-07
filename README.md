@@ -103,6 +103,10 @@ Three layers of tests catch different classes of problems:
 
 Run `pnpm build` before committing to catch type errors that vitest might miss.
 
+## Upgrading
+
+See the [CHANGELOG](CHANGELOG.md) for breaking changes and migration guidance between versions.
+
 ## License
 
 MIT
