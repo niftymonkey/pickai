@@ -120,12 +120,8 @@ export interface WeightedCriterion {
 export interface PurposeProfile {
   /** Preferred tier for this purpose */
   preferredTier: ModelTier;
-  /** Weight distribution for scoring */
-  weights: {
-    cost: number;
-    quality: number;
-    context: number;
-  };
+  /** Weighted scoring criteria — built-in and/or custom */
+  criteria: WeightedCriterion[];
   /** Hard requirements */
   require?: {
     tools?: boolean;

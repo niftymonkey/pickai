@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { purposes, recommend } from "./purpose";
 import type { PurposeName } from "./purpose";
 import { Tier } from "./types";
-import type { Model, PurposeProfile } from "./types";
+import type { Model, PurposeProfile, ScoringCriterion } from "./types";
+import { costEfficiency, contextCapacity, recency } from "./score";
 import { classifyTier, isTextFocused } from "./classify";
 import { createModel, fixtures, allTextModels } from "./test-utils";
 import { parseOpenRouterCatalog } from "./adapters/openrouter";
@@ -20,63 +21,40 @@ const realTextModels = realCatalog.filter(isTextFocused);
 // ============================================
 
 describe("purposes", () => {
-  it("has 6 built-in profiles", () => {
-    expect(Object.keys(purposes)).toHaveLength(6);
+  it("has 3 built-in profiles", () => {
+    expect(Object.keys(purposes)).toHaveLength(3);
   });
 
   it("all profiles have required fields", () => {
     for (const [name, profile] of Object.entries(purposes)) {
       expect(profile.preferredTier, `${name}.preferredTier`).toBeDefined();
-      expect(profile.weights, `${name}.weights`).toBeDefined();
-      expect(profile.weights.cost, `${name}.weights.cost`).toBeTypeOf("number");
-      expect(
-        profile.weights.quality,
-        `${name}.weights.quality`
-      ).toBeTypeOf("number");
-      expect(
-        profile.weights.context,
-        `${name}.weights.context`
-      ).toBeTypeOf("number");
+      expect(profile.criteria, `${name}.criteria`).toBeDefined();
+      expect(profile.criteria.length, `${name}.criteria.length`).toBeGreaterThan(0);
+      for (const c of profile.criteria) {
+        expect(c.criterion, `${name}.criterion`).toBeTypeOf("function");
+        expect(c.weight, `${name}.weight`).toBeTypeOf("number");
+      }
     }
   });
 
   it("cheap profile targets efficient tier with high cost weight", () => {
     expect(purposes.cheap.preferredTier).toBe(Tier.Efficient);
-    expect(purposes.cheap.weights.cost).toBeGreaterThan(
-      purposes.cheap.weights.quality
-    );
+    const costWeight = purposes.cheap.criteria.find(c => c.criterion === costEfficiency)?.weight ?? 0;
+    const contextWeight = purposes.cheap.criteria.find(c => c.criterion === contextCapacity)?.weight ?? 0;
+    expect(costWeight).toBeGreaterThan(contextWeight);
   });
 
   it("balanced profile targets standard tier", () => {
     expect(purposes.balanced.preferredTier).toBe(Tier.Standard);
   });
 
-  it("quality profile targets flagship tier with high quality weight", () => {
+  it("quality profile targets flagship tier with high recency weight", () => {
     expect(purposes.quality.preferredTier).toBe(Tier.Flagship);
-    expect(purposes.quality.weights.quality).toBeGreaterThan(
-      purposes.quality.weights.cost
-    );
+    const costWeight = purposes.quality.criteria.find(c => c.criterion === costEfficiency)?.weight ?? 0;
+    const recencyWeight = purposes.quality.criteria.find(c => c.criterion === recency)?.weight ?? 0;
+    expect(recencyWeight).toBeGreaterThan(costWeight);
   });
 
-  it("coding profile targets standard tier and requires tools", () => {
-    expect(purposes.coding.preferredTier).toBe(Tier.Standard);
-    expect(purposes.coding.require?.tools).toBe(true);
-  });
-
-  it("creative profile targets flagship tier", () => {
-    expect(purposes.creative.preferredTier).toBe(Tier.Flagship);
-  });
-
-  it("reviewer profile requires tools, minContext, and excludes efficient tier", () => {
-    expect(purposes.reviewer.require?.tools).toBe(true);
-    expect(purposes.reviewer.require?.minContext).toBeGreaterThanOrEqual(8000);
-    expect(purposes.reviewer.exclude?.tiers).toContain(Tier.Efficient);
-  });
-
-  it("reviewer profile excludes code/vision specialized patterns", () => {
-    expect(purposes.reviewer.exclude?.patterns).toBeDefined();
-    expect(purposes.reviewer.exclude!.patterns!.length).toBeGreaterThan(0);
-  });
 });
 
 // ============================================
@@ -144,27 +122,6 @@ describe("recommend (real OpenRouter catalog)", () => {
   // -----------------------------------------
 
   describe("all profiles produce reasonable results", () => {
-    it("coding recommends a standard-tier model with tools", () => {
-      const result = recommend(realTextModels, "coding");
-      expect(result).toHaveLength(1);
-      expect(classifyTier(result[0])).toBe(Tier.Standard);
-      expect(result[0].capabilities?.tools).toBe(true);
-    });
-
-    it("creative recommends a flagship-tier model", () => {
-      const result = recommend(realTextModels, "creative");
-      expect(result).toHaveLength(1);
-      expect(classifyTier(result[0])).toBe(Tier.Flagship);
-    });
-
-    it("reviewer recommends a non-efficient model with tools", () => {
-      const result = recommend(realTextModels, "reviewer");
-      expect(result).toHaveLength(1);
-      const tier = classifyTier(result[0]);
-      expect([Tier.Standard, Tier.Flagship]).toContain(tier);
-      expect(result[0].capabilities?.tools).toBe(true);
-    });
-
     it("balanced top pick is a recognizable standard-tier model", () => {
       const result = recommend(realTextModels, "balanced");
       expect(classifyTier(result[0])).toBe(Tier.Standard);
@@ -222,23 +179,26 @@ describe("recommend (real OpenRouter catalog)", () => {
       expect(nonText.length).toBeGreaterThan(0);
     });
 
-    it("coding profile excludes models without tools from real catalog", () => {
-      const result = recommend(realTextModels, "coding", { count: 500 });
-      for (const m of result) {
-        expect(m.capabilities?.tools).toBe(true);
-      }
-    });
-
-    it("reviewer profile excludes efficient-tier models", () => {
-      const result = recommend(realTextModels, "reviewer", { count: 500 });
+    it("custom profile with exclude.tiers filters out specified tiers", () => {
+      const custom: PurposeProfile = {
+        preferredTier: Tier.Standard,
+        criteria: [{ criterion: recency, weight: 1 }],
+        exclude: { tiers: [Tier.Efficient] },
+      };
+      const result = recommend(realTextModels, custom, { count: 500 });
       for (const m of result) {
         expect(classifyTier(m)).not.toBe(Tier.Efficient);
       }
     });
 
-    it("reviewer profile excludes code/vision/omni pattern models", () => {
-      const result = recommend(realTextModels, "reviewer", { count: 500 });
-      const patterns = purposes.reviewer.exclude!.patterns!;
+    it("custom profile with exclude.patterns filters out matching models", () => {
+      const patterns = ["code", "coder", "vision", "-vl"];
+      const custom: PurposeProfile = {
+        preferredTier: Tier.Standard,
+        criteria: [{ criterion: recency, weight: 1 }],
+        exclude: { patterns },
+      };
+      const result = recommend(realTextModels, custom, { count: 500 });
       for (const m of result) {
         for (const p of patterns) {
           expect(m.id.toLowerCase()).not.toContain(p.toLowerCase());
@@ -344,17 +304,59 @@ describe("recommend (synthetic fixtures)", () => {
     it("accepts a full PurposeProfile object", () => {
       const custom: PurposeProfile = {
         preferredTier: Tier.Flagship,
-        weights: { cost: 0, quality: 1, context: 0 },
+        criteria: [
+          { criterion: recency, weight: 1 },
+        ],
       };
       const result = recommend(allTextModels, custom);
       expect(result).toHaveLength(1);
       expect(classifyTier(result[0])).toBe(Tier.Flagship);
     });
 
+    it("custom criterion influences ranking in recommend()", () => {
+      // Create a criterion that always scores fixtures.opus highest
+      const preferOpus: ScoringCriterion = (model) => {
+        return model.id === fixtures.opus.id ? 1.0 : 0.0;
+      };
+      const custom: PurposeProfile = {
+        preferredTier: Tier.Flagship,
+        criteria: [
+          { criterion: preferOpus, weight: 1 },
+        ],
+      };
+      const result = recommend(allTextModels, custom);
+      expect(result[0].id).toBe(fixtures.opus.id);
+    });
+
+    it("custom criterion composes with built-in criteria in recommend()", () => {
+      // A criterion that penalizes expensive models (same direction as costEfficiency)
+      const customCost: ScoringCriterion = (model, allModels) => {
+        const price = model.pricing?.input ?? 0;
+        const maxPrice = Math.max(...allModels.map(m => m.pricing?.input ?? 0));
+        return maxPrice > 0 ? 1 - (price / maxPrice) : 0;
+      };
+      const custom: PurposeProfile = {
+        preferredTier: Tier.Efficient,
+        criteria: [
+          { criterion: customCost, weight: 0.8 },
+          { criterion: contextCapacity, weight: 0.2 },
+        ],
+      };
+      const result = recommend(allTextModels, custom);
+      expect(result).toHaveLength(1);
+      expect(result[0].score).toBeGreaterThan(0);
+      // Should pick an efficient-tier model (cheapest)
+      expect(classifyTier(result[0])).toBe(Tier.Efficient);
+    });
+
     it("custom profile with require/exclude works", () => {
       const custom: PurposeProfile = {
         preferredTier: Tier.Standard,
-        weights: { cost: 0.5, quality: 0.3, context: 0.2 },
+        criteria: [
+          { criterion: costEfficiency, weight: 0.5 },
+          { criterion: recency, weight: 0.3 },
+          { criterion: contextCapacity, weight: 0.2 },
+        ],
         require: { tools: true },
         exclude: { patterns: ["gpt"] },
       };
@@ -371,7 +373,7 @@ describe("recommend (synthetic fixtures)", () => {
   // -----------------------------------------
 
   describe("filtering edge cases", () => {
-    it("reviewer profile excludes vision-specialized model names", () => {
+    it("custom profile excludes models matching name patterns", () => {
       const visionModel = createModel({
         id: "vision-specialist",
         name: "Vision Specialist",
@@ -379,12 +381,18 @@ describe("recommend (synthetic fixtures)", () => {
         capabilities: { tools: true },
         contextWindow: 128000,
       });
+      const custom: PurposeProfile = {
+        preferredTier: Tier.Standard,
+        criteria: [{ criterion: recency, weight: 1 }],
+        require: { tools: true },
+        exclude: { patterns: ["vision"] },
+      };
       const models = [...allTextModels, visionModel];
-      const result = recommend(models, "reviewer", { count: 20 });
+      const result = recommend(models, custom, { count: 20 });
       expect(result.find((m) => m.id === "vision-specialist")).toBeUndefined();
     });
 
-    it("reviewer profile excludes models below minContext", () => {
+    it("custom profile excludes models below minContext", () => {
       const smallCtx = createModel({
         id: "small-ctx-model",
         name: "Small Context Model",
@@ -393,8 +401,13 @@ describe("recommend (synthetic fixtures)", () => {
         contextWindow: 4000,
         pricing: { input: 2, output: 10 },
       });
+      const custom: PurposeProfile = {
+        preferredTier: Tier.Standard,
+        criteria: [{ criterion: recency, weight: 1 }],
+        require: { tools: true, minContext: 8000 },
+      };
       const models = [...allTextModels, smallCtx];
-      const result = recommend(models, "reviewer", { count: 20 });
+      const result = recommend(models, custom, { count: 20 });
       expect(result.find((m) => m.id === "small-ctx-model")).toBeUndefined();
     });
   });
@@ -410,7 +423,13 @@ describe("recommend (synthetic fixtures)", () => {
 
     it("returns empty array when all models filtered out", () => {
       const onlyEfficient = [fixtures.haiku, fixtures.gpt4oMini, fixtures.flash];
-      const result = recommend(onlyEfficient, "reviewer");
+      const custom: PurposeProfile = {
+        preferredTier: Tier.Standard,
+        criteria: [{ criterion: recency, weight: 1 }],
+        require: { tools: true, minContext: 8000 },
+        exclude: { tiers: [Tier.Efficient] },
+      };
+      const result = recommend(onlyEfficient, custom);
       expect(result).toEqual([]);
     });
 
