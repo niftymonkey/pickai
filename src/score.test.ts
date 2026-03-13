@@ -3,12 +3,11 @@ import {
   costEfficiency,
   contextCapacity,
   recency,
-  versionFreshness,
-  tierFit,
+  knowledgeFreshness,
+  outputCapacity,
   scoreModels,
 } from "./score";
-import { Tier } from "./types";
-import { createModel, fixtures, allTextModels } from "./test-utils";
+import { createModel, fixtures, allModels } from "./test-utils";
 
 // ============================================
 // costEfficiency
@@ -17,7 +16,6 @@ import { createModel, fixtures, allTextModels } from "./test-utils";
 describe("costEfficiency", () => {
   it("scores cheaper models higher", () => {
     const models = [fixtures.flash, fixtures.sonnet, fixtures.opus];
-    // flash ($0.075) < sonnet ($3) < opus ($15)
     expect(costEfficiency(fixtures.flash, models)).toBeGreaterThan(
       costEfficiency(fixtures.sonnet, models)
     );
@@ -32,10 +30,10 @@ describe("costEfficiency", () => {
     expect(costEfficiency(fixtures.opus, models)).toBeCloseTo(0.0);
   });
 
-  it("returns 0 when all models have same price (no differentiation)", () => {
+  it("returns 0 when all models have same price", () => {
     const same = [
-      createModel({ id: "a", pricing: { input: 3, output: 15 } }),
-      createModel({ id: "b", pricing: { input: 3, output: 15 } }),
+      createModel({ id: "a", cost: { input: 3, output: 15 } }),
+      createModel({ id: "b", cost: { input: 3, output: 15 } }),
     ];
     expect(costEfficiency(same[0], same)).toBe(0);
     expect(costEfficiency(same[1], same)).toBe(0);
@@ -46,23 +44,19 @@ describe("costEfficiency", () => {
     expect(costEfficiency(fixtures.sonnet, models)).toBe(0);
   });
 
-  it("treats missing pricing as free ($0)", () => {
-    const free = createModel({ id: "free-model", pricing: undefined });
-    const paid = createModel({
-      id: "paid-model",
-      pricing: { input: 5, output: 25 },
-    });
+  it("treats missing cost as free ($0)", () => {
+    const free = createModel({ id: "free-model", cost: undefined });
+    const paid = createModel({ id: "paid-model", cost: { input: 5, output: 25 } });
     const models = [free, paid];
     expect(costEfficiency(free, models)).toBeCloseTo(1.0);
     expect(costEfficiency(paid, models)).toBeCloseTo(0.0);
   });
 
   it("produces correct mid-range normalized value", () => {
-    const cheap = createModel({ id: "cheap", pricing: { input: 0, output: 0 } });
-    const mid = createModel({ id: "mid", pricing: { input: 5, output: 25 } });
-    const expensive = createModel({ id: "expensive", pricing: { input: 10, output: 50 } });
+    const cheap = createModel({ id: "cheap", cost: { input: 0, output: 0 } });
+    const mid = createModel({ id: "mid", cost: { input: 5, output: 25 } });
+    const expensive = createModel({ id: "expensive", cost: { input: 10, output: 50 } });
     const models = [cheap, mid, expensive];
-    // mid is at 5/10 = 0.5 of range, inverted = 0.5
     expect(costEfficiency(mid, models)).toBeCloseTo(0.5);
   });
 });
@@ -74,7 +68,6 @@ describe("costEfficiency", () => {
 describe("contextCapacity", () => {
   it("scores larger context models higher", () => {
     const models = [fixtures.gpt4o, fixtures.sonnet, fixtures.geminiPro];
-    // gpt4o (128K) < sonnet (200K) < geminiPro (1M)
     expect(contextCapacity(fixtures.geminiPro, models)).toBeGreaterThan(
       contextCapacity(fixtures.sonnet, models)
     );
@@ -91,18 +84,10 @@ describe("contextCapacity", () => {
 
   it("returns 0 when all models have same context window", () => {
     const same = [
-      createModel({ id: "a", contextWindow: 128000 }),
-      createModel({ id: "b", contextWindow: 128000 }),
+      createModel({ id: "a", limit: { context: 128_000, output: 4_096 } }),
+      createModel({ id: "b", limit: { context: 128_000, output: 4_096 } }),
     ];
     expect(contextCapacity(same[0], same)).toBe(0);
-  });
-
-  it("treats missing contextWindow as 0", () => {
-    const noCtx = createModel({ id: "no-ctx", contextWindow: undefined });
-    const hasCtx = createModel({ id: "has-ctx", contextWindow: 128000 });
-    const models = [noCtx, hasCtx];
-    expect(contextCapacity(noCtx, models)).toBeCloseTo(0.0);
-    expect(contextCapacity(hasCtx, models)).toBeCloseTo(1.0);
   });
 
   it("handles single model (returns 0)", () => {
@@ -111,9 +96,9 @@ describe("contextCapacity", () => {
   });
 
   it("produces correct mid-range normalized value", () => {
-    const small = createModel({ id: "small", contextWindow: 0 });
-    const mid = createModel({ id: "mid", contextWindow: 50000 });
-    const large = createModel({ id: "large", contextWindow: 100000 });
+    const small = createModel({ id: "small", limit: { context: 0, output: 0 } });
+    const mid = createModel({ id: "mid", limit: { context: 50_000, output: 0 } });
+    const large = createModel({ id: "large", limit: { context: 100_000, output: 0 } });
     const models = [small, mid, large];
     expect(contextCapacity(mid, models)).toBeCloseTo(0.5);
   });
@@ -126,7 +111,6 @@ describe("contextCapacity", () => {
 describe("recency", () => {
   it("scores newer models higher", () => {
     const models = [fixtures.gpt4o, fixtures.sonnet, fixtures.gpt52];
-    // gpt4o (2024-11-20) < sonnet (2025-09-29) < gpt52 (2026-01-15)
     expect(recency(fixtures.gpt52, models)).toBeGreaterThan(
       recency(fixtures.sonnet, models)
     );
@@ -143,15 +127,15 @@ describe("recency", () => {
 
   it("returns 0 when all models have same date", () => {
     const same = [
-      createModel({ id: "a", created: "2025-01-01" }),
-      createModel({ id: "b", created: "2025-01-01" }),
+      createModel({ id: "a", releaseDate: "2025-01-01" }),
+      createModel({ id: "b", releaseDate: "2025-01-01" }),
     ];
     expect(recency(same[0], same)).toBe(0);
   });
 
-  it("treats missing created date as epoch (oldest)", () => {
-    const noDate = createModel({ id: "no-date", created: undefined });
-    const hasDate = createModel({ id: "has-date", created: "2025-06-01" });
+  it("treats missing releaseDate as epoch (oldest)", () => {
+    const noDate = createModel({ id: "no-date" });
+    const hasDate = createModel({ id: "has-date", releaseDate: "2025-06-01" });
     const models = [noDate, hasDate];
     expect(recency(noDate, models)).toBeCloseTo(0.0);
     expect(recency(hasDate, models)).toBeCloseTo(1.0);
@@ -164,80 +148,76 @@ describe("recency", () => {
 });
 
 // ============================================
-// versionFreshness
+// knowledgeFreshness
 // ============================================
 
-describe("versionFreshness", () => {
-  it("scores higher version models higher", () => {
-    const models = [fixtures.geminiPro, fixtures.sonnet, fixtures.gpt52];
-    // geminiPro ("gemini-2-5-pro" → 200) < sonnet ("claude-sonnet-4-5" → 400) < gpt52 ("gpt-5-2" → 500)
-    expect(versionFreshness(fixtures.gpt52, models)).toBeGreaterThan(
-      versionFreshness(fixtures.sonnet, models)
+describe("knowledgeFreshness", () => {
+  it("scores newer knowledge cutoff higher", () => {
+    const models = [fixtures.gpt4o, fixtures.sonnet, fixtures.gpt52];
+    // gpt4o: 2024-06, sonnet: 2025-03, gpt52: 2025-09
+    expect(knowledgeFreshness(fixtures.gpt52, models)).toBeGreaterThan(
+      knowledgeFreshness(fixtures.sonnet, models)
     );
-    expect(versionFreshness(fixtures.sonnet, models)).toBeGreaterThan(
-      versionFreshness(fixtures.geminiPro, models)
+    expect(knowledgeFreshness(fixtures.sonnet, models)).toBeGreaterThan(
+      knowledgeFreshness(fixtures.gpt4o, models)
     );
   });
 
-  it("returns 1.0 for highest version and 0.0 for lowest", () => {
-    const models = [fixtures.geminiPro, fixtures.gpt52];
-    // geminiPro → 200, gpt52 → 500
-    expect(versionFreshness(fixtures.gpt52, models)).toBeCloseTo(1.0);
-    expect(versionFreshness(fixtures.geminiPro, models)).toBeCloseTo(0.0);
+  it("returns 1.0 for newest knowledge and 0.0 for oldest", () => {
+    const old = createModel({ id: "old", knowledge: "2023-01" });
+    const newer = createModel({ id: "new", knowledge: "2025-06" });
+    const models = [old, newer];
+    expect(knowledgeFreshness(newer, models)).toBeCloseTo(1.0);
+    expect(knowledgeFreshness(old, models)).toBeCloseTo(0.0);
   });
 
-  it("returns 0 when all models have no version", () => {
+  it("treats missing knowledge as oldest", () => {
+    const noKnowledge = createModel({ id: "no-k" });
+    const hasKnowledge = createModel({ id: "has-k", knowledge: "2025-01" });
+    const models = [noKnowledge, hasKnowledge];
+    expect(knowledgeFreshness(noKnowledge, models)).toBeCloseTo(0.0);
+    expect(knowledgeFreshness(hasKnowledge, models)).toBeCloseTo(1.0);
+  });
+
+  it("returns 0 when all models have same knowledge", () => {
     const same = [
-      createModel({ id: "model-a" }),
-      createModel({ id: "model-b" }),
+      createModel({ id: "a", knowledge: "2025-01" }),
+      createModel({ id: "b", knowledge: "2025-01" }),
     ];
-    expect(versionFreshness(same[0], same)).toBe(0);
-  });
-
-  it("handles single model (returns 0)", () => {
-    const models = [fixtures.sonnet];
-    expect(versionFreshness(fixtures.sonnet, models)).toBe(0);
-  });
-
-  it("handles mix of versioned and unversioned models", () => {
-    const unversioned = createModel({ id: "deepseek-chat" });
-    const versioned = createModel({ id: "gpt-5-2" });
-    const models = [unversioned, versioned];
-    // unversioned → 0, versioned → 500
-    expect(versionFreshness(versioned, models)).toBeCloseTo(1.0);
-    expect(versionFreshness(unversioned, models)).toBeCloseTo(0.0);
+    expect(knowledgeFreshness(same[0], same)).toBe(0);
   });
 });
 
 // ============================================
-// tierFit
+// outputCapacity
 // ============================================
 
-describe("tierFit", () => {
-  it("returns 1.0 for exact tier match", () => {
-    const criterion = tierFit(Tier.Standard);
-    expect(criterion(fixtures.sonnet, allTextModels)).toBeCloseTo(1.0);
+describe("outputCapacity", () => {
+  it("scores larger output limit higher", () => {
+    const models = [fixtures.haiku, fixtures.sonnet, fixtures.geminiPro];
+    // haiku: 8192, sonnet: 16000, geminiPro: 65536
+    expect(outputCapacity(fixtures.geminiPro, models)).toBeGreaterThan(
+      outputCapacity(fixtures.sonnet, models)
+    );
+    expect(outputCapacity(fixtures.sonnet, models)).toBeGreaterThan(
+      outputCapacity(fixtures.haiku, models)
+    );
   });
 
-  it("returns 0.5 for adjacent tier", () => {
-    const criterion = tierFit(Tier.Standard);
-    // efficient is adjacent to standard
-    expect(criterion(fixtures.haiku, allTextModels)).toBeCloseTo(0.5);
-    // flagship is adjacent to standard
-    expect(criterion(fixtures.opus, allTextModels)).toBeCloseTo(0.5);
+  it("returns 1.0 for largest and 0.0 for smallest", () => {
+    const small = createModel({ id: "small", limit: { context: 0, output: 100 } });
+    const large = createModel({ id: "large", limit: { context: 0, output: 1000 } });
+    const models = [small, large];
+    expect(outputCapacity(large, models)).toBeCloseTo(1.0);
+    expect(outputCapacity(small, models)).toBeCloseTo(0.0);
   });
 
-  it("returns 0.1 for distant tier", () => {
-    const criterion = tierFit(Tier.Efficient);
-    // flagship is 2 steps from efficient
-    expect(criterion(fixtures.opus, allTextModels)).toBeCloseTo(0.1);
-  });
-
-  it("flagship target: flagship=1.0, standard=0.5, efficient=0.1", () => {
-    const criterion = tierFit(Tier.Flagship);
-    expect(criterion(fixtures.opus, allTextModels)).toBeCloseTo(1.0);
-    expect(criterion(fixtures.sonnet, allTextModels)).toBeCloseTo(0.5);
-    expect(criterion(fixtures.haiku, allTextModels)).toBeCloseTo(0.1);
+  it("returns 0 when all models have same output limit", () => {
+    const same = [
+      createModel({ id: "a", limit: { context: 0, output: 4096 } }),
+      createModel({ id: "b", limit: { context: 0, output: 4096 } }),
+    ];
+    expect(outputCapacity(same[0], same)).toBe(0);
   });
 });
 
@@ -252,14 +232,12 @@ describe("scoreModels", () => {
       { criterion: costEfficiency, weight: 1 },
     ]);
     expect(result).toHaveLength(3);
-    // Cheapest first when scoring by cost efficiency
     expect(result[0].id).toBe(fixtures.haiku.id);
     expect(result[result.length - 1].id).toBe(fixtures.opus.id);
   });
 
   it("normalizes weights to sum to 1", () => {
     const models = [fixtures.haiku, fixtures.sonnet];
-    // Weights 2 and 8 should behave the same as 0.2 and 0.8
     const result1 = scoreModels(models, [
       { criterion: costEfficiency, weight: 2 },
       { criterion: contextCapacity, weight: 8 },
@@ -273,9 +251,9 @@ describe("scoreModels", () => {
   });
 
   it("returns scores in the 0-1 range", () => {
-    const result = scoreModels(allTextModels, [
+    const result = scoreModels(allModels, [
       { criterion: costEfficiency, weight: 0.5 },
-      { criterion: tierFit(Tier.Standard), weight: 0.5 },
+      { criterion: recency, weight: 0.5 },
     ]);
     for (const m of result) {
       expect(m.score).toBeGreaterThanOrEqual(0);
@@ -284,9 +262,7 @@ describe("scoreModels", () => {
   });
 
   it("returns empty array for empty input", () => {
-    expect(scoreModels([], [{ criterion: costEfficiency, weight: 1 }])).toEqual(
-      []
-    );
+    expect(scoreModels([], [{ criterion: costEfficiency, weight: 1 }])).toEqual([]);
   });
 
   it("handles all-zero weights gracefully (all scores 0)", () => {
@@ -304,7 +280,7 @@ describe("scoreModels", () => {
       { criterion: costEfficiency, weight: 1 },
     ]);
     expect(result[0].provider).toBe("anthropic");
-    expect(result[0].contextWindow).toBe(200000);
+    expect(result[0].limit.context).toBe(200_000);
     expect(result[0]).toHaveProperty("score");
   });
 
@@ -313,7 +289,6 @@ describe("scoreModels", () => {
     const result = scoreModels(models, [
       { criterion: costEfficiency, weight: 1 },
     ]);
-    // flash is cheapest → score should be costEfficiency value
     expect(result[0].id).toBe(fixtures.flash.id);
     expect(result[0].score).toBeCloseTo(costEfficiency(fixtures.flash, models));
     expect(result[1].score).toBeCloseTo(costEfficiency(fixtures.opus, models));
@@ -321,20 +296,25 @@ describe("scoreModels", () => {
 
   it("dominant weight controls ranking", () => {
     const models = [fixtures.haiku, fixtures.opus];
-    // haiku wins cost, opus wins context (200K vs 200K — same, but tierFit differs)
-    // With 95% weight on tierFit(Flagship), opus should win
-    const flagshipHeavy = scoreModels(models, [
+    // With 95% weight on recency, newer model should win
+    const recencyHeavy = scoreModels(models, [
       { criterion: costEfficiency, weight: 0.05 },
-      { criterion: tierFit(Tier.Flagship), weight: 0.95 },
+      { criterion: recency, weight: 0.95 },
     ]);
-    expect(flagshipHeavy[0].id).toBe(fixtures.opus.id);
-
-    // With 95% weight on costEfficiency, haiku should win
-    const costHeavy = scoreModels(models, [
+    // Both have similar release dates (2025-10-01 vs 2025-09-29), so recency alone
+    // won't differentiate much. Use a clearer test:
+    const models2 = [fixtures.gpt4oMini, fixtures.gpt52];
+    const costHeavy = scoreModels(models2, [
       { criterion: costEfficiency, weight: 0.95 },
-      { criterion: tierFit(Tier.Flagship), weight: 0.05 },
+      { criterion: recency, weight: 0.05 },
     ]);
-    expect(costHeavy[0].id).toBe(fixtures.haiku.id);
+    expect(costHeavy[0].id).toBe(fixtures.gpt4oMini.id); // cheaper
+
+    const recencyHeavy2 = scoreModels(models2, [
+      { criterion: costEfficiency, weight: 0.05 },
+      { criterion: recency, weight: 0.95 },
+    ]);
+    expect(recencyHeavy2[0].id).toBe(fixtures.gpt52.id); // newer
   });
 
   it("handles empty criteria array (all scores 0)", () => {

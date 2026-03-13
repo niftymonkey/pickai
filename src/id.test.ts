@@ -18,6 +18,7 @@ import {
   toDirectFormat,
   matchesModel,
   extractVersion,
+  deriveOpenRouterId,
 } from "./id";
 
 // ---------------------------------------------------------------------------
@@ -322,6 +323,44 @@ describe("parseModelId", () => {
     expect(result.provider).toBe("anthropic");
     expect(result.model).toBe("claude-3-7-sonnet");
     expect(result.variant).toBe("thinking");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deriveOpenRouterId
+// ---------------------------------------------------------------------------
+describe("deriveOpenRouterId", () => {
+  it("converts Anthropic trailing version hyphens to dots", () => {
+    expect(deriveOpenRouterId("anthropic", "claude-sonnet-4-5")).toBe(
+      "anthropic/claude-sonnet-4.5"
+    );
+    expect(deriveOpenRouterId("anthropic", "claude-opus-4-5")).toBe(
+      "anthropic/claude-opus-4.5"
+    );
+    expect(deriveOpenRouterId("anthropic", "claude-haiku-4-5")).toBe(
+      "anthropic/claude-haiku-4.5"
+    );
+  });
+
+  it("handles Anthropic single-digit versions (no conversion needed)", () => {
+    expect(deriveOpenRouterId("anthropic", "claude-sonnet-4")).toBe(
+      "anthropic/claude-sonnet-4"
+    );
+  });
+
+  it("passes through non-Anthropic providers unchanged", () => {
+    expect(deriveOpenRouterId("openai", "gpt-4o")).toBe("openai/gpt-4o");
+    expect(deriveOpenRouterId("google", "gemini-2-5-flash")).toBe(
+      "google/gemini-2-5-flash"
+    );
+    expect(deriveOpenRouterId("deepseek", "deepseek-r1")).toBe(
+      "deepseek/deepseek-r1"
+    );
+  });
+
+  it("handles OpenAI models with version numbers unchanged", () => {
+    expect(deriveOpenRouterId("openai", "gpt-5-2")).toBe("openai/gpt-5-2");
+    expect(deriveOpenRouterId("openai", "gpt-5-2-pro")).toBe("openai/gpt-5-2-pro");
   });
 });
 

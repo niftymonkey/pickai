@@ -184,6 +184,25 @@ export function extractVersion(modelId: string): number {
   return 0;
 }
 
+/**
+ * Derive the OpenRouter API slug from a provider and model ID.
+ *
+ * Most providers: `{provider}/{id}`.
+ * Anthropic: converts trailing version-number hyphens to dots
+ * (e.g., "claude-sonnet-4-5" → "anthropic/claude-sonnet-4.5").
+ */
+export function deriveOpenRouterId(provider: string, modelId: string): string {
+  let slug = modelId;
+  if (provider === "anthropic") {
+    // Convert trailing version hyphens to dots: claude-sonnet-4-5 → claude-sonnet-4.5
+    // Match one or more -digit sequences at the end of the string
+    slug = slug.replace(/(?<=-\d+)(-\d+)$/, (match) => "." + match.slice(1));
+    // Also handle three-part versions like claude-opus-4-5-0
+    slug = slug.replace(/(?<=-\d+\.\d+)(-\d+)$/, (match) => "." + match.slice(1));
+  }
+  return `${provider}/${slug}`;
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------

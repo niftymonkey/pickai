@@ -1,138 +1,155 @@
 /**
- * Core types for pickai
+ * Core types for pickai v2
  *
- * The shared vocabulary for model intelligence.
+ * Metadata-first model intelligence powered by models.dev.
  */
 
-// Branded types — ModelTier and CostTier are nominally distinct even though
-// both contain a "standard" string value. The brand exists only at compile time;
-// runtime values are plain strings.
-declare const __brand: unique symbol;
-type Branded<T, B> = T & { readonly [__brand]: B };
+// ---------------------------------------------------------------------------
+// Model shape
+// ---------------------------------------------------------------------------
 
-/** Model tier based on capability/size. */
-export type ModelTier = Branded<string, "ModelTier">;
+/** Pricing per 1M tokens (USD). */
+export interface ModelCost {
+  input: number;
+  output: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+}
 
-/** Cost tier based on pricing per 1M input tokens. */
-export type CostTier = Branded<string, "CostTier">;
+/** Token limits. */
+export interface ModelLimit {
+  context: number;
+  output: number;
+}
 
-/**
- * Capability tier constants. Use `Tier.Flagship` instead of raw `"flagship"`.
- */
-export const Tier = {
-  Efficient: "efficient" as ModelTier,
-  Standard: "standard" as ModelTier,
-  Flagship: "flagship" as ModelTier,
-} as const;
-
-/**
- * Cost tier constants. Use `Cost.Premium` instead of raw `"premium"`.
- */
-export const Cost = {
-  Free: "free" as CostTier,
-  Budget: "budget" as CostTier,
-  Standard: "standard" as CostTier,
-  Premium: "premium" as CostTier,
-  Ultra: "ultra" as CostTier,
-} as const;
-
-/**
- * Pre-computed API identifiers for different calling conventions.
- */
-export interface ApiSlugs {
-  /** For OpenRouter API: "anthropic/claude-sonnet-4-5" */
-  openRouter: string;
-  /** For direct provider APIs / Vercel AI SDK: "claude-sonnet-4-5-20250929" */
-  direct?: string;
-  /** For Artificial Analysis benchmark lookups: "claude-sonnet-4-5" */
-  artificialAnalysis?: string;
+/** Input/output modality lists. */
+export interface ModelModalities {
+  input: string[];
+  output: string[];
 }
 
 /**
  * Normalized model representation across all providers.
  *
- * `id` is the model's base identity ("claude-sonnet-4-5", "gpt-4o").
- * `apiSlugs` holds pre-computed IDs for different calling conventions —
- * consumers just grab the one they need, no conversion at call time.
+ * `id` is the models.dev ID, which matches direct provider API / AI SDK format.
+ * `openRouterId` is the OpenRouter API slug, derived at parse time.
  */
 export interface Model {
-  /** The model's base identity: "claude-sonnet-4-5", "gpt-4o", "gemini-2.5-flash" */
+  /** models.dev ID: "claude-sonnet-4-5", "gpt-4o", "gemini-2.5-flash" */
   id: string;
-  /** Pre-computed API identifiers for different calling conventions */
-  apiSlugs: ApiSlugs;
   /** Human-readable display name */
   name: string;
-  /** Provider slug (e.g., "anthropic", "openai", "google") */
+  /** Provider slug: "anthropic", "openai", "google" */
   provider: string;
   /** Brief description */
   description?: string;
-  /** Context window in tokens */
-  contextWindow?: number;
-  /** Pricing per 1M tokens (USD) */
-  pricing?: {
-    /** Cost per 1M input tokens */
-    input: number;
-    /** Cost per 1M output tokens */
-    output: number;
-  };
+  /** Pricing per 1M tokens (USD). Undefined = unknown pricing. */
+  cost?: ModelCost;
+  /** Token limits (context window, max output) */
+  limit: ModelLimit;
   /** Input/output modalities */
-  modality?: {
-    input: string[];
-    output: string[];
-  };
-  /** Capability flags */
-  capabilities?: {
-    tools?: boolean;
-    vision?: boolean;
-    streaming?: boolean;
-    json?: boolean;
-  };
-  /** Model creation/release date (ISO string or timestamp) */
-  created?: string;
+  modalities: ModelModalities;
+  /** Supports chain-of-thought / extended thinking */
+  reasoning?: boolean;
+  /** Supports tool/function calling */
+  toolCall?: boolean;
+  /** Supports structured output / JSON mode */
+  structuredOutput?: boolean;
+  /** Open-weights model */
+  openWeights?: boolean;
+  /** Supports file/image attachments */
+  attachment?: boolean;
+  /** Model family: "claude", "gpt", "gemini" */
+  family?: string;
+  /** Knowledge cutoff date: "2024-06", "2025-03" */
+  knowledge?: string;
+  /** Release date: "2025-09-29" */
+  releaseDate?: string;
+  /** Last updated date */
+  lastUpdated?: string;
+  /** Model status: "active", "deprecated", "beta" */
+  status?: string;
+  /** AI SDK provider package: "@ai-sdk/anthropic" */
+  sdk?: string;
+  /** OpenRouter API slug: "anthropic/claude-sonnet-4.5" */
+  openRouterId: string;
 }
+
+// ---------------------------------------------------------------------------
+// Scoring
+// ---------------------------------------------------------------------------
 
 /**
  * Model with a computed score attached.
- * Generic preserves enrichment: score EnrichedModel[], get ScoredModel<EnrichedModel>[] back.
+ * Generic preserves the input type: score Model[], get ScoredModel<Model>[].
  */
 export type ScoredModel<T extends Model = Model> = T & {
   /** Computed score (0-1 range, higher is better) */
   score: number;
 };
 
-/**
- * A scoring function that evaluates a model relative to the full set.
- * Returns a value in the 0-1 range.
- */
+/** Scores a model relative to the full set. Returns 0-1. */
 export type ScoringCriterion = (model: Model, allModels: Model[]) => number;
 
-/**
- * A criterion paired with its weight.
- */
+/** A criterion paired with its relative weight. */
 export interface WeightedCriterion {
   criterion: ScoringCriterion;
   weight: number;
 }
 
-/**
- * Purpose profile for model recommendation.
- */
-export interface PurposeProfile {
-  /** Preferred tier for this purpose */
-  preferredTier: ModelTier;
-  /** Weighted scoring criteria — built-in and/or custom */
-  criteria: WeightedCriterion[];
-  /** Hard requirements */
-  require?: {
-    tools?: boolean;
-    minContext?: number;
-  };
-  /** Exclusion rules */
-  exclude?: {
-    tiers?: ModelTier[];
-    patterns?: string[];
-  };
+// ---------------------------------------------------------------------------
+// Filtering
+// ---------------------------------------------------------------------------
+
+/** Declarative model filter. All fields are AND-combined. */
+export interface ModelFilter {
+  /** Require reasoning capability */
+  reasoning?: boolean;
+  /** Require tool/function calling */
+  toolCall?: boolean;
+  /** Require structured output */
+  structuredOutput?: boolean;
+  /** Require open weights */
+  openWeights?: boolean;
+  /** Require attachment support */
+  attachment?: boolean;
+  /** Max input cost per 1M tokens (USD) */
+  maxCostInput?: number;
+  /** Max output cost per 1M tokens (USD) */
+  maxCostOutput?: number;
+  /** Minimum context window (tokens) */
+  minContext?: number;
+  /** Minimum output limit (tokens) */
+  minOutput?: number;
+  /** Include only these providers */
+  providers?: string[];
+  /** Exclude these providers */
+  excludeProviders?: string[];
+  /** Require these input modalities */
+  inputModalities?: string[];
+  /** Require these output modalities */
+  outputModalities?: string[];
+  /** Exclude deprecated models (default: true) */
+  excludeDeprecated?: boolean;
+  /** Minimum knowledge cutoff: "2024-06" */
+  minKnowledge?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Purpose profiles
+// ---------------------------------------------------------------------------
+
+/** Purpose profile for model recommendation. */
+export interface PurposeProfile {
+  /** Pre-filter applied before scoring */
+  filter?: ModelFilter;
+  /** Weighted scoring criteria */
+  criteria: WeightedCriterion[];
+}
+
+// ---------------------------------------------------------------------------
+// Constraints
+// ---------------------------------------------------------------------------
 
 /**
  * Constraint function for model selection.
@@ -140,14 +157,34 @@ export interface PurposeProfile {
  */
 export type Constraint = (selected: Model[], candidate: Model) => boolean;
 
-/**
- * Options for the selectModels function.
- */
-export interface SelectionOptions {
-  /** Number of models to select (default: 1) */
-  count?: number;
-  /** Constraints to apply during selection */
+// ---------------------------------------------------------------------------
+// API options
+// ---------------------------------------------------------------------------
+
+/** Options for find(). */
+export interface FindOptions {
+  /** Filter models. Object for declarative, function for custom logic. */
+  filter?: ModelFilter | ((model: Model) => boolean);
+  /** Sort order. Default: recency (newest first). */
+  sort?: "costAsc" | ((a: Model, b: Model) => number);
+  /** Maximum number of results. */
+  limit?: number;
+}
+
+/** Options for recommend(). */
+export interface RecommendOptions {
+  /** Additional filter combined with the profile's filter. */
+  filter?: ModelFilter | ((model: Model) => boolean);
+  /** Selection constraints (e.g., perProvider, perFamily). */
   constraints?: Constraint[];
-  /** Pre-filter function */
-  filter?: (model: Model) => boolean;
+  /** Number of models to return (default: 1). */
+  limit?: number;
+}
+
+/** The picker API returned by createPicker(). */
+export interface Picker {
+  /** Discovery: filter and sort models. */
+  find(options?: FindOptions): Model[];
+  /** Recommendation: scored ranking using a purpose profile. */
+  recommend(profile: PurposeProfile, options?: RecommendOptions): ScoredModel[];
 }
