@@ -457,7 +457,7 @@ const qualityIndex: ScoringCriterion = (model, allModels) => {
   const entry = aaData.find(m => m.id === model.id || m.name === model.name)
   if (!entry?.intelligence_index) return 0
 
-  const allScores = aaData.map(m => m.intelligence_index).filter(Boolean)
+  const allScores = aaData.map(m => m.intelligence_index).filter((v): v is number => Number.isFinite(v))
   const min = Math.min(...allScores)
   const max = Math.max(...allScores)
   if (max === min) return 0
@@ -468,7 +468,7 @@ const outputSpeed: ScoringCriterion = (model, allModels) => {
   const entry = aaData.find(m => m.id === model.id || m.name === model.name)
   if (!entry?.output_speed) return 0
 
-  const allSpeeds = aaData.map(m => m.output_speed).filter(Boolean)
+  const allSpeeds = aaData.map(m => m.output_speed).filter((v): v is number => Number.isFinite(v))
   const min = Math.min(...allSpeeds)
   const max = Math.max(...allSpeeds)
   if (max === min) return 0
