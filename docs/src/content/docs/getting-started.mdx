@@ -1,0 +1,79 @@
+---
+title: Getting Started
+description: Install pickai and make your first model recommendation in under a minute.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import quickStart from '../../../../examples/quick-start.ts?raw';
+
+## Installation
+
+```bash
+pnpm add pickai
+```
+
+pickai has zero runtime dependencies. It uses the platform `fetch` API (Node 18+, Deno, Bun, Cloudflare Workers).
+
+## Your First Picker
+
+<Code code={quickStart} lang="ts" title="quick-start.ts" />
+
+`createPicker` takes a **source function** that loads model data. `fromModelsDev()` fetches the full catalog from [models.dev](https://models.dev) — 3,700+ models from 100+ providers.
+
+The picker exposes two methods:
+
+- **`find()`** — Filter and sort models by metadata. Returns `Model[]`.
+- **`recommend()`** — Score and rank models using a purpose profile. Returns `ScoredModel[]` with a `score` property (0–1).
+
+## Two API Paths
+
+### find() — "What's available?"
+
+Use `find()` when you know what you want and need to browse or narrow down options.
+
+```ts
+// All OpenAI models with reasoning, newest first
+const reasoning = pick.find({
+  filter: { providers: ["openai"], reasoning: true },
+});
+
+// Cheapest models overall
+const budget = pick.find({ sort: "costAsc", limit: 5 });
+```
+
+### recommend() — "What's best for my use case?"
+
+Use `recommend()` when you want pickai to score and rank models against weighted criteria.
+
+```ts
+import { Purpose } from "pickai";
+
+// Single best model for coding (default limit: 1)
+const [best] = pick.recommend(Purpose.Coding);
+
+// Top 5 quality models from Anthropic only
+const top = pick.recommend(Purpose.Quality, {
+  filter: { providers: ["anthropic"] },
+  limit: 5,
+});
+```
+
+## Built-in Purpose Profiles
+
+pickai ships with six profiles that work out of the box:
+
+| Profile | Filter | Emphasis |
+|---------|--------|----------|
+| `Purpose.Cheap` | — | Cost efficiency (70%), context size (30%) |
+| `Purpose.Balanced` | — | Equal weight: cost, recency, context, knowledge |
+| `Purpose.Quality` | — | Recency (50%), knowledge (30%), context (20%) |
+| `Purpose.Coding` | `toolCall` + `structuredOutput` | Recency, knowledge, context size |
+| `Purpose.Creative` | — | Context size (40%), recency (30%), knowledge (20%) |
+| `Purpose.Reasoning` | `reasoning` | Recency (50%), knowledge (30%), context (20%) |
+
+## Next Steps
+
+- [Filtering Models](/guides/filtering/) — Learn about declarative filters and predicate functions
+- [Scoring & Ranking](/guides/scoring/) — Understand how scoring criteria work and write your own
+- [Purpose Profiles](/guides/purpose-profiles/) — Build custom profiles for your specific use case
+- [API Reference](/reference/create-picker/) — Full API documentation
