@@ -28,6 +28,13 @@ function range(values: number[]): { min: number; max: number } {
   return { min, max };
 }
 
+/** Parse a date string to a timestamp, returning 0 for missing or invalid values. */
+function safeTimestamp(value?: string): number {
+  if (!value) return 0;
+  const ts = new Date(value).getTime();
+  return Number.isNaN(ts) ? 0 : ts;
+}
+
 // ---------------------------------------------------------------------------
 // Scoring criteria
 // ---------------------------------------------------------------------------
@@ -57,12 +64,9 @@ export const contextCapacity: ScoringCriterion = (model, allModels) => {
  * Missing releaseDate treated as epoch (oldest).
  */
 export const recency: ScoringCriterion = (model, allModels) => {
-  const timestamps = allModels.map((m) =>
-    m.releaseDate ? new Date(m.releaseDate).getTime() : 0
-  );
+  const timestamps = allModels.map((m) => safeTimestamp(m.releaseDate));
   const { min, max } = range(timestamps);
-  const ts = model.releaseDate ? new Date(model.releaseDate).getTime() : 0;
-  return minMax(ts, min, max);
+  return minMax(safeTimestamp(model.releaseDate), min, max);
 };
 
 /**
@@ -70,7 +74,7 @@ export const recency: ScoringCriterion = (model, allModels) => {
  * Missing knowledge treated as oldest ("0000-00").
  */
 export const knowledgeFreshness: ScoringCriterion = (model, allModels) => {
-  const toNum = (k?: string) => (k ? new Date(k + "-01").getTime() : 0);
+  const toNum = (k?: string) => safeTimestamp(k ? k + "-01" : undefined);
   const values = allModels.map((m) => toNum(m.knowledge));
   const { min, max } = range(values);
   return minMax(toNum(model.knowledge), min, max);

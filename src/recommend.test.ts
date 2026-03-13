@@ -87,6 +87,12 @@ describe("recommend", () => {
     expect(result.every((m) => m.reasoning === true)).toBe(true);
   });
 
+  it("excludes deprecated models even without profile filter", () => {
+    const modelsWithDeprecated = [...allModels, fixtures.deprecated];
+    const result = recommend(modelsWithDeprecated, cheapProfile, { limit: 20 });
+    expect(result.find((m) => m.status === "deprecated")).toBeUndefined();
+  });
+
   it("returns empty array when no models match filter", () => {
     const impossible: PurposeProfile = {
       filter: { providers: ["nonexistent"] },

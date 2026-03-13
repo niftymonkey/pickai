@@ -25,10 +25,9 @@ export function recommend<T extends Model>(
 ): ScoredModel<T>[] {
   const { filter: optionsFilter, constraints, limit = 1 } = options;
 
-  // Step 1: Apply profile filter
-  let candidates: T[] = profile.filter
-    ? applyFilter(models, profile.filter)
-    : models;
+  // Step 1: Apply profile filter (always runs through applyFilter so
+  // excludeDeprecated defaults to true even for profiles without a filter)
+  let candidates: T[] = applyFilter(models, profile.filter ?? {});
 
   // Step 2: Apply options filter
   if (optionsFilter) {

@@ -26,8 +26,10 @@ export function find(models: Model[], options: FindOptions = {}): Model[] {
   } else {
     // Default: recency descending (newest first)
     result = [...result].sort((a, b) => {
-      const aTime = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
-      const bTime = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
+      const aDate = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
+      const bDate = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
+      const aTime = Number.isNaN(aDate) ? 0 : aDate;
+      const bTime = Number.isNaN(bDate) ? 0 : bDate;
       return bTime - aTime;
     });
   }
