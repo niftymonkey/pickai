@@ -26,6 +26,7 @@ import { createPicker, modelsDev } from "pickai"
 const pick = await createPicker(modelsDev())
 
 // Or with pre-fetched data (offline, testing, custom source)
+import fs from "node:fs"
 const myData = JSON.parse(fs.readFileSync('./models-snapshot.json', 'utf8'))
 const pick = await createPicker(modelsDev(myData))
 ```
@@ -397,6 +398,7 @@ function lmarenaCriterion(
     const allScores = Object.values(scores)
     const min = Math.min(...allScores)
     const max = Math.max(...allScores)
+    if (max === min) return 0
     return (score - min) / (max - min)
   }
 }
@@ -458,6 +460,7 @@ const qualityIndex: ScoringCriterion = (model, allModels) => {
   const allScores = aaData.map(m => m.intelligence_index).filter(Boolean)
   const min = Math.min(...allScores)
   const max = Math.max(...allScores)
+  if (max === min) return 0
   return (entry.intelligence_index - min) / (max - min)
 }
 
@@ -468,6 +471,7 @@ const outputSpeed: ScoringCriterion = (model, allModels) => {
   const allSpeeds = aaData.map(m => m.output_speed).filter(Boolean)
   const min = Math.min(...allSpeeds)
   const max = Math.max(...allSpeeds)
+  if (max === min) return 0
   return (entry.output_speed - min) / (max - min)
 }
 

@@ -10,7 +10,7 @@ A living document tracking how the v2 API shape evolved through research and dis
 
 **API:** `https://models.dev/api.json` — proper public endpoint, no auth, backed by SST.
 
-**Structure:** Flat object keyed by provider ID (102 providers, 3,731 model entries). Each provider has metadata (`id`, `name`, `npm` package for AI SDK, `env` for API keys) and a `models` object. Same logical model can appear under multiple providers.
+**Structure (as of 2026-03-13):** Flat object keyed by provider ID (102 providers, 3,731 model entries). Each provider has metadata (`id`, `name`, `npm` package for AI SDK, `env` for API keys) and a `models` object. Same logical model can appear under multiple providers.
 
 **Example entry (Claude Opus 4.6 under Anthropic):**
 ```json
@@ -37,7 +37,7 @@ A living document tracking how the v2 API shape evolved through research and dis
 }
 ```
 
-**Field coverage across 3,731 models:**
+**Field coverage across 3,731 models (as of 2026-03-13):**
 
 | Field | Coverage | Notes |
 |-------|----------|-------|
