@@ -1,157 +1,245 @@
 /**
- * Shared test utilities and model fixtures for pickai tests.
+ * Shared test utilities and model fixtures for pickai v2 tests.
  */
 
 import type { Model } from "./types";
 
-/** Create a minimal Model for testing with sensible defaults. */
+/** Deep-merge defaults with overrides for nested Model fields. */
 export function createModel(overrides: Partial<Model> = {}): Model {
-  const id = overrides.id || "test-model";
+  const id = overrides.id ?? "test-model";
+  const provider = overrides.provider ?? "test";
   return {
     id,
-    apiSlugs: overrides.apiSlugs ?? {
-      openRouter: `test/${id}`,
-      direct: id,
+    name: overrides.name ?? "Test Model",
+    provider,
+    openRouterId: overrides.openRouterId ?? `${provider}/${id}`,
+    cost: overrides.cost === undefined
+      ? { input: 1, output: 2 }
+      : overrides.cost,
+    limit: { context: 128_000, output: 4_096, ...overrides.limit },
+    modalities: {
+      input: ["text"],
+      output: ["text"],
+      ...overrides.modalities,
     },
-    name: overrides.name || "Test Model",
-    provider: overrides.provider || "test",
-    contextWindow: overrides.contextWindow ?? 128000,
-    pricing: overrides.pricing ?? { input: 1, output: 2 },
-    modality: overrides.modality ?? { input: ["text"], output: ["text"] },
-    capabilities: overrides.capabilities ?? { tools: true },
-    ...overrides,
+    toolCall: overrides.toolCall ?? true,
+    ...(overrides.description !== undefined && { description: overrides.description }),
+    ...(overrides.reasoning !== undefined && { reasoning: overrides.reasoning }),
+    ...(overrides.structuredOutput !== undefined && { structuredOutput: overrides.structuredOutput }),
+    ...(overrides.openWeights !== undefined && { openWeights: overrides.openWeights }),
+    ...(overrides.attachment !== undefined && { attachment: overrides.attachment }),
+    ...(overrides.family !== undefined && { family: overrides.family }),
+    ...(overrides.knowledge !== undefined && { knowledge: overrides.knowledge }),
+    ...(overrides.releaseDate !== undefined && { releaseDate: overrides.releaseDate }),
+    ...(overrides.lastUpdated !== undefined && { lastUpdated: overrides.lastUpdated }),
+    ...(overrides.status !== undefined && { status: overrides.status }),
+    ...(overrides.sdk !== undefined && { sdk: overrides.sdk }),
   };
 }
 
 /**
- * Representative model fixtures spanning providers, tiers, and pricing.
- * Designed to exercise scoring, selection, and purpose-profile logic.
+ * Representative model fixtures spanning providers, families, price ranges, capabilities.
  */
 export const fixtures = {
-  // Flagship tier
+  // --- Anthropic ---
   opus: createModel({
     id: "claude-opus-4-5",
-    apiSlugs: { openRouter: "anthropic/claude-opus-4-5", direct: "claude-opus-4-5-20250929" },
     name: "Claude Opus 4.5",
     provider: "anthropic",
-    contextWindow: 200000,
-    pricing: { input: 15, output: 75 },
-    capabilities: { tools: true, vision: true, streaming: true, json: true },
-    created: "2025-09-29",
-  }),
-  gpt5Pro: createModel({
-    id: "gpt-5-2-pro",
-    apiSlugs: { openRouter: "openai/gpt-5-2-pro", direct: "gpt-5-2-pro" },
-    name: "GPT-5.2 Pro",
-    provider: "openai",
-    contextWindow: 256000,
-    pricing: { input: 21, output: 168 },
-    capabilities: { tools: true, vision: true, streaming: true, json: true },
-    created: "2026-01-15",
-  }),
-  geminiPro: createModel({
-    id: "gemini-2-5-pro",
-    apiSlugs: { openRouter: "google/gemini-2-5-pro", direct: "gemini-2-5-pro" },
-    name: "Gemini 2.5 Pro",
-    provider: "google",
-    contextWindow: 1000000,
-    pricing: { input: 10, output: 30 },
-    capabilities: { tools: true, vision: true, streaming: true, json: true },
-    created: "2025-06-01",
+    openRouterId: "anthropic/claude-opus-4.5",
+    cost: { input: 15, output: 75 },
+    limit: { context: 200_000, output: 32_000 },
+    modalities: { input: ["text", "image"], output: ["text"] },
+    reasoning: true,
+    toolCall: true,
+    structuredOutput: true,
+    family: "claude",
+    knowledge: "2025-03",
+    releaseDate: "2025-09-29",
+    status: "active",
+    sdk: "@ai-sdk/anthropic",
   }),
 
-  // Standard tier
   sonnet: createModel({
     id: "claude-sonnet-4-5",
-    apiSlugs: { openRouter: "anthropic/claude-sonnet-4-5", direct: "claude-sonnet-4-5-20250929" },
     name: "Claude Sonnet 4.5",
     provider: "anthropic",
-    contextWindow: 200000,
-    pricing: { input: 3, output: 15 },
-    capabilities: { tools: true, vision: true, streaming: true, json: true },
-    created: "2025-09-29",
-  }),
-  gpt4o: createModel({
-    id: "gpt-4o",
-    apiSlugs: { openRouter: "openai/gpt-4o", direct: "gpt-4o-2024-11-20" },
-    name: "GPT-4o",
-    provider: "openai",
-    contextWindow: 128000,
-    pricing: { input: 2.5, output: 10 },
-    capabilities: { tools: true, vision: true, streaming: true, json: true },
-    created: "2024-11-20",
-  }),
-  gpt52: createModel({
-    id: "gpt-5-2",
-    apiSlugs: { openRouter: "openai/gpt-5-2", direct: "gpt-5-2" },
-    name: "GPT-5.2",
-    provider: "openai",
-    contextWindow: 256000,
-    pricing: { input: 5, output: 25 },
-    capabilities: { tools: true, vision: true, streaming: true, json: true },
-    created: "2026-01-15",
+    openRouterId: "anthropic/claude-sonnet-4.5",
+    cost: { input: 3, output: 15 },
+    limit: { context: 200_000, output: 16_000 },
+    modalities: { input: ["text", "image"], output: ["text"] },
+    reasoning: true,
+    toolCall: true,
+    structuredOutput: true,
+    family: "claude",
+    knowledge: "2025-03",
+    releaseDate: "2025-09-29",
+    status: "active",
+    sdk: "@ai-sdk/anthropic",
   }),
 
-  // Efficient tier
   haiku: createModel({
     id: "claude-haiku-4-5",
-    apiSlugs: { openRouter: "anthropic/claude-haiku-4-5", direct: "claude-haiku-4-5-20251001" },
     name: "Claude Haiku 4.5",
     provider: "anthropic",
-    contextWindow: 200000,
-    pricing: { input: 1, output: 5 },
-    capabilities: { tools: true, vision: true, streaming: true, json: true },
-    created: "2025-10-01",
+    openRouterId: "anthropic/claude-haiku-4.5",
+    cost: { input: 1, output: 5 },
+    limit: { context: 200_000, output: 8_192 },
+    modalities: { input: ["text", "image"], output: ["text"] },
+    toolCall: true,
+    structuredOutput: true,
+    family: "claude",
+    knowledge: "2025-03",
+    releaseDate: "2025-10-01",
+    status: "active",
+    sdk: "@ai-sdk/anthropic",
   }),
+
+  // --- OpenAI ---
+  gpt5Pro: createModel({
+    id: "gpt-5-2-pro",
+    name: "GPT-5.2 Pro",
+    provider: "openai",
+    openRouterId: "openai/gpt-5-2-pro",
+    cost: { input: 21, output: 168 },
+    limit: { context: 256_000, output: 32_000 },
+    modalities: { input: ["text", "image"], output: ["text"] },
+    reasoning: true,
+    toolCall: true,
+    structuredOutput: true,
+    family: "gpt",
+    knowledge: "2025-09",
+    releaseDate: "2026-01-15",
+    status: "active",
+    sdk: "@ai-sdk/openai",
+  }),
+
+  gpt4o: createModel({
+    id: "gpt-4o",
+    name: "GPT-4o",
+    provider: "openai",
+    openRouterId: "openai/gpt-4o",
+    cost: { input: 2.5, output: 10 },
+    limit: { context: 128_000, output: 16_384 },
+    modalities: { input: ["text", "image"], output: ["text"] },
+    toolCall: true,
+    structuredOutput: true,
+    family: "gpt",
+    knowledge: "2024-06",
+    releaseDate: "2024-11-20",
+    status: "active",
+    sdk: "@ai-sdk/openai",
+  }),
+
+  gpt52: createModel({
+    id: "gpt-5-2",
+    name: "GPT-5.2",
+    provider: "openai",
+    openRouterId: "openai/gpt-5-2",
+    cost: { input: 5, output: 25 },
+    limit: { context: 256_000, output: 16_384 },
+    modalities: { input: ["text", "image"], output: ["text"] },
+    reasoning: true,
+    toolCall: true,
+    structuredOutput: true,
+    family: "gpt",
+    knowledge: "2025-09",
+    releaseDate: "2026-01-15",
+    status: "active",
+    sdk: "@ai-sdk/openai",
+  }),
+
   gpt4oMini: createModel({
     id: "gpt-4o-mini",
-    apiSlugs: { openRouter: "openai/gpt-4o-mini", direct: "gpt-4o-mini-2024-07-18" },
     name: "GPT-4o Mini",
     provider: "openai",
-    contextWindow: 128000,
-    pricing: { input: 0.15, output: 0.6 },
-    capabilities: { tools: true, vision: true, streaming: true, json: true },
-    created: "2024-07-18",
+    openRouterId: "openai/gpt-4o-mini",
+    cost: { input: 0.15, output: 0.6 },
+    limit: { context: 128_000, output: 16_384 },
+    modalities: { input: ["text", "image"], output: ["text"] },
+    toolCall: true,
+    structuredOutput: true,
+    family: "gpt",
+    knowledge: "2024-06",
+    releaseDate: "2024-07-18",
+    status: "active",
+    sdk: "@ai-sdk/openai",
   }),
+
+  // --- Google ---
+  geminiPro: createModel({
+    id: "gemini-2-5-pro",
+    name: "Gemini 2.5 Pro",
+    provider: "google",
+    openRouterId: "google/gemini-2-5-pro",
+    cost: { input: 10, output: 30 },
+    limit: { context: 1_000_000, output: 65_536 },
+    modalities: { input: ["text", "image", "audio", "video"], output: ["text"] },
+    reasoning: true,
+    toolCall: true,
+    structuredOutput: true,
+    family: "gemini",
+    knowledge: "2025-01",
+    releaseDate: "2025-06-01",
+    status: "active",
+    sdk: "@ai-sdk/google",
+  }),
+
   flash: createModel({
     id: "gemini-2-5-flash",
-    apiSlugs: { openRouter: "google/gemini-2-5-flash", direct: "gemini-2-5-flash" },
     name: "Gemini 2.5 Flash",
     provider: "google",
-    contextWindow: 1000000,
-    pricing: { input: 0.075, output: 0.3 },
-    capabilities: { tools: true, vision: true, streaming: true, json: true },
-    created: "2025-06-01",
+    openRouterId: "google/gemini-2-5-flash",
+    cost: { input: 0.075, output: 0.3 },
+    limit: { context: 1_000_000, output: 65_536 },
+    modalities: { input: ["text", "image", "audio", "video"], output: ["text"] },
+    toolCall: true,
+    structuredOutput: true,
+    family: "gemini",
+    knowledge: "2025-01",
+    releaseDate: "2025-06-01",
+    status: "active",
+    sdk: "@ai-sdk/google",
   }),
 
-  // Special: no tools, code-specialized
-  coder: createModel({
-    id: "deepseek-coder-v2",
-    apiSlugs: { openRouter: "deepseek/deepseek-coder-v2", direct: "deepseek-coder-v2" },
-    name: "DeepSeek Coder V2",
+  // --- DeepSeek ---
+  deepseekR1: createModel({
+    id: "deepseek-r1",
+    name: "DeepSeek R1",
     provider: "deepseek",
-    contextWindow: 128000,
-    pricing: { input: 0.14, output: 0.28 },
-    capabilities: { tools: false, streaming: true },
-    created: "2024-06-01",
+    openRouterId: "deepseek/deepseek-r1",
+    cost: { input: 0.55, output: 2.19 },
+    limit: { context: 128_000, output: 8_192 },
+    modalities: { input: ["text"], output: ["text"] },
+    reasoning: true,
+    toolCall: false,
+    openWeights: true,
+    family: "deepseek",
+    knowledge: "2025-02",
+    releaseDate: "2025-01-20",
+    status: "active",
+    sdk: "@ai-sdk/deepseek",
   }),
 
-  // Special: vision-specialized output model
-  imageGen: createModel({
-    id: "dall-e-3",
-    apiSlugs: { openRouter: "openai/dall-e-3", direct: "dall-e-3" },
-    name: "DALL-E 3",
+  // --- Deprecated fixture ---
+  deprecated: createModel({
+    id: "gpt-3-5-turbo",
+    name: "GPT-3.5 Turbo",
     provider: "openai",
-    contextWindow: 4096,
-    pricing: { input: 0, output: 0 },
-    modality: { input: ["text"], output: ["image"] },
-    capabilities: {},
-    created: "2023-10-01",
+    openRouterId: "openai/gpt-3-5-turbo",
+    cost: { input: 0.5, output: 1.5 },
+    limit: { context: 16_385, output: 4_096 },
+    modalities: { input: ["text"], output: ["text"] },
+    toolCall: true,
+    family: "gpt",
+    knowledge: "2021-09",
+    releaseDate: "2023-03-01",
+    status: "deprecated",
   }),
 };
 
-/** All representative models as an array (excludes imageGen by default). */
-export const allTextModels: Model[] = [
+/** All models as an array (excludes deprecated). */
+export const allModels: Model[] = [
   fixtures.opus,
   fixtures.gpt5Pro,
   fixtures.geminiPro,
@@ -161,5 +249,5 @@ export const allTextModels: Model[] = [
   fixtures.haiku,
   fixtures.gpt4oMini,
   fixtures.flash,
-  fixtures.coder,
+  fixtures.deepseekR1,
 ];

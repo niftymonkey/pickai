@@ -5,13 +5,10 @@
  * to combine weighted criteria into a final ranked list.
  */
 
-import type { Model, ScoredModel, ScoringCriterion, WeightedCriterion, ModelTier } from "./types";
-import { Tier } from "./types";
-import { classifyTier } from "./classify";
-import { extractVersion } from "./id";
+import type { Model, ScoredModel, ScoringCriterion, WeightedCriterion } from "./types";
 
 // ---------------------------------------------------------------------------
-// Min-max normalization helper
+// Min-max normalization helpers
 // ---------------------------------------------------------------------------
 
 /** Normalize a value into 0-1 using min-max. Returns 0 when min === max. */
@@ -37,64 +34,56 @@ function range(values: number[]): { min: number; max: number } {
 
 /**
  * Cheaper models score higher. Min-max normalized over the model set.
- * Uses input pricing; missing pricing treated as $0.
+ * Uses input cost; missing cost treated as $0.
  */
 export const costEfficiency: ScoringCriterion = (model, allModels) => {
-  const prices = allModels.map((m) => m.pricing?.input ?? 0);
+  const prices = allModels.map((m) => m.cost?.input ?? 0);
   const { min, max } = range(prices);
-  const price = model.pricing?.input ?? 0;
-  // Invert: cheaper = higher score
+  const price = model.cost?.input ?? 0;
   return minMax(price, min, max) === 0 && min === max ? 0 : 1 - minMax(price, min, max);
 };
 
 /**
  * Larger context window scores higher. Min-max normalized.
- * Missing contextWindow treated as 0.
  */
 export const contextCapacity: ScoringCriterion = (model, allModels) => {
-  const sizes = allModels.map((m) => m.contextWindow ?? 0);
+  const sizes = allModels.map((m) => m.limit.context);
   const { min, max } = range(sizes);
-  return minMax(model.contextWindow ?? 0, min, max);
+  return minMax(model.limit.context, min, max);
 };
 
 /**
- * Newer models score higher based on created date. Min-max normalized.
- * Missing created date treated as epoch (0).
+ * Newer models score higher based on release date. Min-max normalized.
+ * Missing releaseDate treated as epoch (oldest).
  */
 export const recency: ScoringCriterion = (model, allModels) => {
-  const timestamps = allModels.map((m) => m.created ? new Date(m.created).getTime() : 0);
+  const timestamps = allModels.map((m) =>
+    m.releaseDate ? new Date(m.releaseDate).getTime() : 0
+  );
   const { min, max } = range(timestamps);
-  const ts = model.created ? new Date(model.created).getTime() : 0;
+  const ts = model.releaseDate ? new Date(model.releaseDate).getTime() : 0;
   return minMax(ts, min, max);
 };
 
 /**
- * Higher version number scores higher. Min-max normalized.
- * Uses extractVersion() from id.ts.
+ * More recent knowledge cutoff scores higher. Min-max normalized.
+ * Missing knowledge treated as oldest ("0000-00").
  */
-export const versionFreshness: ScoringCriterion = (model, allModels) => {
-  const versions = allModels.map((m) => extractVersion(m.id));
-  const { min, max } = range(versions);
-  return minMax(extractVersion(model.id), min, max);
+export const knowledgeFreshness: ScoringCriterion = (model, allModels) => {
+  const toNum = (k?: string) => (k ? new Date(k + "-01").getTime() : 0);
+  const values = allModels.map((m) => toNum(m.knowledge));
+  const { min, max } = range(values);
+  return minMax(toNum(model.knowledge), min, max);
 };
 
-// Tier ordering for distance calculation
-const TIER_ORDER: ModelTier[] = [Tier.Efficient, Tier.Standard, Tier.Flagship];
-
 /**
- * Returns a ScoringCriterion that scores models based on tier proximity.
- * Exact match = 1.0, adjacent = 0.5, distant = 0.1.
+ * Larger output limit scores higher. Min-max normalized.
  */
-export function tierFit(targetTier: ModelTier): ScoringCriterion {
-  const targetIdx = TIER_ORDER.indexOf(targetTier);
-  return (model: Model) => {
-    const modelIdx = TIER_ORDER.indexOf(classifyTier(model));
-    const distance = Math.abs(targetIdx - modelIdx);
-    if (distance === 0) return 1.0;
-    if (distance === 1) return 0.5;
-    return 0.1;
-  };
-}
+export const outputCapacity: ScoringCriterion = (model, allModels) => {
+  const sizes = allModels.map((m) => m.limit.output);
+  const { min, max } = range(sizes);
+  return minMax(model.limit.output, min, max);
+};
 
 // ---------------------------------------------------------------------------
 // Composition
@@ -110,7 +99,7 @@ export function tierFit(targetTier: ModelTier): ScoringCriterion {
  */
 export function scoreModels<T extends Model>(
   models: T[],
-  criteria: WeightedCriterion[]
+  criteria: WeightedCriterion[],
 ): ScoredModel<T>[] {
   if (models.length === 0) return [];
 

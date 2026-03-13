@@ -1,7 +1,7 @@
 {
   "name": "pickai",
-  "version": "1.0.0",
-  "description": "Classify, score, and recommend AI models across providers. Normalize IDs, compare pricing, filter by capabilities. Zero deps.",
+  "version": "2.0.0",
+  "description": "Filter, score, and recommend AI models across providers. Metadata-first, powered by models.dev. Zero deps.",
   "type": "module",
   "exports": {
     ".": {
@@ -12,16 +12,6 @@
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
-      }
-    },
-    "./adapters": {
-      "import": {
-        "types": "./dist/adapters/index.d.ts",
-        "default": "./dist/adapters/index.js"
-      },
-      "require": {
-        "types": "./dist/adapters/index.d.cts",
-        "default": "./dist/adapters/index.cjs"
       }
     }
   },
@@ -40,7 +30,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "clean": "rm -rf dist",
-    "update-fixture": "./scripts/update-openrouter-fixture.sh",
     "prepublishOnly": "pnpm build"
   },
   "keywords": [

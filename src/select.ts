@@ -6,65 +6,39 @@
  * fills remaining slots ignoring constraints.
  */
 
-import type { Model, ScoredModel, Constraint, SelectionOptions } from "./types";
+import type { Model, ScoredModel, Constraint } from "./types";
 
-// ---------------------------------------------------------------------------
-// Built-in constraints
-// ---------------------------------------------------------------------------
-
-/**
- * Constraint: limit models per provider for diversity.
- * Default: max 1 per provider in first pass.
- */
-export function providerDiversity(maxPerProvider = 1): Constraint {
-  return (selected: Model[], candidate: Model) => {
-    const count = selected.filter(
-      (m) => m.provider === candidate.provider
-    ).length;
-    return count < maxPerProvider;
-  };
+/** Options for selectModels. */
+export interface SelectOptions {
+  /** Number of models to select (default: 1) */
+  limit?: number;
+  /** Constraints to apply during selection */
+  constraints?: Constraint[];
 }
-
-/**
- * Constraint: minimum context window size.
- * Missing contextWindow treated as 0.
- */
-export function minContextWindow(tokens: number): Constraint {
-  return (_selected: Model[], candidate: Model) => {
-    return (candidate.contextWindow ?? 0) >= tokens;
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Selection
-// ---------------------------------------------------------------------------
 
 /**
  * Select top models from a pre-scored list.
  *
  * Two-pass algorithm:
  * 1. First pass: iterate scored models, add to result if all constraints pass
- * 2. Second pass: if result < count, fill from remaining models ignoring constraints
+ * 2. Second pass: if result < limit, fill from remaining models ignoring constraints
  *
  * Models should already be sorted by score descending (as returned by scoreModels).
  */
 export function selectModels<T extends Model>(
   scored: ScoredModel<T>[],
-  options: SelectionOptions = {}
+  options: SelectOptions = {},
 ): ScoredModel<T>[] {
-  const { count = 1, constraints = [], filter } = options;
+  const { limit = 1, constraints = [] } = options;
 
-  // Apply pre-filter
-  const candidates = filter ? scored.filter(filter) : scored;
-
-  if (candidates.length === 0) return [];
+  if (scored.length === 0) return [];
 
   const selected: ScoredModel<T>[] = [];
   const usedInFirstPass = new Set<number>();
 
   // First pass: respect constraints
-  for (let i = 0; i < candidates.length && selected.length < count; i++) {
-    const candidate = candidates[i];
+  for (let i = 0; i < scored.length && selected.length < limit; i++) {
+    const candidate = scored[i];
     const passesAll = constraints.every((c) => c(selected, candidate));
     if (passesAll) {
       selected.push(candidate);
@@ -73,13 +47,9 @@ export function selectModels<T extends Model>(
   }
 
   // Second pass: fill remaining slots ignoring constraints
-  for (
-    let i = 0;
-    i < candidates.length && selected.length < count;
-    i++
-  ) {
+  for (let i = 0; i < scored.length && selected.length < limit; i++) {
     if (!usedInFirstPass.has(i)) {
-      selected.push(candidates[i]);
+      selected.push(scored[i]);
     }
   }
 

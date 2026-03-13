@@ -1,17 +1,55 @@
-// Types and constants
+// Types
 export type {
   Model,
-  ApiSlugs,
+  ModelCost,
+  ModelLimit,
+  ModelModalities,
+  ModelFilter,
   ScoredModel,
   ScoringCriterion,
   WeightedCriterion,
   PurposeProfile,
-  ModelTier,
-  CostTier,
   Constraint,
-  SelectionOptions,
+  FindOptions,
+  RecommendOptions,
+  Picker,
 } from "./types";
-export { Tier, Cost } from "./types";
+
+// Picker
+export { createPicker } from "./picker";
+
+// Source
+export { fromModelsDev } from "./source";
+export type { ModelsDevData } from "./source";
+
+// Scoring criteria
+export {
+  costEfficiency,
+  contextCapacity,
+  recency,
+  knowledgeFreshness,
+  outputCapacity,
+  scoreModels,
+} from "./score";
+
+// Selection
+export { selectModels } from "./select";
+export type { SelectOptions } from "./select";
+
+// Constraints
+export { perProvider, perFamily } from "./constraints";
+
+// Filter
+export { applyFilter } from "./filter";
+
+// Find
+export { find } from "./find";
+
+// Recommend
+export { recommend } from "./recommend";
+
+// Purpose profiles
+export { Purpose } from "./purpose";
 
 // ID utilities
 export {
@@ -23,63 +61,6 @@ export {
   toDirectFormat,
   matchesModel,
   extractVersion,
+  deriveOpenRouterId,
 } from "./id";
 export type { ParsedModelId } from "./id";
-
-// Format utilities
-export {
-  formatPrice,
-  formatPricing,
-  formatContextWindow,
-  formatProviderName,
-} from "./format";
-
-// Classification
-export {
-  classifyTier,
-  classifyCostTier,
-  maxTier,
-  minTier,
-  maxCost,
-  minCost,
-  supportsTools,
-  supportsVision,
-  isTextFocused,
-} from "./classify";
-
-// Scoring
-export {
-  costEfficiency,
-  contextCapacity,
-  recency,
-  versionFreshness,
-  tierFit,
-  scoreModels,
-} from "./score";
-
-// Selection
-export { providerDiversity, minContextWindow, selectModels } from "./select";
-
-// Enrichment
-export { enrich } from "./enrich";
-export type { EnrichedModel } from "./enrich";
-
-// Composable enrichers
-export { withClassification } from "./with-classification";
-export type { ClassifiedModel } from "./with-classification";
-export { withDisplayLabels } from "./with-display-labels";
-export type { LabeledModel } from "./with-display-labels";
-export { withAaSlug } from "./with-aa-slug";
-export type { AaSlugModel } from "./with-aa-slug";
-
-// Grouping
-export { groupByProvider } from "./group";
-export type { ProviderGroup } from "./group";
-
-// Purpose
-export { Purpose, purposes, recommend } from "./purpose";
-export type { PurposeName, RecommendOptions } from "./purpose";
-
-// Adapters (also available via pickai/adapters subpath)
-export { parseOpenRouterModel, parseOpenRouterCatalog } from "./adapters/openrouter";
-export type { OpenRouterModel } from "./adapters/openrouter";
