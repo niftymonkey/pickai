@@ -1,0 +1,100 @@
+---
+title: Scoring & Ranking
+description: How pickai scores models using weighted criteria, and how to write your own.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import customScoringExample from '../../../../../examples/custom-scoring.ts?raw';
+
+Scoring is how `recommend()` decides which models are best. Each model gets a score between 0 and 1 based on weighted criteria.
+
+## How Scoring Works
+
+1. **Criteria** evaluate a single dimension. Each returns a value from 0 to 1.
+2. **Weights** determine relative importance. A criterion with weight 5 matters 5x as much as one with weight 1.
+3. **Normalization** — weights are normalized to sum to 1, then each criterion's score is multiplied by its normalized weight.
+4. **Final score** — the weighted sum, always between 0 and 1.
+
+```ts
+const profile: PurposeProfile = {
+  criteria: [
+    { criterion: costEfficiency, weight: 7 },  // 70% of final score
+    { criterion: contextCapacity, weight: 3 },  // 30% of final score
+  ],
+};
+```
+
+## Built-in Criteria
+
+pickai ships five scoring criteria. All use min-max normalization across the model set — scores are relative to the other candidates, not absolute.
+
+### costEfficiency
+
+Cheaper models score higher. Based on input cost per 1M tokens. Models without pricing data are treated as free ($0).
+
+### recency
+
+Newer models score higher. Based on `releaseDate`. Models without a release date are treated as oldest.
+
+### contextCapacity
+
+Larger context windows score higher. Based on `limit.context`.
+
+### outputCapacity
+
+Larger output limits score higher. Based on `limit.output`.
+
+### knowledgeFreshness
+
+More recent knowledge cutoffs score higher. Based on the `knowledge` field (e.g., `"2025-03"`). Models without a knowledge cutoff are treated as oldest.
+
+## Writing Custom Criteria
+
+A `ScoringCriterion` is a function that receives a model and the full candidate list, and returns a number from 0 to 1:
+
+```ts
+type ScoringCriterion = (model: Model, allModels: Model[]) => number;
+```
+
+The `allModels` parameter lets you do relative scoring (min-max normalization). For simple binary criteria, you can ignore it:
+
+```ts
+// Binary: does the model support image input?
+const multimodal: ScoringCriterion = (model) => {
+  return model.modalities.input.includes("image") ? 1 : 0;
+};
+```
+
+For relative scoring, use the full model set to compute the range:
+
+```ts
+// Relative: prefer models with lower output cost
+const cheapOutput: ScoringCriterion = (model, allModels) => {
+  const costs = allModels.map((m) => m.cost?.output ?? 0);
+  const min = Math.min(...costs);
+  const max = Math.max(...costs);
+  if (max === min) return 0;
+  const price = model.cost?.output ?? 0;
+  return 1 - (price - min) / (max - min);
+};
+```
+
+## Using scoreModels() Directly
+
+If you want scoring without the full `recommend()` pipeline, use `scoreModels()`:
+
+```ts
+import { scoreModels, costEfficiency, recency } from "pickai";
+
+const scored = scoreModels(models, [
+  { criterion: costEfficiency, weight: 3 },
+  { criterion: recency, weight: 1 },
+]);
+
+// scored is ScoredModel[] sorted by score descending
+console.log(scored[0].id, scored[0].score);
+```
+
+## Full Example
+
+<Code code={customScoringExample} lang="ts" title="custom-scoring.ts" />

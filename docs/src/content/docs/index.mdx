@@ -1,0 +1,41 @@
+---
+title: pickai
+description: Filter, score, and recommend AI models across providers.
+template: splash
+hero:
+  tagline: Filter, score, and recommend AI models across providers. Metadata-first, powered by models.dev. Zero dependencies.
+  actions:
+    - text: Get Started
+      link: /getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/niftymonkey/pickai
+      icon: external
+---
+
+import { Code } from '@astrojs/starlight/components';
+import quickStart from '../../../../examples/quick-start.ts?raw';
+
+## Quick Example
+
+<Code code={quickStart} lang="ts" title="quick-start.ts" />
+
+## Why pickai?
+
+**The problem:** Every AI-powered app needs to choose models. You end up writing the same fetch-parse-filter-score logic in every project, hardcoding model names, and falling behind as new models ship weekly.
+
+**The solution:** pickai gives you a typed, scored catalog of 3,700+ models from 100+ providers. Two API paths cover every use case:
+
+- **`find()`** — "What models match these criteria?" Filter by provider, capabilities, cost, context size, modalities, and more.
+- **`recommend()`** — "Which model is best for my use case?" Scored ranking using weighted criteria and purpose profiles.
+
+## Features
+
+- **Metadata-first** — Structured data from [models.dev](https://models.dev), not hardcoded lists
+- **Two API paths** — `find()` for discovery, `recommend()` for scored ranking
+- **Purpose profiles** — Built-in profiles for Cheap, Balanced, Quality, Coding, Creative, and Reasoning
+- **Custom scoring** — Write your own criteria functions, combine with weights
+- **Constraints** — Enforce diversity with `perProvider()` and `perFamily()`
+- **Zero dependencies** — Just pickai and the platform `fetch`
+- **TypeScript-first** — Full type inference, generics that flow naturally
