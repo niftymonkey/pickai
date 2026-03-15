@@ -1,12 +1,8 @@
 import {
-  fromModelsDev,
-  recommend,
-  Purpose,
-  perProvider,
-  perFamily,
-  DIRECT_PROVIDERS,
-  type Model,
-  type Constraint,
+  fromModelsDev, recommend,
+  Purpose, DIRECT_PROVIDERS,
+  perProvider, perFamily,
+  type Model, type Constraint,
 } from "pickai";
 
 const models = await fromModelsDev();

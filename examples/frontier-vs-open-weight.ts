@@ -12,10 +12,8 @@
  */
 
 import {
-  fromModelsDev,
-  recommend,
-  Purpose,
-  ALL_KNOWN_PROVIDERS,
+  fromModelsDev, recommend,
+  Purpose, ALL_KNOWN_PROVIDERS,
   type ScoredModel,
 } from "pickai";
 

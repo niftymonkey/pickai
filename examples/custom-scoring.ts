@@ -1,11 +1,7 @@
 import {
-  fromModelsDev,
-  recommend,
-  costEfficiency,
-  contextCapacity,
-  recency,
-  type ScoringCriterion,
-  type PurposeProfile,
+  fromModelsDev, recommend,
+  costEfficiency, contextCapacity, recency,
+  type ScoringCriterion, type PurposeProfile,
 } from "pickai";
 
 const models = await fromModelsDev();
