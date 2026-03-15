@@ -1,5 +1,45 @@
 # Changelog
 
+## 2.0.0
+
+v2 is a ground-up redesign based on real-world testing during library integrations across multiple internal projects as well as the documentation site creation. The catalog switched from OpenRouter to models.dev, gaining structured capability fields that make metadata-only filtering and scoring meaningful. The wrapper abstraction was removed in favor of standalone functions with explicit data flow. Several silent failure patterns were fixed, and new utilities were added to reduce boilerplate for common tasks.
+
+### BREAKING
+
+- **Data source switched from OpenRouter to models.dev.** The catalog now comes from [models.dev/api.json](https://models.dev/api.json) which provides structured capability fields (`reasoning`, `openWeights`, `structuredOutput`, `attachment`), knowledge cutoff dates, and model status that OpenRouter did not expose.
+- **`createPicker()` / `createAdvisor()` removed.** `find()` and `recommend()` are now standalone functions that accept a `Model[]` directly. Old: `const pick = await createPicker(modelsDev()); pick.find(...)`. New: `const models = await fromModelsDev(); find(models, ...)`.
+- **`fromModelsDev()` returns `Promise<Model[]>` directly.** No longer returns a factory function. Old: `const source = fromModelsDev(); const models = await source()`. New: `const models = await fromModelsDev()`.
+- **`Model` shape redesigned.** `apiSlugs` map replaced by `id` (models.dev / direct API / AI SDK format) and `openRouterId` (OpenRouter slug, derived automatically). New fields: `knowledge`, `status`, `sdk`, `family`, `openWeights`, `attachment`. Enricher functions (`withClassification`, `withDisplayLabels`, `withAaSlug`) and their types removed.
+- **`FindOptions.sort` no longer accepts `"costAsc"` string.** Use `sortByCost("asc")` instead. The sort field now accepts only comparator functions.
+- **`selectModels()` removed from public API.** Use `recommend()` with `constraints` and `limit` options instead.
+- **ID utilities removed from public API** (`normalizeModelId`, `parseModelId`, `resolveProvider`, `extractDirectModelId`, `toOpenRouterFormat`, `toDirectFormat`, `extractVersion`, `deriveOpenRouterId`, `ParsedModelId`). Use `matchesModel()` for ID comparison. The `Model` object already has pre-computed `id`, `provider`, and `openRouterId` fields.
+
+### Added
+
+- **`Purpose.Coding`, `Purpose.Creative`, `Purpose.Reasoning`** built-in profiles. Six profiles total: `Cheap`, `Balanced`, `Quality`, `Coding`, `Creative`, `Reasoning`.
+- **`outputCapacity` scoring criterion.** Larger output limits score higher. Used in all profiles except `Cheap`.
+- **`knowledgeFreshness` scoring criterion.** More recent knowledge cutoffs score higher.
+- **`minMaxCriterion(getValue, invert?)` helper.** Creates a min-max normalized `ScoringCriterion` from a value extractor function. Eliminates boilerplate when building custom criteria from external data like benchmarks.
+- **Sort comparator functions:** `sortByCost(dir?)`, `sortByRecency(dir?)`, `sortByContext(dir?)`, `sortByOutput(dir?)`. Each accepts `"asc"` or `"desc"`. Models with missing data sort last.
+- **Provider constants:** `DIRECT_PROVIDERS` (providers with direct APIs), `OPENROUTER_PROVIDERS` (all providers available via OpenRouter, superset of direct), `ALL_KNOWN_PROVIDERS` (deduplicated union). Simple arrays you can spread and extend for use with the `providers` filter.
+- **`matchesModel(a, b)` exported** for fuzzy ID comparison across formats (handles provider prefixes, date suffixes, dots vs hyphens, case).
+- **`parseModelsDevData(data)` exported** for parsing raw models.dev JSON without the fetch wrapper.
+
+### Changed
+
+- **`costEfficiency` no longer treats unknown pricing as free.** Models without `cost` data now score 0 instead of scoring as the cheapest option.
+- **`Purpose.Cheap` criteria adjusted** from `costEfficiency(7) + contextCapacity(3)` to `costEfficiency(7) + recency(1)`.
+- **All profiles updated with `outputCapacity`** and rebalanced weights. `costEfficiency` kept at low weight in non-Cheap profiles to prevent expensive models from dominating when candidates score similarly.
+- **`Purpose.Coding` filter simplified** to `{ toolCall: true }` only. The `structuredOutput` field has limited coverage in models.dev (under 40% of models report it), causing Anthropic and other providers to be silently excluded.
+
+### Removed
+
+- **`createPicker()` / `createAdvisor()` / `Picker` type** — replaced by standalone functions with explicit data flow.
+- **`selectModels()` / `SelectOptions`** — internal to `recommend()`.
+- **Enricher functions** (`withClassification`, `withDisplayLabels`, `withAaSlug`) and their types (`ClassifiedModel`, `LabeledModel`, `AaSlugModel`, `ApiSlugs`).
+- **`versionFreshness` criterion** — replaced by `knowledgeFreshness`.
+- **`"costAsc"` sort preset** — replaced by `sortByCost("asc")`.
+
 ## 1.0.0
 
 ### BREAKING

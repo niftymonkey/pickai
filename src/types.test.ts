@@ -16,7 +16,6 @@ import type {
   Constraint,
   FindOptions,
   RecommendOptions,
-  Picker,
   ScoredModel,
 } from "./types";
 
@@ -136,9 +135,9 @@ describe("FindOptions", () => {
     >();
   });
 
-  it("accepts sort string or comparator", () => {
+  it("accepts sort comparator", () => {
     expectTypeOf<FindOptions>().toHaveProperty("sort").toEqualTypeOf<
-      "costAsc" | ((a: Model, b: Model) => number) | undefined
+      ((a: Model, b: Model) => number) | undefined
     >();
   });
 });
@@ -152,12 +151,5 @@ describe("RecommendOptions", () => {
       Constraint[] | undefined
     >();
     expectTypeOf<RecommendOptions>().toHaveProperty("limit").toEqualTypeOf<number | undefined>();
-  });
-});
-
-describe("Picker", () => {
-  it("has find and recommend methods", () => {
-    expectTypeOf<Picker>().toHaveProperty("find").toBeFunction();
-    expectTypeOf<Picker>().toHaveProperty("recommend").toBeFunction();
   });
 });

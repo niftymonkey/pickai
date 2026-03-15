@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  minMaxCriterion,
   costEfficiency,
   contextCapacity,
   recency,
@@ -8,6 +9,54 @@ import {
   scoreModels,
 } from "./score";
 import { createModel, fixtures, allModels } from "./test-utils";
+
+// ============================================
+// minMaxCriterion
+// ============================================
+
+describe("minMaxCriterion", () => {
+  it("normalizes values across model set", () => {
+    const criterion = minMaxCriterion((m) => m.cost?.input);
+    const models = [fixtures.flash, fixtures.sonnet, fixtures.opus];
+    // flash=0.075, sonnet=3, opus=15
+    expect(criterion(fixtures.flash, models)).toBeCloseTo(0.0);
+    expect(criterion(fixtures.opus, models)).toBeCloseTo(1.0);
+    expect(criterion(fixtures.sonnet, models)).toBeGreaterThan(0);
+    expect(criterion(fixtures.sonnet, models)).toBeLessThan(1);
+  });
+
+  it("returns 0 when getValue returns undefined", () => {
+    const criterion = minMaxCriterion(() => undefined);
+    expect(criterion(fixtures.sonnet, allModels)).toBe(0);
+  });
+
+  it("returns 0 for model with undefined when others have values", () => {
+    const scores = new Map([["claude-sonnet-4-5", 80]]);
+    const criterion = minMaxCriterion((m) => scores.get(m.id));
+    const models = [fixtures.sonnet, fixtures.opus];
+    expect(criterion(fixtures.opus, models)).toBe(0);
+    expect(criterion(fixtures.sonnet, models)).toBeGreaterThanOrEqual(0);
+  });
+
+  it("inverts scores when invert is true", () => {
+    const criterion = minMaxCriterion((m) => m.cost?.input, true);
+    const models = [fixtures.flash, fixtures.sonnet, fixtures.opus];
+    // Inverted: cheapest scores highest
+    expect(criterion(fixtures.flash, models)).toBeCloseTo(1.0);
+    expect(criterion(fixtures.opus, models)).toBeCloseTo(0.0);
+  });
+
+  it("returns 0 when all values are the same", () => {
+    const criterion = minMaxCriterion(() => 5);
+    expect(criterion(fixtures.sonnet, allModels)).toBe(0);
+  });
+
+  it("handles single model", () => {
+    const criterion = minMaxCriterion((m) => m.limit.context);
+    const models = [fixtures.sonnet];
+    expect(criterion(fixtures.sonnet, models)).toBe(0);
+  });
+});
 
 // ============================================
 // costEfficiency
@@ -30,26 +79,26 @@ describe("costEfficiency", () => {
     expect(costEfficiency(fixtures.opus, models)).toBeCloseTo(0.0);
   });
 
-  it("returns 0 when all models have same price", () => {
+  it("returns 1 when all models have same price (equally efficient)", () => {
     const same = [
       createModel({ id: "a", cost: { input: 3, output: 15 } }),
       createModel({ id: "b", cost: { input: 3, output: 15 } }),
     ];
-    expect(costEfficiency(same[0], same)).toBe(0);
-    expect(costEfficiency(same[1], same)).toBe(0);
+    expect(costEfficiency(same[0], same)).toBe(1);
+    expect(costEfficiency(same[1], same)).toBe(1);
   });
 
-  it("handles single model (returns 0)", () => {
+  it("handles single model (returns 1, no competition)", () => {
     const models = [fixtures.sonnet];
-    expect(costEfficiency(fixtures.sonnet, models)).toBe(0);
+    expect(costEfficiency(fixtures.sonnet, models)).toBe(1);
   });
 
-  it("treats missing cost as free ($0)", () => {
-    const free = createModel({ id: "free-model", cost: undefined });
+  it("returns 0 for models with missing cost (unknown is not cheap)", () => {
+    const unknown = createModel({ id: "unknown-model", cost: undefined });
     const paid = createModel({ id: "paid-model", cost: { input: 5, output: 25 } });
-    const models = [free, paid];
-    expect(costEfficiency(free, models)).toBeCloseTo(1.0);
-    expect(costEfficiency(paid, models)).toBeCloseTo(0.0);
+    const models = [unknown, paid];
+    expect(costEfficiency(unknown, models)).toBe(0);
+    expect(costEfficiency(paid, models)).toBeCloseTo(1.0);
   });
 
   it("produces correct mid-range normalized value", () => {

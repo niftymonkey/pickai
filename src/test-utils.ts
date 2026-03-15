@@ -13,9 +13,9 @@ export function createModel(overrides: Partial<Model> = {}): Model {
     name: overrides.name ?? "Test Model",
     provider,
     openRouterId: overrides.openRouterId ?? `${provider}/${id}`,
-    cost: overrides.cost === undefined
-      ? { input: 1, output: 2 }
-      : overrides.cost,
+    cost: "cost" in overrides
+      ? overrides.cost
+      : { input: 1, output: 2 },
     limit: { context: 128_000, output: 4_096, ...overrides.limit },
     modalities: {
       input: ["text"],

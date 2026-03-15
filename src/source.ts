@@ -1,28 +1,40 @@
 /**
  * Data source functions for pickai.
  *
- * A source is a thunk `() => Promise<Model[]>` that createPicker calls once.
- * modelsDev() is the built-in source backed by models.dev.
+ * Data source functions for loading model catalogs.
+ * fromModelsDev() fetches from models.dev/api.json.
  */
 
 import type { Model, ModelCost, ModelLimit, ModelModalities } from "./types";
 import { deriveOpenRouterId } from "./id";
 
 // ---------------------------------------------------------------------------
-// models.dev API types (snake_case as returned by the API)
+// models.dev API types (as returned by the API)
 // ---------------------------------------------------------------------------
+
+interface ModelsDevCostRaw {
+  input?: number;
+  output?: number;
+  cache_read?: number;
+  cache_write?: number;
+}
+
+interface ModelsDevLimitRaw {
+  context?: number;
+  output?: number;
+}
+
+interface ModelsDevModalitiesRaw {
+  input?: string[];
+  output?: string[];
+}
 
 interface ModelsDevModelRaw {
   name?: string;
   description?: string;
-  input_cost?: number;
-  output_cost?: number;
-  cache_read?: number;
-  cache_write?: number;
-  context?: number;
-  max_output?: number;
-  input?: string[];
-  output?: string[];
+  cost?: ModelsDevCostRaw;
+  limit?: ModelsDevLimitRaw;
+  modalities?: ModelsDevModalitiesRaw;
   reasoning?: boolean;
   tool_call?: boolean;
   structured_output?: boolean;
@@ -54,24 +66,27 @@ function parseModel(
   providerId: string,
   sdk: string | undefined,
 ): Model {
+  const rawCost = raw.cost;
   const cost: ModelCost | undefined =
-    raw.input_cost != null || raw.output_cost != null
+    rawCost && (rawCost.input != null || rawCost.output != null)
       ? {
-          input: raw.input_cost ?? 0,
-          output: raw.output_cost ?? 0,
-          ...(raw.cache_read != null && { cacheRead: raw.cache_read }),
-          ...(raw.cache_write != null && { cacheWrite: raw.cache_write }),
+          input: rawCost.input ?? 0,
+          output: rawCost.output ?? 0,
+          ...(rawCost.cache_read != null && { cacheRead: rawCost.cache_read }),
+          ...(rawCost.cache_write != null && { cacheWrite: rawCost.cache_write }),
         }
       : undefined;
 
+  const rawLimit = raw.limit;
   const limit: ModelLimit = {
-    context: raw.context ?? 0,
-    output: raw.max_output ?? 0,
+    context: rawLimit?.context ?? 0,
+    output: rawLimit?.output ?? 0,
   };
 
+  const rawModalities = raw.modalities;
   const modalities: ModelModalities = {
-    input: raw.input ?? ["text"],
-    output: raw.output ?? ["text"],
+    input: rawModalities?.input ?? ["text"],
+    output: rawModalities?.output ?? ["text"],
   };
 
   return {
@@ -117,22 +132,20 @@ export function parseModelsDevData(data: ModelsDevData): Model[] {
 const MODELS_DEV_URL = "https://models.dev/api.json";
 
 /**
- * Create a models.dev source function.
+ * Fetch and parse model data from models.dev.
  *
- * - `fromModelsDev()` — fetches from models.dev at picker creation time
- * - `fromModelsDev(data)` — uses pre-fetched data (testing, offline, caching)
+ * - `fromModelsDev()`: fetches from models.dev/api.json
+ * - `fromModelsDev(data)`: uses pre-fetched data (testing, offline, caching)
  */
-export function fromModelsDev(prefetchedData?: ModelsDevData): () => Promise<Model[]> {
+export async function fromModelsDev(prefetchedData?: ModelsDevData): Promise<Model[]> {
   if (prefetchedData) {
-    return () => Promise.resolve(parseModelsDevData(prefetchedData));
+    return parseModelsDevData(prefetchedData);
   }
 
-  return async () => {
-    const response = await fetch(MODELS_DEV_URL);
-    if (!response.ok) {
-      throw new Error(`models.dev fetch failed: ${response.status} ${response.statusText}`);
-    }
-    const data: ModelsDevData = await response.json();
-    return parseModelsDevData(data);
-  };
+  const response = await fetch(MODELS_DEV_URL);
+  if (!response.ok) {
+    throw new Error(`models.dev fetch failed: ${response.status} ${response.statusText}`);
+  }
+  const data: ModelsDevData = await response.json();
+  return parseModelsDevData(data);
 }

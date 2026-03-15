@@ -12,18 +12,16 @@ export type {
   Constraint,
   FindOptions,
   RecommendOptions,
-  Picker,
 } from "./types";
-
-// Picker
-export { createPicker } from "./picker";
 
 // Source
 export { fromModelsDev } from "./source";
+export { parseModelsDevData } from "./source";
 export type { ModelsDevData } from "./source";
 
 // Scoring criteria
 export {
+  minMaxCriterion,
   costEfficiency,
   contextCapacity,
   recency,
@@ -32,15 +30,14 @@ export {
   scoreModels,
 } from "./score";
 
-// Selection
-export { selectModels } from "./select";
-export type { SelectOptions } from "./select";
-
 // Constraints
 export { perProvider, perFamily } from "./constraints";
 
 // Filter
 export { applyFilter } from "./filter";
+
+// Sort comparators
+export { sortByCost, sortByRecency, sortByContext, sortByOutput } from "./sort";
 
 // Find
 export { find } from "./find";
@@ -51,16 +48,8 @@ export { recommend } from "./recommend";
 // Purpose profiles
 export { Purpose } from "./purpose";
 
+// Provider constants
+export { DIRECT_PROVIDERS, OPENROUTER_PROVIDERS, ALL_KNOWN_PROVIDERS } from "./providers";
+
 // ID utilities
-export {
-  normalizeModelId,
-  parseModelId,
-  resolveProvider,
-  extractDirectModelId,
-  toOpenRouterFormat,
-  toDirectFormat,
-  matchesModel,
-  extractVersion,
-  deriveOpenRouterId,
-} from "./id";
-export type { ParsedModelId } from "./id";
+export { matchesModel } from "./id";
