@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { find } from "./find";
+import { sortByCost } from "./sort";
 import { createModel, fixtures, allModels } from "./test-utils";
 
 describe("find", () => {
@@ -18,9 +19,9 @@ describe("find", () => {
     });
   });
 
-  describe("sort: costAsc", () => {
+  describe("sortByCost", () => {
     it("returns models sorted by input cost ascending", () => {
-      const result = find(allModels, { sort: "costAsc" });
+      const result = find(allModels, { sort: sortByCost("asc") });
       for (let i = 0; i < result.length - 1; i++) {
         const aCost = result[i].cost?.input ?? 0;
         const bCost = result[i + 1].cost?.input ?? 0;
@@ -42,7 +43,7 @@ describe("find", () => {
     it("applies filter, sort, and limit together", () => {
       const result = find(allModels, {
         filter: { reasoning: true },
-        sort: "costAsc",
+        sort: sortByCost("asc"),
         limit: 3,
       });
       expect(result).toHaveLength(3);

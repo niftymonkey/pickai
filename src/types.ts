@@ -165,8 +165,8 @@ export type Constraint = (selected: Model[], candidate: Model) => boolean;
 export interface FindOptions {
   /** Filter models. Object for declarative, function for custom logic. */
   filter?: ModelFilter | ((model: Model) => boolean);
-  /** Sort order. Default: recency (newest first). */
-  sort?: "costAsc" | ((a: Model, b: Model) => number);
+  /** Sort comparator. Default: recency (newest first). Use sortByCost, sortByContext, etc. */
+  sort?: (a: Model, b: Model) => number;
   /** Maximum number of results. */
   limit?: number;
 }
@@ -179,12 +179,4 @@ export interface RecommendOptions {
   constraints?: Constraint[];
   /** Number of models to return (default: 1). */
   limit?: number;
-}
-
-/** The picker API returned by createPicker(). */
-export interface Picker {
-  /** Discovery: filter and sort models. */
-  find(options?: FindOptions): Model[];
-  /** Recommendation: scored ranking using a purpose profile. */
-  recommend(profile: PurposeProfile, options?: RecommendOptions): ScoredModel[];
 }

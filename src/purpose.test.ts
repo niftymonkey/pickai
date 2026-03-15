@@ -21,10 +21,9 @@ describe("Purpose profiles", () => {
     expect(Object.keys(Purpose)).toHaveLength(6);
   });
 
-  it("Coding has toolCall and structuredOutput filter", () => {
+  it("Coding has toolCall filter", () => {
     expect(Purpose.Coding.filter).toEqual({
       toolCall: true,
-      structuredOutput: true,
     });
   });
 
@@ -46,13 +45,12 @@ describe("Purpose integration with recommend()", () => {
     expect(result[0].id).toBe(fixtures.flash.id);
   });
 
-  it("Coding filters to toolCall+structuredOutput models", () => {
+  it("Coding filters to toolCall models", () => {
     const result = recommend(allModels, Purpose.Coding, { limit: 20 });
     for (const m of result) {
       expect(m.toolCall).toBe(true);
-      expect(m.structuredOutput).toBe(true);
     }
-    // deepseekR1 has no toolCall or structuredOutput
+    // deepseekR1 has no toolCall
     expect(result.find((m) => m.id === "deepseek-r1")).toBeUndefined();
   });
 

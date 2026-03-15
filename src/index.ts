@@ -12,11 +12,7 @@ export type {
   Constraint,
   FindOptions,
   RecommendOptions,
-  Picker,
 } from "./types";
-
-// Picker
-export { createPicker } from "./picker";
 
 // Source
 export { fromModelsDev } from "./source";
@@ -24,6 +20,7 @@ export type { ModelsDevData } from "./source";
 
 // Scoring criteria
 export {
+  minMaxCriterion,
   costEfficiency,
   contextCapacity,
   recency,
@@ -42,6 +39,9 @@ export { perProvider, perFamily } from "./constraints";
 // Filter
 export { applyFilter } from "./filter";
 
+// Sort comparators
+export { sortByCost, sortByRecency, sortByContext, sortByOutput } from "./sort";
+
 // Find
 export { find } from "./find";
 
@@ -50,6 +50,9 @@ export { recommend } from "./recommend";
 
 // Purpose profiles
 export { Purpose } from "./purpose";
+
+// Provider constants
+export { DIRECT_PROVIDERS, OPENROUTER_PROVIDERS, ALL_KNOWN_PROVIDERS } from "./providers";
 
 // ID utilities
 export {

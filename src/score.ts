@@ -36,18 +36,58 @@ function safeTimestamp(value?: string): number {
 }
 
 // ---------------------------------------------------------------------------
+// Criterion helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Create a min-max normalized scoring criterion from a value extractor.
+ *
+ * Pass a function that extracts a numeric value from a model. Returns a
+ * ScoringCriterion that min-max normalizes across the candidate set.
+ * Models where the extractor returns undefined score 0.
+ *
+ * @param getValue - Extracts a numeric value from a model, or undefined if unavailable
+ * @param invert - If true, lower values score higher (useful for cost)
+ *
+ * @example
+ * ```ts
+ * const qualityIndex = minMaxCriterion((model) => {
+ *   const entry = benchmarks.find((b) => matchesModel(b.modelId, model.id));
+ *   return entry?.score;
+ * });
+ * ```
+ */
+export function minMaxCriterion(
+  getValue: (model: Model) => number | undefined,
+  invert = false,
+): ScoringCriterion {
+  return (model, allModels) => {
+    const value = getValue(model);
+    if (value == null) return 0;
+    const values = allModels
+      .map((m) => getValue(m))
+      .filter((v): v is number => v != null);
+    if (values.length === 0) return 0;
+    const { min, max } = range(values);
+    const normalized = minMax(value, min, max);
+    return invert ? 1 - normalized : normalized;
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Scoring criteria
 // ---------------------------------------------------------------------------
 
 /**
  * Cheaper models score higher. Min-max normalized over the model set.
- * Uses input cost; missing cost treated as $0.
+ * Models without pricing data score 0 (no credit for unknown cost).
  */
 export const costEfficiency: ScoringCriterion = (model, allModels) => {
-  const prices = allModels.map((m) => m.cost?.input ?? 0);
+  if (model.cost?.input == null) return 0;
+  const prices = allModels.filter((m) => m.cost?.input != null).map((m) => m.cost!.input);
+  if (prices.length === 0) return 0;
   const { min, max } = range(prices);
-  const price = model.cost?.input ?? 0;
-  return minMax(price, min, max) === 0 && min === max ? 0 : 1 - minMax(price, min, max);
+  return 1 - minMax(model.cost.input, min, max);
 };
 
 /**

@@ -10,14 +10,20 @@ const sampleData: ModelsDevData = {
       "claude-sonnet-4-5": {
         name: "Claude Sonnet 4.5",
         description: "Fast, intelligent model",
-        input_cost: 3,
-        output_cost: 15,
-        cache_read: 0.3,
-        cache_write: 3.75,
-        context: 200_000,
-        max_output: 16_000,
-        input: ["text", "image"],
-        output: ["text"],
+        cost: {
+          input: 3,
+          output: 15,
+          cache_read: 0.3,
+          cache_write: 3.75,
+        },
+        limit: {
+          context: 200_000,
+          output: 16_000,
+        },
+        modalities: {
+          input: ["text", "image"],
+          output: ["text"],
+        },
         reasoning: true,
         tool_call: true,
         structured_output: true,
@@ -34,12 +40,18 @@ const sampleData: ModelsDevData = {
     models: {
       "gpt-4o": {
         name: "GPT-4o",
-        input_cost: 2.5,
-        output_cost: 10,
-        context: 128_000,
-        max_output: 16_384,
-        input: ["text", "image"],
-        output: ["text"],
+        cost: {
+          input: 2.5,
+          output: 10,
+        },
+        limit: {
+          context: 128_000,
+          output: 16_384,
+        },
+        modalities: {
+          input: ["text", "image"],
+          output: ["text"],
+        },
         tool_call: true,
         structured_output: true,
         family: "gpt",
@@ -91,8 +103,7 @@ describe("parseModelsDevData", () => {
         models: {
           "free-model": {
             name: "Free Model",
-            context: 8_000,
-            max_output: 4_096,
+            limit: { context: 8_000, output: 4_096 },
           },
         },
       },
@@ -131,6 +142,22 @@ describe("parseModelsDevData", () => {
     expect(sonnet.cost?.cacheWrite).toBe(3.75);
   });
 
+  it("parses cost and limit from nested objects", () => {
+    const models = parseModelsDevData(sampleData);
+    const sonnet = models.find((m) => m.id === "claude-sonnet-4-5")!;
+    expect(sonnet.cost?.input).toBe(3);
+    expect(sonnet.cost?.output).toBe(15);
+    expect(sonnet.limit.context).toBe(200_000);
+    expect(sonnet.limit.output).toBe(16_000);
+  });
+
+  it("parses modalities from nested object", () => {
+    const models = parseModelsDevData(sampleData);
+    const sonnet = models.find((m) => m.id === "claude-sonnet-4-5")!;
+    expect(sonnet.modalities.input).toEqual(["text", "image"]);
+    expect(sonnet.modalities.output).toEqual(["text"]);
+  });
+
   it("skips providers without models", () => {
     const data: ModelsDevData = {
       empty: { name: "Empty Provider" },
@@ -159,9 +186,8 @@ describe("parseModelsDevData", () => {
 });
 
 describe("fromModelsDev with prefetched data", () => {
-  it("returns a thunk that resolves to Model[]", async () => {
-    const source = fromModelsDev(sampleData);
-    const models = await source();
+  it("resolves to Model[]", async () => {
+    const models = await fromModelsDev(sampleData);
     expect(models).toHaveLength(2);
     expect(models[0].id).toBeDefined();
   });
@@ -172,7 +198,10 @@ describe("fromModelsDev live fetch", () => {
     const mockData: ModelsDevData = {
       test: {
         models: {
-          "test-model": { name: "Test Model", context: 8000, max_output: 4096 },
+          "test-model": {
+            name: "Test Model",
+            limit: { context: 8000, output: 4096 },
+          },
         },
       },
     };
@@ -181,8 +210,7 @@ describe("fromModelsDev live fetch", () => {
       new Response(JSON.stringify(mockData), { status: 200 })
     );
 
-    const source = fromModelsDev();
-    const models = await source();
+    const models = await fromModelsDev();
     expect(models).toHaveLength(1);
     expect(models[0].id).toBe("test-model");
 
@@ -194,8 +222,7 @@ describe("fromModelsDev live fetch", () => {
       new Response("Not found", { status: 404, statusText: "Not Found" })
     );
 
-    const source = fromModelsDev();
-    await expect(source()).rejects.toThrow("models.dev fetch failed: 404 Not Found");
+    await expect(fromModelsDev()).rejects.toThrow("models.dev fetch failed: 404 Not Found");
 
     fetchSpy.mockRestore();
   });
@@ -205,8 +232,7 @@ describe("fromModelsDev live fetch", () => {
       new Error("Network error")
     );
 
-    const source = fromModelsDev();
-    await expect(source()).rejects.toThrow("Network error");
+    await expect(fromModelsDev()).rejects.toThrow("Network error");
 
     fetchSpy.mockRestore();
   });
