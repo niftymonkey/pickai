@@ -2,6 +2,8 @@
 
 ## 2.0.0
 
+v2 is a ground-up redesign based on real-world testing during the documentation build-out and library integrations across multiple internal projects. The catalog switched from OpenRouter to models.dev, gaining structured capability fields that make metadata-only filtering and scoring meaningful. The wrapper abstraction was removed in favor of standalone functions with explicit data flow. Several silent failure patterns were fixed, and new utilities were added to reduce boilerplate for common tasks.
+
 ### BREAKING
 
 - **Data source switched from OpenRouter to models.dev.** The catalog now comes from [models.dev/api.json](https://models.dev/api.json) which provides structured capability fields (`reasoning`, `openWeights`, `structuredOutput`, `attachment`), knowledge cutoff dates, and model status that OpenRouter did not expose.
