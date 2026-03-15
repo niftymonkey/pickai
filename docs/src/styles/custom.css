@@ -1,0 +1,20 @@
+:root[data-theme="dark"] {
+  --sl-color-bg: #161618;
+  --sl-color-bg-nav: #111113;
+  --sl-color-bg-sidebar: #131315;
+}
+
+.hero .copy > * {
+  max-width: 70ch;
+}
+
+.hero .sl-link-button {
+  border-radius: 6px;
+  padding: 0.6rem 1.25rem;
+}
+
+@media (min-width: 50rem) {
+  .hero {
+    padding-block: 2rem !important;
+  }
+}

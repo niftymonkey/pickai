@@ -1,0 +1,30 @@
+---
+title: pickai
+description: Filter, score, and recommend AI models across providers.
+template: splash
+hero:
+  tagline: "Filter, score, and recommend AI models across providers.<br>Metadata-first, powered by the models.dev catalog. Zero dependencies."
+  actions:
+    - text: Get Started
+      link: /getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/niftymonkey/pickai
+      icon: external
+---
+
+## Why pickai?
+
+Catalogs like [models.dev](https://models.dev) list thousands of models and their metadata. AI SDKs handle the integration: authentication, streaming, provider-specific APIs. But choosing the right model for a task, weighing pricing against capabilities, context size against cost, recency against knowledge freshness, is still a manual exercise. pickai is the missing layer between "here are thousands of models" and "use this one."
+
+- **Runtime model discovery:** Build apps that surface models dynamically. Model choosers, comparison tools, multi-model routing. pickai provides scored, filterable results from live data so your app doesn't hardcode model names that go stale.
+- **Build-time candidate selection:** Narrow hundreds of models to a handful worth evaluating. Get a ranked starting list for your use case, validate with your own tests, and ship with confidence.
+
+## Features
+
+- **Always current:** Powered by the models.dev catalog, not hardcoded lists
+- **Scored ranking:** Weighted criteria with built-in purpose profiles for common use cases
+- **Fully extensible:** Custom scoring criteria, filters, and constraints
+- **Benchmark-ready:** Bring your own benchmark data as custom scoring criteria. See the docs for a working example.
+- **Zero dependencies:** No npm packages. Uses the platform `fetch` API (Node 18+, Deno, Bun, browsers, etc.).

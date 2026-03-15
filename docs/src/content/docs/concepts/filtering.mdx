@@ -1,0 +1,121 @@
+---
+title: Filtering Models
+description: Use declarative filters or custom predicates to narrow down model candidates.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import filteringExample from '@examples/filtering.ts?raw';
+
+The models.dev catalog has 3,700+ models. You don't want all of them. Filtering narrows the catalog to just the models that meet your requirements: by provider, capability, cost, or any custom logic.
+
+pickai provides two ways to filter: **declarative filter objects** and **predicate functions**. Both work with [`find()`](/reference/find/) and [`recommend()`](/reference/recommend/).
+
+## Declarative Filters
+
+Pass a [`ModelFilter`](/reference/types/#modelfilter) object to describe what you want. All fields are AND-combined. A model must satisfy every specified field to pass.
+
+```ts
+import { fromModelsDev, find } from "pickai";
+
+const models = await fromModelsDev();
+
+const results = find(models, {
+  filter: {
+    providers: ["anthropic", "openai"],
+    toolCall: true,
+    minContext: 100_000,
+    maxCostInput: 10,
+  },
+});
+```
+
+### Available Filter Fields
+
+**Capability flags** (set to `true` to require):
+- `reasoning`: Chain-of-thought / extended thinking
+- `toolCall`: Tool/function calling
+- `structuredOutput`: JSON mode / structured output
+- `openWeights`: Open-weights model
+- `attachment`: File/image attachment support
+
+**Cost bounds** (USD per 1M tokens):
+- `maxCostInput`: Maximum input cost
+- `maxCostOutput`: Maximum output cost
+
+Models with unknown pricing (`cost` is `undefined`) pass cost filters. Unknown pricing is not the same as expensive.
+
+**Size bounds** (tokens):
+- `minContext`: Minimum context window
+- `minOutput`: Minimum output token limit
+
+**Provider filtering** (see [Provider Constants](#provider-constants) for built-in lists):
+- `providers`: Include only these providers: `["anthropic", "google"]`
+- `excludeProviders`: Exclude these providers: `["openai"]`
+
+**Modality filtering** (model must support all requested modalities):
+- `inputModalities`: e.g., `["text", "image"]`
+- `outputModalities`: e.g., `["text"]`
+
+**Status:**
+- `excludeDeprecated`: Exclude deprecated models. Defaults to `true`.
+
+**Knowledge cutoff:**
+- `minKnowledge`: Minimum knowledge cutoff date: `"2024-06"`
+
+## Provider Constants
+
+The models.dev catalog includes 90+ providers, many of which are resellers or aggregators hosting the same underlying models. pickai exports three provider arrays you can use with the `providers` filter:
+
+```ts
+import { DIRECT_PROVIDERS, OPENROUTER_PROVIDERS, ALL_KNOWN_PROVIDERS } from "pickai";
+```
+
+| Constant | What it includes |
+|---|---|
+| `DIRECT_PROVIDERS` | Providers you have API keys for: `anthropic`, `openai`, `google`, `mistral`, `xai`, `deepseek`, `cohere` |
+| `OPENROUTER_PROVIDERS` | Everything available via OpenRouter, including all direct providers plus: `llama`, `nvidia`, `qwen`, `perplexity`, `groq`, `togetherai` |
+| `ALL_KNOWN_PROVIDERS` | Deduplicated union of both lists (does not include resellers) |
+
+These are simple arrays. Extend them with spread syntax:
+
+```ts
+const results = find(models, {
+  filter: { providers: [...DIRECT_PROVIDERS, "my-local-provider"] },
+});
+```
+
+## Predicate Functions
+
+For logic that declarative filters can't express, pass a function. This is useful for cross-field comparisons, OR logic, or computed conditions.
+
+Many models have large context windows but disproportionately small output limits (e.g., 1M context but only 32k output). A predicate can compare fields against each other:
+
+```ts
+// Models where output is at least 25% of the context window
+const results = find(models, {
+  filter: (m) => m.limit.output / m.limit.context >= 0.25,
+});
+```
+
+Predicates receive a [`Model`](/reference/types/#model) and return `boolean`. They have full access to the model shape.
+
+## Combining Filters in recommend()
+
+[`Purpose.Coding`](/concepts/purpose-profiles/#purposecoding) already has its own filter (`toolCall: true`) and weighted criteria. You can layer on additional filters at call time. They AND-combine with the profile's filter.
+
+```ts
+import { recommend, Purpose } from "pickai";
+
+// Purpose.Coding already has filters (toolCall) and weighted criteria.
+// Here we layer on structuredOutput and narrow to OpenAI.
+const results = recommend(models, Purpose.Coding, {
+  filter: { providers: ["openai"], structuredOutput: true },
+  limit: 5,
+});
+```
+
+See [Purpose Profiles](/concepts/purpose-profiles/) for what each profile filters and scores on.
+
+## Full Example
+
+<Code code={filteringExample} lang="ts" title="filtering.ts" />

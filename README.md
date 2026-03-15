@@ -1,8 +1,8 @@
 # pickai
 
-AI SDKs solve calling models. Model routers give you a catalog. But choosing the *right* model for a task — comparing pricing, matching capabilities, handling different ID formats across providers — that logic keeps getting rewritten in every app. **pickai** is the missing layer between "here are 300 models" and "use this one."
+Catalogs like [models.dev](https://models.dev) list thousands of models and their metadata. AI SDKs handle the integration: authentication, streaming, provider-specific APIs. But choosing the right model for a task, weighing pricing against capabilities, context size against cost, recency against knowledge freshness, is still a manual exercise. **pickai** is the missing layer between "here are thousands of models" and "use this one."
 
-Zero runtime dependencies, works everywhere (browser, Node, edge). Built on [OpenRouter's model catalog](https://openrouter.ai/api/v1/models) — the only API that provides pricing, context windows, and capabilities across all major providers in one place.
+Zero runtime dependencies. Works everywhere (Node 18+, Deno, Bun, browsers). Powered by the [models.dev](https://models.dev) catalog.
 
 ## Quick Start
 
@@ -10,102 +10,111 @@ Zero runtime dependencies, works everywhere (browser, Node, edge). Built on [Ope
 pnpm add pickai
 ```
 
-```typescript
-import { parseOpenRouterCatalog, enrich, recommend, Purpose } from "pickai";
+```ts
+import { fromModelsDev, find, recommend, Purpose, DIRECT_PROVIDERS } from "pickai";
 
-const response = await fetch("https://openrouter.ai/api/v1/models");
-const models = parseOpenRouterCatalog(await response.json()).map(enrich);
+const models = await fromModelsDev();
 
-const [model] = recommend(models, Purpose.Balanced); // → top standard-tier model
-```
+// Find affordable reasoning models
+const reasoning = find(models, {
+  filter: { reasoning: true, providers: [...DIRECT_PROVIDERS], maxCostInput: 10 },
+  limit: 5,
+});
 
-Every result has ready-to-use IDs for calling the model:
-
-```typescript
-model.apiSlugs.openRouter;  // "anthropic/claude-sonnet-4-5" — for OpenRouter API
-model.apiSlugs.direct;      // "claude-sonnet-4-5-20250929"  — for provider APIs / Vercel AI SDK
-```
-
-### More you can do
-
-```typescript
-import { groupByProvider, Tier, Cost } from "pickai";
-
-recommend(models, Purpose.Cheap, { count: 3 });      // top 3 efficient-tier models
-recommend(models, Purpose.Quality);                  // newest flagship-tier models
-
-const groups = groupByProvider(models);             // organize by provider for UI
-models.filter(m => m.costTier <= Cost.Standard);    // affordable models
-models.filter(m => m.tier >= Tier.Standard);        // capable models
-```
-
-### Customize
-
-`recommend()` accepts custom profiles with any mix of built-in and custom scoring criteria — including external benchmark data:
-
-```typescript
-import { recommend, costEfficiency, recency, contextCapacity, Tier } from "pickai";
-
-recommend(models, {
-  preferredTier: Tier.Standard,
-  criteria: [
-    { criterion: costEfficiency, weight: 0.5 },
-    { criterion: recency, weight: 0.3 },
-    { criterion: contextCapacity, weight: 0.2 },
-  ],
-  require: { tools: true },
+// Recommend the best coding model
+const [top] = recommend(models, Purpose.Coding, {
+  filter: { providers: [...DIRECT_PROVIDERS] },
 });
 ```
 
-See [Built-in Profiles](docs/getting-started.md#built-in-profiles), [Custom Profiles](docs/getting-started.md#custom-profiles), and the [Scoring guide](docs/scoring.md) for external benchmark integration.
+Every result includes ready-to-use IDs:
+
+```ts
+top.id            // "grok-4-1-fast" — for direct provider APIs and the AI SDK
+top.openRouterId  // "xai/grok-4-1-fast" — for OpenRouter
+top.provider      // "xai"
+```
+
+## What You Can Do
+
+**Filter** by capabilities, cost, context size, modalities, provider, and more:
+
+```ts
+import { find, sortByCost } from "pickai";
+
+const cheap = find(models, {
+  filter: { toolCall: true, providers: [...DIRECT_PROVIDERS] },
+  sort: sortByCost("asc"),
+  limit: 5,
+});
+```
+
+**Recommend** using built-in purpose profiles (`Cheap`, `Balanced`, `Quality`, `Coding`, `Creative`, `Reasoning`) or create your own:
+
+```ts
+const [best] = recommend(models, Purpose.Coding, {
+  filter: { providers: [...DIRECT_PROVIDERS] },
+  constraints: [perProvider(1)],
+});
+```
+
+**Score with real benchmark data** using LMArena (Chatbot Arena) or any external quality data as custom scoring criteria. The included [benchmark example](https://pickai.niftymonkey.dev/examples/benchmark-scoring/) fetches live LMArena scores and uses them alongside built-in criteria:
+
+```ts
+import { recommend, minMaxCriterion, matchesModel, costEfficiency } from "pickai";
+
+const arenaScore = minMaxCriterion((model) => {
+  const match = benchmarks.find((b) => matchesModel(b.modelId, model.id));
+  return match?.score;
+});
+
+const [best] = recommend(models, {
+  criteria: [
+    { criterion: arenaScore, weight: 5 },
+    { criterion: costEfficiency, weight: 2 },
+  ],
+});
+```
 
 ## API
 
 | When you need to... | Use |
-|----------------------|-----|
-| Get data in | `parseOpenRouterCatalog()` — turns the OpenRouter response into `Model[]` |
-| Pick a model | `recommend(models, purpose)` — scores, filters, and returns the best match |
-| Prepare for UI | `enrich()` adds display labels and tiers; `groupByProvider()` organizes into provider sections |
-| Blend in benchmarks | `recommend()` with custom criteria, or `scoreModels()` for full control — see [Scoring](docs/scoring.md) |
+|---|---|
+| Get model data | `fromModelsDev()` fetches and parses the models.dev catalog |
+| Filter and sort | `find(models, options)` with declarative filters or predicates |
+| Pick the best model | `recommend(models, profile, options)` with scored ranking |
+| Enforce diversity | `perProvider(n)`, `perFamily(n)`, or custom constraints |
+| Score directly | `scoreModels(models, criteria)` for custom pipelines |
+| Match model IDs | `matchesModel(a, b)` for fuzzy cross-format comparison |
+| Build custom criteria | `minMaxCriterion(getValue)` for min-max normalized scoring |
+| Filter providers | `DIRECT_PROVIDERS`, `OPENROUTER_PROVIDERS`, `ALL_KNOWN_PROVIDERS` |
+| Sort results | `sortByCost()`, `sortByRecency()`, `sortByContext()`, `sortByOutput()` |
 
-See the full [API Reference](docs/api.md) for types, and the topic guides for [Getting Started](docs/getting-started.md), [Scoring](docs/scoring.md), [Classification](docs/classification.md), and [Utilities](docs/utilities.md).
+See the full [documentation site](https://pickai.niftymonkey.dev) for guides, examples, and type reference.
 
 ## Development
 
 ```bash
 pnpm install        # install dependencies
-pnpm build          # build (tsup → ESM + CJS + .d.ts)
+pnpm build          # build (tsup: ESM + CJS + .d.ts)
 pnpm test           # run tests (vitest)
-pnpm update-fixture # refresh OpenRouter model fixture
 ```
 
 ### Project structure
 
-```
+```text
 src/
-  adapters/           # Provider-specific parsers (OpenRouter)
-  with-*.ts           # Composable enrichers (classification, display labels, AA slug)
-  enrich.ts           # Convenience wrapper composing with* functions
-  *.ts                # One module per concern (classify, score, group, etc.)
-  *.test.ts           # Co-located tests
-scripts/
-  update-openrouter-fixture.sh
-  check-aa-slugs.ts   # Validate AA slug derivation against live data
+  *.ts              # One module per concern (find, recommend, score, filter, etc.)
+  *.test.ts         # Co-located tests
+examples/
+  *.ts              # Standalone runnable examples (npx tsx examples/<name>.ts)
+docs/
+  src/              # Starlight documentation site
 ```
-
-### Testing
-
-Three layers of tests catch different classes of problems:
-
-- **Unit tests** (`*.test.ts` co-located with each module) — verify individual functions in isolation using synthetic fixtures from `src/test-utils.ts`. Catch logic regressions in classification, scoring, formatting, ID normalization, etc.
-- **Integration tests** (`integration.test.ts`) — exercise the full pipeline (`parseOpenRouterCatalog → enrich → recommend/score/select/group`) against the real OpenRouter fixture. Catch cross-module regressions where changes in one module (e.g., tier classification thresholds) silently break downstream behavior (e.g., recommendation results).
-- **Smoke tests** (`smoke.test.ts`) — verify that every public export from both entry points (`pickai` and `pickai/adapters`) resolves correctly. Catch broken barrel exports — the kind of bug where the library builds fine but consumers get `undefined` at runtime because an export was renamed or removed.
-
-Run `pnpm build` before committing to catch type errors that vitest might miss.
 
 ## Upgrading
 
-See the [CHANGELOG](CHANGELOG.md) for breaking changes and migration guidance between versions.
+See the [CHANGELOG](CHANGELOG.md) for breaking changes between versions.
 
 ## License
 

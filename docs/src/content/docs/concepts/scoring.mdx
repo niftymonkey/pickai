@@ -1,0 +1,102 @@
+---
+title: Scoring & Ranking
+description: How pickai scores models using weighted criteria, and how to write your own.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import customScoringExample from '@examples/custom-scoring.ts?raw';
+
+Filtering tells you what qualifies. But when 50 models pass your filter, which one should you actually use? Scoring evaluates each candidate across multiple dimensions and ranks them so [`recommend()`](/reference/recommend/) can surface the best fit.
+
+Each model gets a score between 0 and 1 based on weighted criteria. The highest-scoring model is the recommendation.
+
+## How Scoring Works
+
+1. **Criteria** evaluate a single dimension (cost, recency, context size). Returns 0 to 1.
+2. **Weights** set relative importance. Weight 5 matters 5x as much as weight 1.
+3. **Normalization:** weights are normalized, then multiplied by each criterion's score.
+4. **Final score:** the weighted sum, always between 0 and 1.
+
+```ts
+const profile: PurposeProfile = {
+  criteria: [
+    { criterion: costEfficiency, weight: 7 },  // 70% of final score
+    { criterion: contextCapacity, weight: 3 },  // 30% of final score
+  ],
+};
+```
+
+## Built-in Criteria
+
+pickai ships five scoring criteria. All use [min-max normalization](https://en.wikipedia.org/wiki/Feature_scaling#Rescaling_(min%E2%80%93max_normalization)) across the candidate set. Scores are relative to the other candidates, not absolute.
+
+### costEfficiency
+
+Cheaper models score higher. Based on input cost per 1M tokens. Models without pricing data score 0 (unknown cost gets no credit for being cheap).
+
+### recency
+
+Newer models score higher. Based on `releaseDate`. Models without a release date are treated as oldest.
+
+### contextCapacity
+
+Larger context windows score higher. Based on `limit.context`.
+
+### outputCapacity
+
+Larger output limits score higher. Based on `limit.output`.
+
+### knowledgeFreshness
+
+More recent knowledge cutoffs score higher. Based on the `knowledge` field (e.g., `"2025-03"`). Models without a knowledge cutoff are treated as oldest.
+
+## Writing Custom Criteria
+
+A `ScoringCriterion` is a function that receives a model and the full candidate list, and returns a number from 0 to 1:
+
+```ts
+type ScoringCriterion = (model: Model, allModels: Model[]) => number;
+```
+
+The `allModels` parameter lets you do relative scoring (min-max normalization). For simple binary criteria, you can ignore it:
+
+```ts
+// Binary: does the model support vision?
+const supportsVision: ScoringCriterion = (model) => {
+  return model.modalities.input.includes("image") ? 1 : 0;
+};
+```
+
+For relative scoring, use the full model set to score against peers:
+
+```ts
+// Relative: boost models with above-median context windows
+const aboveMedianContext: ScoringCriterion = (model, allModels) => {
+  // Find the median context window across all candidates
+  const sorted = allModels.map((m) => m.limit.context).sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+
+  // Score 1 if above median, 0 if below
+  return model.limit.context >= median ? 1 : 0;
+};
+```
+
+## Using scoreModels() Directly
+
+If you want scoring without the full [`recommend()`](/reference/recommend/) pipeline, use [`scoreModels()`](/reference/score-models/) directly:
+
+```ts
+import { scoreModels, costEfficiency, recency } from "pickai";
+
+const scored = scoreModels(models, [
+  { criterion: costEfficiency, weight: 3 },
+  { criterion: recency, weight: 1 },
+]);
+
+// scored is ScoredModel[] sorted by score descending
+console.log(scored[0].id, scored[0].score);
+```
+
+## Full Example
+
+<Code code={customScoringExample} lang="ts" title="custom-scoring.ts" />
