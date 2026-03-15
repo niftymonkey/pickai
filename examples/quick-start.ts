@@ -1,10 +1,8 @@
-import { createPicker, fromModelsDev, Purpose } from "pickai";
+import { fromModelsDev, find, recommend, Purpose } from "pickai";
 
-const pick = await createPicker(fromModelsDev());
+const models = await fromModelsDev();
 
-// Find the 10 cheapest models
-const cheap = pick.find({ sort: "costAsc", limit: 10 });
-
-// Recommend the best model for coding
-const [best] = pick.recommend(Purpose.Coding);
-console.log(best.id, best.score);
+// Latest 5 OpenAI models
+const openai = find(models, { filter: { providers: ["openai"] }, limit: 5 });
+// Top-scored for coding from that list
+const [top] = recommend(openai, Purpose.Coding);

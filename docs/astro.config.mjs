@@ -8,6 +8,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "pickai",
+      customCss: ["./src/styles/custom.css"],
       social: [
         {
           icon: "github",
@@ -23,38 +24,58 @@ export default defineConfig({
         }),
       ],
       sidebar: [
+        { label: "Getting Started", slug: "getting-started" },
         {
-          label: "Start Here",
+          label: "Concepts",
           items: [
-            { label: "Getting Started", slug: "getting-started" },
+            { label: "Filtering", slug: "concepts/filtering" },
+            { label: "Scoring & Ranking", slug: "concepts/scoring" },
+            { label: "Purpose Profiles", slug: "concepts/purpose-profiles" },
+            { label: "Constraints", slug: "concepts/constraints" },
+            { label: "Data Sources", slug: "concepts/data-sources" },
           ],
         },
         {
-          label: "Guides",
+          label: "API",
           items: [
-            { label: "Filtering Models", slug: "guides/filtering" },
-            { label: "Scoring & Ranking", slug: "guides/scoring" },
-            { label: "Purpose Profiles", slug: "guides/purpose-profiles" },
-            { label: "Constraints", slug: "guides/constraints" },
-            { label: "Data Sources", slug: "guides/data-sources" },
-          ],
-        },
-        {
-          label: "API Reference",
-          items: [
-            { label: "createPicker", slug: "reference/create-picker" },
             { label: "find", slug: "reference/find" },
             { label: "recommend", slug: "reference/recommend" },
-            { label: "Scoring Criteria", slug: "reference/scoring-criteria" },
-            { label: "Constraints", slug: "reference/constraints" },
-            { label: "Purpose", slug: "reference/purpose" },
-            { label: "Utilities", slug: "reference/utilities" },
-            { label: "Types", slug: "reference/types" },
+          ],
+        },
+        { label: "Types", slug: "reference/types" },
+        {
+          label: "Utilities",
+          items: [
+            { label: "applyFilter", slug: "reference/apply-filter" },
+            { label: "fromModelsDev", slug: "reference/from-models-dev" },
+            { label: "matchesModel", slug: "reference/matches-model" },
+            { label: "parseModelsDevData", slug: "reference/parse-models-dev-data" },
+            { label: "perFamily", slug: "reference/per-family" },
+            { label: "perProvider", slug: "reference/per-provider" },
+            { label: "scoreModels", slug: "reference/score-models" },
           ],
         },
         {
           label: "Examples",
-          autogenerate: { directory: "examples" },
+          items: [
+            {
+              label: "Concepts",
+              items: [
+                { label: "Basic Usage", slug: "examples/basic-usage" },
+                { label: "Filtering", slug: "examples/filtering" },
+                { label: "Custom Scoring", slug: "examples/custom-scoring" },
+                { label: "Constraints", slug: "examples/constraints" },
+                { label: "Custom Source", slug: "examples/custom-source" },
+              ],
+            },
+            {
+              label: "Recipes",
+              items: [
+                { label: "Benchmark Scoring", slug: "examples/benchmark-scoring" },
+                { label: "Frontier vs. Open-Weight", slug: "examples/frontier-vs-open-weight" },
+              ],
+            },
+          ],
         },
       ],
     }),

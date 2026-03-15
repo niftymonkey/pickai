@@ -7,3 +7,5 @@ dist/
 *.tsbuildinfo
 .turbo/
 
+examples/_api-cache.json
+

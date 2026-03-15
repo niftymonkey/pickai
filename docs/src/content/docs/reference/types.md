@@ -3,6 +3,26 @@ title: Types
 description: Complete type reference for pickai.
 ---
 
+## Constraint
+
+A function that controls selection diversity.
+
+```ts
+type Constraint = (selected: Model[], candidate: Model) => boolean;
+```
+
+## FindOptions
+
+Options for `find()`.
+
+```ts
+interface FindOptions {
+  filter?: ModelFilter | ((model: Model) => boolean);
+  sort?: (a: Model, b: Model) => number;
+  limit?: number;
+}
+```
+
 ## Model
 
 The core model representation. Every model in the catalog conforms to this shape.
@@ -22,7 +42,7 @@ interface Model {
   structuredOutput?: boolean;    // JSON mode / structured output
   openWeights?: boolean;         // Open-weights model
   attachment?: boolean;          // File/image attachments
-  family?: string;               // Model family: "claude", "gpt", "gemini"
+  family?: string;               // Model family: "claude-sonnet", "gpt-mini", "gemini-flash"
   knowledge?: string;            // Knowledge cutoff: "2024-06"
   releaseDate?: string;          // Release date: "2025-09-29"
   lastUpdated?: string;          // Last updated date
@@ -42,38 +62,6 @@ interface ModelCost {
   cacheRead?: number;
   cacheWrite?: number;
 }
-```
-
-## ModelLimit
-
-Token limits.
-
-```ts
-interface ModelLimit {
-  context: number;   // Context window size
-  output: number;    // Maximum output tokens
-}
-```
-
-## ModelModalities
-
-Input and output modality lists.
-
-```ts
-interface ModelModalities {
-  input: string[];   // e.g., ["text", "image", "audio"]
-  output: string[];  // e.g., ["text"]
-}
-```
-
-## ScoredModel
-
-A model with an attached score. Generic preserves the input type through scoring.
-
-```ts
-type ScoredModel<T extends Model = Model> = T & {
-  score: number;  // 0-1 range, higher is better
-};
 ```
 
 ## ModelFilter
@@ -100,6 +88,40 @@ interface ModelFilter {
 }
 ```
 
+## ModelLimit
+
+Token limits.
+
+```ts
+interface ModelLimit {
+  context: number;   // Context window size
+  output: number;    // Maximum output tokens
+}
+```
+
+## ModelModalities
+
+Input and output modality lists.
+
+```ts
+interface ModelModalities {
+  input: string[];   // e.g., ["text", "image", "audio"]
+  output: string[];  // e.g., ["text"]
+}
+```
+
+## ModelsDevData
+
+The shape of the models.dev API response. Used with `fromModelsDev(data)` for pre-fetched data.
+
+```ts
+type ModelsDevData = Record<string, {
+  name?: string;
+  npm?: string;
+  models?: Record<string, { /* raw model fields */ }>;
+}>
+```
+
 ## PurposeProfile
 
 Defines a use case for model recommendation.
@@ -108,45 +130,6 @@ Defines a use case for model recommendation.
 interface PurposeProfile {
   filter?: ModelFilter;
   criteria: WeightedCriterion[];
-}
-```
-
-## WeightedCriterion
-
-A scoring criterion paired with its relative weight.
-
-```ts
-interface WeightedCriterion {
-  criterion: ScoringCriterion;
-  weight: number;
-}
-```
-
-## ScoringCriterion
-
-A function that scores a model from 0 to 1.
-
-```ts
-type ScoringCriterion = (model: Model, allModels: Model[]) => number;
-```
-
-## Constraint
-
-A function that controls selection diversity.
-
-```ts
-type Constraint = (selected: Model[], candidate: Model) => boolean;
-```
-
-## FindOptions
-
-Options for `find()`.
-
-```ts
-interface FindOptions {
-  filter?: ModelFilter | ((model: Model) => boolean);
-  sort?: "costAsc" | ((a: Model, b: Model) => number);
-  limit?: number;
 }
 ```
 
@@ -162,36 +145,31 @@ interface RecommendOptions {
 }
 ```
 
-## Picker
+## ScoredModel
 
-The API returned by `createPicker()`.
+A model with an attached score. Generic preserves the input type through scoring.
 
 ```ts
-interface Picker {
-  find(options?: FindOptions): Model[];
-  recommend(profile: PurposeProfile, options?: RecommendOptions): ScoredModel[];
-}
+type ScoredModel<T extends Model = Model> = T & {
+  score: number;  // 0-1 range, higher is better
+};
 ```
 
-## ParsedModelId
+## ScoringCriterion
 
-Result of parsing a model ID string.
+A function that scores a model from 0 to 1.
 
 ```ts
-interface ParsedModelId {
-  provider?: string;
-  modelId: string;
-}
+type ScoringCriterion = (model: Model, allModels: Model[]) => number;
 ```
 
-## ModelsDevData
+## WeightedCriterion
 
-The shape of the models.dev API response. Used with `fromModelsDev(data)` for pre-fetched data.
+A scoring criterion paired with its relative weight.
 
 ```ts
-type ModelsDevData = Record<string, {
-  name?: string;
-  npm?: string;
-  models?: Record<string, { /* raw model fields */ }>;
-}>
+interface WeightedCriterion {
+  criterion: ScoringCriterion;
+  weight: number;
+}
 ```

@@ -6,14 +6,16 @@ description: How pickai scores models using weighted criteria, and how to write 
 import { Code } from '@astrojs/starlight/components';
 import customScoringExample from '../../../../../examples/custom-scoring.ts?raw';
 
-Scoring is how `recommend()` decides which models are best. Each model gets a score between 0 and 1 based on weighted criteria.
+Filtering tells you what qualifies. But when 50 models pass your filter, which one should you actually use? Scoring evaluates each candidate across multiple dimensions and ranks them so [`recommend()`](/reference/recommend/) can surface the best fit.
+
+Each model gets a score between 0 and 1 based on weighted criteria. The highest-scoring model is the recommendation.
 
 ## How Scoring Works
 
-1. **Criteria** evaluate a single dimension. Each returns a value from 0 to 1.
-2. **Weights** determine relative importance. A criterion with weight 5 matters 5x as much as one with weight 1.
-3. **Normalization** — weights are normalized to sum to 1, then each criterion's score is multiplied by its normalized weight.
-4. **Final score** — the weighted sum, always between 0 and 1.
+1. **Criteria** evaluate a single dimension (cost, recency, context size). Returns 0 to 1.
+2. **Weights** set relative importance. Weight 5 matters 5x as much as weight 1.
+3. **Normalization:** weights are normalized, then multiplied by each criterion's score.
+4. **Final score:** the weighted sum, always between 0 and 1.
 
 ```ts
 const profile: PurposeProfile = {
@@ -26,7 +28,7 @@ const profile: PurposeProfile = {
 
 ## Built-in Criteria
 
-pickai ships five scoring criteria. All use min-max normalization across the model set — scores are relative to the other candidates, not absolute.
+pickai ships five scoring criteria. All use [min-max normalization](https://en.wikipedia.org/wiki/Feature_scaling#Rescaling_(min%E2%80%93max_normalization)) across the candidate set. Scores are relative to the other candidates, not absolute.
 
 ### costEfficiency
 
@@ -59,29 +61,29 @@ type ScoringCriterion = (model: Model, allModels: Model[]) => number;
 The `allModels` parameter lets you do relative scoring (min-max normalization). For simple binary criteria, you can ignore it:
 
 ```ts
-// Binary: does the model support image input?
-const multimodal: ScoringCriterion = (model) => {
+// Binary: does the model support vision?
+const supportsVision: ScoringCriterion = (model) => {
   return model.modalities.input.includes("image") ? 1 : 0;
 };
 ```
 
-For relative scoring, use the full model set to compute the range:
+For relative scoring, use the full model set to score against peers:
 
 ```ts
-// Relative: prefer models with lower output cost
-const cheapOutput: ScoringCriterion = (model, allModels) => {
-  const costs = allModels.map((m) => m.cost?.output ?? 0);
-  const min = Math.min(...costs);
-  const max = Math.max(...costs);
-  if (max === min) return 0;
-  const price = model.cost?.output ?? 0;
-  return 1 - (price - min) / (max - min);
+// Relative: boost models with above-median context windows
+const aboveMedianContext: ScoringCriterion = (model, allModels) => {
+  // Find the median context window across all candidates
+  const sorted = allModels.map((m) => m.limit.context).sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+
+  // Score 1 if above median, 0 if below
+  return model.limit.context >= median ? 1 : 0;
 };
 ```
 
 ## Using scoreModels() Directly
 
-If you want scoring without the full `recommend()` pipeline, use `scoreModels()`:
+If you want scoring without the full [`recommend()`](/reference/recommend/) pipeline, use [`scoreModels()`](/reference/score-models/) directly:
 
 ```ts
 import { scoreModels, costEfficiency, recency } from "pickai";

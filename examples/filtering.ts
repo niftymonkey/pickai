@@ -1,9 +1,9 @@
-import { createPicker, fromModelsDev } from "pickai";
+import { fromModelsDev, find } from "pickai";
 
-const pick = await createPicker(fromModelsDev());
+const models = await fromModelsDev();
 
-// Declarative filter: Anthropic models with tool calling under $5/M input tokens
-const anthropicTools = pick.find({
+// Declarative filter: affordable Anthropic models with tool calling
+const results = find(models, {
   filter: {
     providers: ["anthropic"],
     toolCall: true,
@@ -12,14 +12,16 @@ const anthropicTools = pick.find({
   limit: 5,
 });
 
-for (const model of anthropicTools) {
-  console.log(`${model.id} — $${model.cost?.input}/M input`);
+for (const model of results) {
+  console.log(`${model.name} | $${model.cost?.input}/M input`);
 }
 
-// Predicate filter: custom logic for exact requirements
-const large = pick.find({
-  filter: (model) => model.limit.context >= 200_000 && model.reasoning === true,
-  sort: "costAsc",
+// Predicate filter: multimodal models that also support reasoning
+const reasoningVision = find(models, {
+  filter: (m) => m.reasoning === true && m.modalities.input.includes("image"),
+  limit: 5,
 });
 
-console.log("Large reasoning models:", large.map((m) => m.id));
+for (const model of reasoningVision) {
+  console.log(`${model.name} (${model.provider})`);
+}

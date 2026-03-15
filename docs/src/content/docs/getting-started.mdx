@@ -12,68 +12,129 @@ import quickStart from '../../../../examples/quick-start.ts?raw';
 pnpm add pickai
 ```
 
-pickai has zero runtime dependencies. It uses the platform `fetch` API (Node 18+, Deno, Bun, Cloudflare Workers).
-
-## Your First Picker
+## Basic Example
 
 <Code code={quickStart} lang="ts" title="quick-start.ts" />
 
-`createPicker` takes a **source function** that loads model data. `fromModelsDev()` fetches the full catalog from [models.dev](https://models.dev) — 3,700+ models from 100+ providers.
+## Finding Models
 
-The picker exposes two methods:
-
-- **`find()`** — Filter and sort models by metadata. Returns `Model[]`.
-- **`recommend()`** — Score and rank models using a purpose profile. Returns `ScoredModel[]` with a `score` property (0–1).
-
-## Two API Paths
-
-### find() — "What's available?"
-
-Use `find()` when you know what you want and need to browse or narrow down options.
+[`find()`](/reference/find/) filters and sorts the catalog. It answers: "what's available that meets these requirements?"
 
 ```ts
-// All OpenAI models with reasoning, newest first
-const reasoning = pick.find({
-  filter: { providers: ["openai"], reasoning: true },
+// Models with image input under $5/1M input tokens
+const vision = find(models, {
+  filter: { inputModalities: ["image"], maxCostInput: 5 },
+  limit: 10,
 });
 
-// Cheapest models overall
-const budget = pick.find({ sort: "costAsc", limit: 5 });
+// Tool-calling models with structured output, sorted by cost
+const tools = find(models, {
+  filter: { toolCall: true },
+  sort: sortByCost("asc"),
+  limit: 10,
+});
 ```
 
-### recommend() — "What's best for my use case?"
+See [Filtering](/concepts/filtering/) for declarative filters and predicate functions, and [Data Sources](/concepts/data-sources/) for where the model catalog comes from.
 
-Use `recommend()` when you want pickai to score and rank models against weighted criteria.
+## Recommending Models
+
+[`recommend()`](/reference/recommend/) goes further -- it scores each model across multiple weighted dimensions (cost, recency, context size, knowledge freshness) and recommends the best fits for a given use case. This is what makes pickai more than a filter.
 
 ```ts
-import { Purpose } from "pickai";
+import { fromModelsDev, recommend, Purpose } from "pickai";
 
-// Single best model for coding (default limit: 1)
-const [best] = pick.recommend(Purpose.Coding);
+const models = await fromModelsDev();
 
-// Top 5 quality models from Anthropic only
-const top = pick.recommend(Purpose.Quality, {
+// Top-scored model for coding (default limit: 1)
+const [top] = recommend(models, Purpose.Coding);
+
+// Top 5 reasoning models from Anthropic
+const reasoning = recommend(models, Purpose.Reasoning, {
   filter: { providers: ["anthropic"] },
   limit: 5,
 });
 ```
 
-## Built-in Purpose Profiles
+See [Scoring & Ranking](/concepts/scoring/) for how criteria and weights produce scores, [Purpose Profiles](/concepts/purpose-profiles/) for the built-in profiles, and [Constraints](/concepts/constraints/) for diversity controls like `perProvider` and `perFamily`.
 
-pickai ships with six profiles that work out of the box:
+## Using Your Selection
 
-| Profile | Filter | Emphasis |
-|---------|--------|----------|
-| `Purpose.Cheap` | — | Cost efficiency (70%), context size (30%) |
-| `Purpose.Balanced` | — | Equal weight: cost, recency, context, knowledge |
-| `Purpose.Quality` | — | Recency (50%), knowledge (30%), context (20%) |
-| `Purpose.Coding` | `toolCall` + `structuredOutput` | Recency, knowledge, context size |
-| `Purpose.Creative` | — | Context size (40%), recency (30%), knowledge (20%) |
-| `Purpose.Reasoning` | `reasoning` | Recency (50%), knowledge (30%), context (20%) |
+After `recommend()` picks a model, you need to call it. The `Model` object includes everything you need to route to the right provider: `model.provider` identifies the provider, `model.id` is the direct API identifier, and `model.openRouterId` is the OpenRouter slug.
 
-## Next Steps
+:::note[pickai recommends, you connect]
+pickai tells you which models best fit your requirements from the full models.dev catalog (3,700+ models across 90+ providers). Connecting to the provider is up to you.
 
-- [Filtering Models](/guides/filtering/) — Learn about declarative filters and predicate functions
-- [Scoring & Ranking](/guides/scoring/) — Understand how scoring criteria work and write your own
-- [Purpose Profiles](/guides/purpose-profiles/) — Build custom profiles for your specific use case
-- [API Reference](/reference/create-picker/) — Full API documentation
+Use the [`providers` filter](/concepts/filtering/#provider-constants) to narrow results to providers you have access to, then call models however you prefer:
+- **AI SDK** with a direct provider package or OpenRouter for broader access
+- **Direct API calls** with `fetch` to any provider endpoint
+- **Locally hosted models** via Ollama or similar
+:::
+
+Here are some quick examples to scan. See the [Examples](/examples/basic-usage/) section for full working examples.
+
+### With the AI SDK (v6)
+
+```ts
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { generateText } from "ai";
+
+// Use find() or recommend() to select a model, stored in `model`
+
+const anthropic = createAnthropic({ apiKey: ANTHROPIC_API_KEY });
+
+const { text } = await generateText({
+  model: anthropic(model.id), // e.g. "claude-sonnet-4-6"
+  prompt: "Explain how promises work in JavaScript",
+});
+```
+
+### With a direct API call
+
+```ts
+// Use find() or recommend() to select a model, stored in `model`
+
+const response = await fetch("https://api.anthropic.com/v1/messages", {
+  method: "POST",
+  headers: {
+    "x-api-key": ANTHROPIC_API_KEY,
+    "content-type": "application/json",
+    // ...other required headers
+  },
+  body: JSON.stringify({
+    model: model.id, // e.g. "claude-sonnet-4-6"
+    max_tokens: 1024,
+    messages: [{ role: "user", content: "Explain how promises work in JavaScript" }],
+  }),
+});
+```
+
+## Beyond the Basics
+
+### Purpose Profiles
+
+pickai ships six built-in profiles (`Cheap`, `Balanced`, `Quality`, `Coding`, `Creative`, `Reasoning`), but you can [create your own](/concepts/purpose-profiles/#creating-custom-profiles) with custom filters and scoring weights. See [Purpose Profiles](/concepts/purpose-profiles/).
+
+### Custom Scoring Criteria
+
+Built-in profiles score on metadata: cost, context size, recency, and knowledge freshness. These are useful proxies, but models with aggressive specs can rank highly without being the best performers. Adding benchmark data as a custom criterion lets you score on actual model quality:
+
+```ts
+const arenaScore = minMaxCriterion((model) => {
+  const match = benchmarks.find((b) => matchesModel(b.modelId, model.id));
+  return match?.score;
+});
+
+const [best] = recommend(models, {
+  criteria: [
+    { criterion: arenaScore, weight: 5 },
+    { criterion: costEfficiency, weight: 2 },
+  ],
+});
+```
+
+See the [Benchmark Scoring](/examples/benchmark-scoring/) example for a full working implementation.
+
+### Utilities
+
+Lower-level building blocks like [`scoreModels`](/reference/score-models/), [`applyFilter`](/reference/apply-filter/), and [`matchesModel`](/reference/matches-model/) for composing your own pipelines. See the [Utilities reference](/reference/apply-filter/).

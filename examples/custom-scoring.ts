@@ -1,6 +1,6 @@
 import {
-  createPicker,
   fromModelsDev,
+  recommend,
   costEfficiency,
   contextCapacity,
   recency,
@@ -8,10 +8,10 @@ import {
   type PurposeProfile,
 } from "pickai";
 
-const pick = await createPicker(fromModelsDev());
+const models = await fromModelsDev();
 
-// Write a custom criterion: prefer models with image input
-const multimodal: ScoringCriterion = (model) => {
+// Write a custom criterion: prefer models with vision
+const supportsVision: ScoringCriterion = (model) => {
   return model.modalities.input.includes("image") ? 1 : 0;
 };
 
@@ -19,15 +19,15 @@ const multimodal: ScoringCriterion = (model) => {
 const profile: PurposeProfile = {
   filter: { toolCall: true },
   criteria: [
-    { criterion: multimodal, weight: 5 },
+    { criterion: supportsVision, weight: 5 },
     { criterion: recency, weight: 3 },
     { criterion: contextCapacity, weight: 2 },
     { criterion: costEfficiency, weight: 1 },
   ],
 };
 
-const results = pick.recommend(profile, { limit: 5 });
+const results = recommend(models, profile, { limit: 5 });
 
 for (const model of results) {
-  console.log(`${model.id} — score: ${model.score.toFixed(3)}`);
+  console.log(`${model.score.toFixed(3)} | ${model.name}`);
 }

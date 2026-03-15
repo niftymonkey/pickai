@@ -1,0 +1,87 @@
+---
+title: Data Sources
+description: Use the built-in models.dev source or bring your own model data.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import customSourceExample from '../../../../../examples/custom-source.ts?raw';
+
+Before you can filter or recommend models, you need a catalog. pickai ships [`fromModelsDev()`](/reference/from-models-dev/) to fetch 3,700+ models from models.dev, but [`find()`](/reference/find/) and [`recommend()`](/reference/recommend/) accept any `Model[]`, so you can bring your own data too.
+
+## fromModelsDev()
+
+Fetches the full catalog from [models.dev/api.json](https://models.dev/api.json) and returns `Promise<Model[]>`. Uses the platform `fetch` API (Node 18+, Deno, Bun, browsers).
+
+```ts
+import { fromModelsDev } from "pickai";
+
+const models = await fromModelsDev();
+```
+
+The full catalog includes many resellers and aggregators. When calling `find()` or `recommend()`, you can narrow results to known providers using the [Provider Constants](/concepts/filtering/#provider-constants).
+
+### Pre-fetched Data
+
+If you've already fetched the models.dev data (for caching, offline use, or testing), pass it directly:
+
+```ts
+import { fromModelsDev, type ModelsDevData } from "pickai";
+import { readFileSync } from "fs";
+
+// Fetch https://models.dev/api.json yourself and cache however you like
+const cached: ModelsDevData = JSON.parse(readFileSync("api.json", "utf-8"));
+const models = await fromModelsDev(cached);
+```
+
+### parseModelsDevData()
+
+If you want to use the models.dev parser without the fetch wrapper, [`parseModelsDevData()`](/reference/parse-models-dev-data/) is exported directly:
+
+```ts
+import { parseModelsDevData } from "pickai";
+
+const data = await fetchFromYourCache();
+const models = parseModelsDevData(data);
+```
+
+This returns `Model[]` synchronously. Useful when you manage fetching and caching yourself.
+
+### Why models.dev?
+
+models.dev provides structured capability fields (`reasoning`, `openWeights`, `structuredOutput`, `attachment`), `knowledge` cutoff dates, and model `status` that other catalog sources don't expose. These fields are what make metadata-only filtering and scoring meaningful: you can score on knowledge freshness, filter by reasoning capability, and exclude deprecated models out of the box.
+
+That said, metadata can only tell you what a model supports, not how well it performs. For actual quality ranking, add benchmark data as a [custom scoring criterion](/examples/benchmark-scoring/).
+
+## Bringing Your Own Data
+
+`find()` and `recommend()` accept any `Model[]`, so you can maintain a curated list, load from a database, combine multiple sources, or test with fixed data.
+
+Each model must conform to the [`Model`](/reference/types/#model) interface. These fields are **required**:
+
+| Field | Type | Example |
+|-------|------|---------|
+| `id` | `string` | `"claude-sonnet-4-5"` |
+| `name` | `string` | `"Claude Sonnet 4.5"` |
+| `provider` | `string` | `"anthropic"` |
+| `openRouterId` | `string` | `"anthropic/claude-sonnet-4.5"` |
+| `limit` | `{ context, output }` | `{ context: 200000, output: 16384 }` |
+| `modalities` | `{ input[], output[] }` | `{ input: ["text", "image"], output: ["text"] }` |
+
+The remaining fields are optional, but specific pickai features depend on them:
+
+| Field | Used by |
+|-------|---------|
+| `cost` | [`costEfficiency`](/reference/score-models/#costefficiency) scoring, `maxCostInput`/`maxCostOutput` filters, [`sortByCost`](/reference/find/#sort-functions) |
+| `releaseDate` | [`recency`](/reference/score-models/#recency) scoring, default sort order in `find()` |
+| `knowledge` | [`knowledgeFreshness`](/reference/score-models/#knowledgefreshness) scoring, `minKnowledge` filter |
+| `family` | [`perFamily()`](/reference/per-family/) constraint |
+| `reasoning` | `reasoning` filter, `Purpose.Reasoning` |
+| `toolCall` | `toolCall` filter, `Purpose.Coding` |
+| `structuredOutput` | `structuredOutput` filter |
+| `status` | `excludeDeprecated` filter |
+
+Missing optional fields are handled gracefully. Models without `cost` score 0 on `costEfficiency` (unknown cost gets no credit for being cheap). Models without `releaseDate` or `knowledge` score as oldest in their respective criteria.
+
+## Full Example
+
+<Code code={customSourceExample} lang="ts" title="custom-source.ts" />

@@ -1,0 +1,77 @@
+---
+title: Constraints
+description: Enforce diversity in model selection with provider and family constraints.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import constraintsExample from '../../../../../examples/constraints.ts?raw';
+
+Scoring produces a ranked list, but the top 5 might all be from the same provider or the same model family. Constraints let you enforce diversity by spreading results across providers, families, or any rule you define.
+
+Constraints don't change scores. They shape the final selection by controlling which scored models make it into [`recommend()`](/reference/recommend/) results. pickai ships two built-in constraints: [`perProvider()`](/reference/per-provider/) and [`perFamily()`](/reference/per-family/).
+
+## How Constraints Work
+
+When `recommend()` selects the top N models, it uses a **two-pass algorithm**:
+
+1. **First pass:** Walk the scored list in order. Add a model only if it passes all constraints.
+2. **Second pass:** If fewer than `limit` models were selected, fill remaining slots from the scored list, ignoring constraints.
+
+This means constraints are preferences, not hard limits. You always get `limit` results (if enough candidates exist), but constraint-satisfying models come first.
+
+## Built-in Constraints
+
+### perProvider(max)
+
+Limits how many models sharing the same `model.provider` value appear in results. Default: 1 per provider.
+
+```ts
+import { fromModelsDev, recommend, Purpose, perProvider, DIRECT_PROVIDERS } from "pickai";
+
+const models = await fromModelsDev();
+
+// At most 2 models per provider
+const results = recommend(models, Purpose.Coding, {
+  filter: { providers: [...DIRECT_PROVIDERS] },
+  constraints: [perProvider(2)],
+  limit: 10,
+});
+```
+
+### perFamily(max)
+
+Limits how many models sharing the same `model.family` value appear in results. This field comes from models.dev and represents model sub-lines (e.g., `claude-sonnet`, `gpt-mini`, `gemini-flash`). Models without a `family` field always pass and aren't counted against any group.
+
+```ts
+import { perFamily, DIRECT_PROVIDERS } from "pickai";
+
+// At most 1 per model.family (e.g., one claude-opus, one claude-sonnet, one gpt-mini)
+const results = recommend(models, Purpose.Balanced, {
+  filter: { providers: [...DIRECT_PROVIDERS] },
+  constraints: [perFamily(1)],
+  limit: 5,
+});
+```
+
+## Writing Custom Constraints
+
+A [`Constraint`](/reference/types/#constraint) is a function that receives the models already selected and the candidate being considered:
+
+```ts
+type Constraint = (selected: Model[], candidate: Model) => boolean;
+```
+
+Return `true` to allow the candidate, `false` to skip it (in the first pass).
+
+```ts
+// Custom: at most 2 models over $3/M input
+const limitCostly: Constraint = (selected, candidate) => {
+  const isCostly = (m: Model) => (m.cost?.input ?? 0) > 3;
+  if (!isCostly(candidate)) return true;
+  return selected.filter(isCostly).length < 2;
+};
+```
+
+## Full Example
+
+<Code code={constraintsExample} lang="ts" title="constraints.ts" />
