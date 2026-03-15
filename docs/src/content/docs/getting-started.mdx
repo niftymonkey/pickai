@@ -27,7 +27,7 @@ const vision = find(models, {
   limit: 10,
 });
 
-// Tool-calling models with structured output, sorted by cost
+// Tool-calling models, sorted by cost
 const tools = find(models, {
   filter: { toolCall: true },
   sort: sortByCost("asc"),
