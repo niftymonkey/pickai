@@ -16,6 +16,7 @@ export type {
 
 // Source
 export { fromModelsDev } from "./source";
+export { parseModelsDevData } from "./source";
 export type { ModelsDevData } from "./source";
 
 // Scoring criteria
@@ -28,10 +29,6 @@ export {
   outputCapacity,
   scoreModels,
 } from "./score";
-
-// Selection
-export { selectModels } from "./select";
-export type { SelectOptions } from "./select";
 
 // Constraints
 export { perProvider, perFamily } from "./constraints";
@@ -55,15 +52,4 @@ export { Purpose } from "./purpose";
 export { DIRECT_PROVIDERS, OPENROUTER_PROVIDERS, ALL_KNOWN_PROVIDERS } from "./providers";
 
 // ID utilities
-export {
-  normalizeModelId,
-  parseModelId,
-  resolveProvider,
-  extractDirectModelId,
-  toOpenRouterFormat,
-  toDirectFormat,
-  matchesModel,
-  extractVersion,
-  deriveOpenRouterId,
-} from "./id";
-export type { ParsedModelId } from "./id";
+export { matchesModel } from "./id";

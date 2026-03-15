@@ -2,7 +2,7 @@
 
 ## 2.0.0
 
-v2 is a ground-up redesign based on real-world testing during the documentation build-out and library integrations across multiple internal projects. The catalog switched from OpenRouter to models.dev, gaining structured capability fields that make metadata-only filtering and scoring meaningful. The wrapper abstraction was removed in favor of standalone functions with explicit data flow. Several silent failure patterns were fixed, and new utilities were added to reduce boilerplate for common tasks.
+v2 is a ground-up redesign based on real-world testing during library integrations across multiple internal projects as well as the documentation site creation. The catalog switched from OpenRouter to models.dev, gaining structured capability fields that make metadata-only filtering and scoring meaningful. The wrapper abstraction was removed in favor of standalone functions with explicit data flow. Several silent failure patterns were fixed, and new utilities were added to reduce boilerplate for common tasks.
 
 ### BREAKING
 
