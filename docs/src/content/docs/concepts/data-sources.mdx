@@ -4,7 +4,7 @@ description: Use the built-in models.dev source or bring your own model data.
 ---
 
 import { Code } from '@astrojs/starlight/components';
-import customSourceExample from '../../../../../examples/custom-source.ts?raw';
+import customSourceExample from '@examples/custom-source.ts?raw';
 
 Before you can filter or recommend models, you need a catalog. pickai ships [`fromModelsDev()`](/reference/from-models-dev/) to fetch 3,700+ models from models.dev, but [`find()`](/reference/find/) and [`recommend()`](/reference/recommend/) accept any `Model[]`, so you can bring your own data too.
 

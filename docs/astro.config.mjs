@@ -5,6 +5,13 @@ import starlightLlmsTxt from "starlight-llms-txt";
 
 export default defineConfig({
   site: "https://pickai.niftymonkey.dev",
+  vite: {
+    resolve: {
+      alias: {
+        "@examples": new URL("../examples", import.meta.url).pathname,
+      },
+    },
+  },
   integrations: [
     starlight({
       title: "pickai",

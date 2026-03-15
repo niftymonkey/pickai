@@ -3,7 +3,7 @@ title: matchesModel
 description: Fuzzy comparison of two model IDs.
 ---
 
-The same model can have different IDs depending on the source. Benchmark data might use `"claude-3-5-sonnet-20241022"`, models.dev uses `"claude-sonnet-4-5"`, and OpenRouter uses `"anthropic/claude-sonnet-4.5"`. A simple string comparison would miss these matches. `matchesModel()` normalizes both IDs (strips provider prefixes, date suffixes, dots vs hyphens, and case) before comparing, so you can match model IDs across sources without writing your own normalization.
+The same model can have different IDs depending on the source. Benchmark data might use `"claude-sonnet-4-5-20250224"`, models.dev uses `"claude-sonnet-4-5"`, and OpenRouter uses `"anthropic/claude-sonnet-4.5"`. A simple string comparison would miss these matches. `matchesModel()` normalizes both IDs (strips provider prefixes, date suffixes, dots vs hyphens, and case) before comparing, so you can match model IDs across sources without writing your own normalization.
 
 ## Signature
 

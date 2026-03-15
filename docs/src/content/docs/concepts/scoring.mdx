@@ -4,7 +4,7 @@ description: How pickai scores models using weighted criteria, and how to write 
 ---
 
 import { Code } from '@astrojs/starlight/components';
-import customScoringExample from '../../../../../examples/custom-scoring.ts?raw';
+import customScoringExample from '@examples/custom-scoring.ts?raw';
 
 Filtering tells you what qualifies. But when 50 models pass your filter, which one should you actually use? Scoring evaluates each candidate across multiple dimensions and ranks them so [`recommend()`](/reference/recommend/) can surface the best fit.
 
