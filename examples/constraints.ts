@@ -1,7 +1,7 @@
 import {
   fromModelsDev, recommend,
-  Purpose, DIRECT_PROVIDERS,
   perProvider, perFamily,
+  Purpose, DIRECT_PROVIDERS,
   type Model, type Constraint,
 } from "pickai";
 

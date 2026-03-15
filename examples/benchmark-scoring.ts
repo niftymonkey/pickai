@@ -11,9 +11,10 @@
 
 import {
   fromModelsDev, recommend,
-  matchesModel, minMaxCriterion,
+  minMaxCriterion, matchesModel,
   costEfficiency, contextCapacity,
-  DIRECT_PROVIDERS, type PurposeProfile,
+  DIRECT_PROVIDERS,
+  type PurposeProfile,
 } from "pickai";
 
 const models = await fromModelsDev();
