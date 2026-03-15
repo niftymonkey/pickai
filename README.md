@@ -61,7 +61,7 @@ const [best] = recommend(models, Purpose.Coding, {
 **Score with real benchmark data** using LMArena (Chatbot Arena) or any external quality data as custom scoring criteria. The included [benchmark example](https://pickai.niftymonkey.dev/examples/benchmark-scoring/) fetches live LMArena scores and uses them alongside built-in criteria:
 
 ```ts
-import { minMaxCriterion, matchesModel } from "pickai";
+import { minMaxCriterion, matchesModel, costEfficiency } from "pickai";
 
 const arenaScore = minMaxCriterion((model) => {
   const match = benchmarks.find((b) => matchesModel(b.modelId, model.id));
@@ -102,7 +102,7 @@ pnpm test           # run tests (vitest)
 
 ### Project structure
 
-```
+```text
 src/
   *.ts              # One module per concern (find, recommend, score, filter, etc.)
   *.test.ts         # Co-located tests
