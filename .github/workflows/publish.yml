@@ -53,6 +53,11 @@ jobs:
       - name: Create GitHub Release
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          gh release create "v${VERSION}" --title "v${VERSION}" --notes-file CHANGELOG.md
+          sed -n "/^## ${VERSION}$/,/^## /{ /^## ${VERSION}$/d; /^## /d; p; }" CHANGELOG.md > /tmp/release-notes.md
+          if [ -s /tmp/release-notes.md ]; then
+            gh release create "v${VERSION}" --title "v${VERSION}" --notes-file /tmp/release-notes.md
+          else
+            gh release create "v${VERSION}" --title "v${VERSION}" --generate-notes
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
