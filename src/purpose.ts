@@ -79,10 +79,16 @@ const Reasoning: PurposeProfile = {
  * Usage: `pick.recommend(Purpose.Coding, { limit: 5 })`
  */
 export const Purpose = {
+  /** Weights: costEfficiency(7), recency(1). */
   Cheap,
+  /** Weights: costEfficiency(1), recency(1), contextCapacity(1), outputCapacity(1), knowledgeFreshness(1). */
   Balanced,
+  /** Weights: recency(5), knowledgeFreshness(3), contextCapacity(2), outputCapacity(2), costEfficiency(1). */
   Quality,
+  /** Requires tool calling. Weights: recency(4), knowledgeFreshness(3), contextCapacity(3), outputCapacity(2), costEfficiency(1). */
   Coding,
+  /** Weights: contextCapacity(4), recency(3), knowledgeFreshness(2), outputCapacity(1), costEfficiency(1). */
   Creative,
+  /** Requires reasoning capability. Weights: recency(5), knowledgeFreshness(3), outputCapacity(2), contextCapacity(2), costEfficiency(1). */
   Reasoning,
 } as const;

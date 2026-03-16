@@ -1,10 +1,11 @@
 /**
- * Benchmark Scoring: Using LMArena Quality Data
+ * Benchmark Scoring: Combining a Purpose Profile with LMArena Data
  *
- * Built-in profiles score on metadata (cost, context, recency), which
- * are useful proxies but don't measure actual model quality. This example
- * shows how to bring benchmark data as a custom scoring criterion using
- * LMArena (Chatbot Arena) scores.
+ * Built-in purpose profiles score on metadata (cost, context, recency),
+ * which are useful proxies but don't measure actual model quality. This
+ * example shows how to layer benchmark data on top of a built-in purpose
+ * to get the best of both: metadata-driven filtering and weighting from
+ * the purpose, plus real-world quality signal from arena scores.
  *
  * LMArena data is free and requires no API key.
  */
@@ -12,7 +13,7 @@
 import {
   fromModelsDev, recommend,
   minMaxCriterion, matchesModel,
-  costEfficiency, contextCapacity,
+  Purpose,
   DIRECT_PROVIDERS,
   type PurposeProfile,
 } from "pickai";
@@ -28,7 +29,7 @@ const scoresData = await response.json();
 const dates = Object.keys(scoresData).sort();
 const latestScores = scoresData[dates[dates.length - 1]].text.overall;
 
-// Map to a simple array for easy lookup
+// Build a lookup array we can match against pickai model IDs
 const benchmarks = Object.entries(latestScores).map(([modelId, score]) => ({
   modelId,
   score: score as number,
@@ -40,20 +41,24 @@ const arenaScore = minMaxCriterion((model) => {
   return match?.score;
 });
 
-// Build a profile that weighs arena score heavily, with cost as a tiebreaker
-const ArenaLeader: PurposeProfile = {
+// Take a built-in purpose and layer arena score on top
+const base = Purpose.Coding;
+
+const CodingWithArena: PurposeProfile = {
+  filter: base.filter,
   criteria: [
-    { criterion: arenaScore, weight: 5 },
-    { criterion: contextCapacity, weight: 2 },
-    { criterion: costEfficiency, weight: 1 },
+    ...base.criteria,
+    { criterion: arenaScore, weight: 6 }, // Coding weights sum to 13, so 6 makes arena ~30% of total
   ],
 };
 
-const results = recommend(models, ArenaLeader, {
+const results = recommend(models, CodingWithArena, {
   filter: { providers: [...DIRECT_PROVIDERS] },
   limit: 5,
 });
 
+// ScoredModel contains the blended composite score but not individual criterion
+// values. To display the raw arena number let's just look it up from the original data.
 for (const m of results) {
   const match = benchmarks.find((b) => matchesModel(b.modelId, m.id));
   const arena = match ? Math.round(match.score) : "n/a";
