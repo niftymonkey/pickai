@@ -10,7 +10,7 @@ Every call to [`recommend()`](/reference/recommend/) needs [filters](/concepts/f
 pickai ships six profiles via the `Purpose` constant. Weights are relative. See [Scoring & Ranking](/concepts/scoring/) for how weights and criteria produce scores.
 
 :::note[Built-in profiles score on metadata, not quality]
-These profiles use cost, context size, recency, and knowledge freshness as scoring criteria. Models with aggressive specs (large context windows, low pricing) can rank highly even if they aren't the strongest performers. For quality-aware scoring, add benchmark data as a [custom criterion](/concepts/scoring/#writing-custom-criteria). See the [Benchmark Scoring](/examples/benchmark-scoring/) example for a working implementation.
+These profiles use cost, context size, recency, and knowledge freshness as scoring criteria. Models with aggressive specs (large context windows, low pricing) can rank highly even if they aren't the strongest performers. For quality-aware scoring, add benchmark data as a [custom criterion](/concepts/scoring/#writing-custom-criteria). See the benchmark example recipes for working implementations.
 :::
 
 ### Purpose.Cheap
