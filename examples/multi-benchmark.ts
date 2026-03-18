@@ -75,8 +75,9 @@ const enriched = models.map((m) => {
 });
 
 // Each benchmark source becomes one criterion. Not every model appears in
-// both datasets -- minMaxCriterion scores unmatched models as 0, so models
-// with data from both sources naturally rank higher.
+// both datasets -- unmatched models score 0 for that criterion (without
+// affecting the normalization range), so models with data from both sources
+// naturally rank higher.
 
 const humanPreference = minMaxCriterion((model) => {
   const match = arenaBenchmarks.find((b) => matchesModel(b.modelId, model.id));
