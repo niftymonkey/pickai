@@ -66,7 +66,7 @@ const aaBenchmarks = aaData.data
 // Enrich models with both benchmark values so they flow through to results.
 // ScoredModel is generic -- recommend() preserves any extra fields you add.
 type MultiScoredModel = Model & { arena?: number; quality?: number };
-const enriched: MultiScoredModel[] = models.map((m) => {
+const multiscoredModels: MultiScoredModel[] = models.map((m) => {
   const arena = arenaBenchmarks.find((b) => matchesModel(b.modelId, m.id));
   const aa = aaBenchmarks.find((b: { slug: string }) => matchesModel(b.slug, m.id));
   return {
@@ -80,24 +80,28 @@ const enriched: MultiScoredModel[] = models.map((m) => {
 // both datasets -- unmatched models score 0 for that criterion (without
 // affecting the normalization range), so models with data from both sources
 // naturally rank higher.
-
 const humanPreference = minMaxCriterion((model: MultiScoredModel) => model.arena);
 const objectiveQuality = minMaxCriterion((model: MultiScoredModel) => model.quality);
 
 // Blend human preference and objective quality equally, with cost and
-// recency as tiebreakers. Top 10, diverse across providers and families.
-const results = recommend(enriched, {
+// recency as tiebreakers
+const blendedProfile = {
   criteria: [
     { criterion: humanPreference, weight: 4 },
     { criterion: objectiveQuality, weight: 4 },
     { criterion: costEfficiency, weight: 2 },
     { criterion: recency, weight: 1 },
   ],
-}, {
+};
+
+// Top 10 from direct providers, diverse across providers and families
+const selection = {
   filter: { providers: [...DIRECT_PROVIDERS] },
   constraints: [perProvider(2), perFamily(1)],
   limit: 10,
-});
+};
+
+const results = recommend(multiscoredModels, blendedProfile, selection);
 
 console.table(results.map((m) => ({
   Score: +m.score.toFixed(3),

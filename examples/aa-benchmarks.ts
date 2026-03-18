@@ -56,7 +56,7 @@ const benchmarks = aaData.data
 // Enrich models with quality scores so they flow through to results.
 // ScoredModel is generic -- recommend() preserves any extra fields you add.
 type BenchmarkedModel = Model & { quality?: number };
-const enriched: BenchmarkedModel[] = models.map((m) => {
+const benchmarkedModels: BenchmarkedModel[] = models.map((m) => {
   const match = benchmarks.find((b: { slug: string }) =>
     matchesModel(b.slug, m.id),
   );
@@ -66,18 +66,22 @@ const enriched: BenchmarkedModel[] = models.map((m) => {
 // AA Intelligence Index: composite quality score across multiple benchmarks
 const qualityScore = minMaxCriterion((model: BenchmarkedModel) => model.quality);
 
-// Rank by intelligence index with cost as tiebreaker.
-// Top 10 from direct providers, diverse across providers and families.
-const results = recommend(enriched, {
+// Rank by intelligence index with cost as tiebreaker
+const qualityProfile = {
   criteria: [
     { criterion: qualityScore, weight: 5 },
     { criterion: costEfficiency, weight: 2 },
   ],
-}, {
+};
+
+// Top 10 under $3/M from direct providers, diverse across providers and families
+const selection = {
   filter: { providers: [...DIRECT_PROVIDERS], maxCostInput: 3 },
   constraints: [perProvider(2), perFamily(1)],
   limit: 10,
-});
+};
+
+const results = recommend(benchmarkedModels, qualityProfile, selection);
 
 console.table(results.map((m) => ({
   Score: +m.score.toFixed(3),

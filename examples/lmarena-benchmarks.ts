@@ -45,7 +45,7 @@ const benchmarks = Object.entries(latestScores).map(([modelId, score]) => ({
 // Enrich models with arena scores so they flow through to results.
 // ScoredModel is generic -- recommend() preserves any extra fields you add.
 type ArenaModel = Model & { arena?: number };
-const enriched: ArenaModel[] = models.map((m) => {
+const arenaModels: ArenaModel[] = models.map((m) => {
   const match = benchmarks.find((b) => matchesModel(b.modelId, m.id));
   return { ...m, arena: match?.score };
 });
@@ -53,19 +53,23 @@ const enriched: ArenaModel[] = models.map((m) => {
 // Human preference is the primary signal
 const humanPreference = minMaxCriterion((model: ArenaModel) => model.arena);
 
-// Rank by human preference (arena), with cost and recency as secondary signals.
-// Top 10 from direct providers, spread across providers and families.
-const results = recommend(enriched, {
+// Rank by human preference (arena), with cost and recency as secondary signals
+const preferenceProfile = {
   criteria: [
     { criterion: humanPreference, weight: 5 },
     { criterion: costEfficiency, weight: 2 },
     { criterion: recency, weight: 1 },
   ],
-}, {
+};
+
+// Top 10 from direct providers, spread across providers and families
+const selection = {
   filter: { providers: [...DIRECT_PROVIDERS] },
   constraints: [perProvider(2), perFamily(1)],
   limit: 10,
-});
+};
+
+const results = recommend(arenaModels, preferenceProfile, selection);
 
 console.table(results.map((m) => ({
   Score: +m.score.toFixed(3),
