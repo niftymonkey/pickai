@@ -20,6 +20,7 @@ import {
   costEfficiency, recency,
   perProvider, perFamily,
   DIRECT_PROVIDERS,
+  type Model,
 } from "pickai";
 
 const aaKey = process.env.ARTIFICIAL_ANALYSIS_API_KEY;
@@ -64,7 +65,8 @@ const aaBenchmarks = aaData.data
 
 // Enrich models with both benchmark values so they flow through to results.
 // ScoredModel is generic -- recommend() preserves any extra fields you add.
-const enriched = models.map((m) => {
+type MultiScoredModel = Model & { arena?: number; quality?: number };
+const enriched: MultiScoredModel[] = models.map((m) => {
   const arena = arenaBenchmarks.find((b) => matchesModel(b.modelId, m.id));
   const aa = aaBenchmarks.find((b: { slug: string }) => matchesModel(b.slug, m.id));
   return {
@@ -79,17 +81,8 @@ const enriched = models.map((m) => {
 // affecting the normalization range), so models with data from both sources
 // naturally rank higher.
 
-const humanPreference = minMaxCriterion((model) => {
-  const match = arenaBenchmarks.find((b) => matchesModel(b.modelId, model.id));
-  return match?.score;
-});
-
-const objectiveQuality = minMaxCriterion((model) => {
-  const match = aaBenchmarks.find((b: { slug: string }) =>
-    matchesModel(b.slug, model.id),
-  );
-  return match?.quality;
-});
+const humanPreference = minMaxCriterion((model: MultiScoredModel) => model.arena);
+const objectiveQuality = minMaxCriterion((model: MultiScoredModel) => model.quality);
 
 // Blend human preference and objective quality equally, with cost and
 // recency as tiebreakers. Top 10, diverse across providers and families.

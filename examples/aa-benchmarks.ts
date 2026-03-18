@@ -21,6 +21,7 @@ import {
   costEfficiency,
   perProvider, perFamily,
   DIRECT_PROVIDERS,
+  type Model,
 } from "pickai";
 
 const aaKey = process.env.ARTIFICIAL_ANALYSIS_API_KEY;
@@ -54,7 +55,8 @@ const benchmarks = aaData.data
 
 // Enrich models with quality scores so they flow through to results.
 // ScoredModel is generic -- recommend() preserves any extra fields you add.
-const enriched = models.map((m) => {
+type BenchmarkedModel = Model & { quality?: number };
+const enriched: BenchmarkedModel[] = models.map((m) => {
   const match = benchmarks.find((b: { slug: string }) =>
     matchesModel(b.slug, m.id),
   );
@@ -62,12 +64,7 @@ const enriched = models.map((m) => {
 });
 
 // AA Intelligence Index: composite quality score across multiple benchmarks
-const qualityScore = minMaxCriterion((model) => {
-  const match = benchmarks.find((b: { slug: string }) =>
-    matchesModel(b.slug, model.id),
-  );
-  return match?.quality;
-});
+const qualityScore = minMaxCriterion((model: BenchmarkedModel) => model.quality);
 
 // Rank by intelligence index with cost as tiebreaker.
 // Top 10 from direct providers, diverse across providers and families.

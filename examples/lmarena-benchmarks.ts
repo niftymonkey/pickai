@@ -20,6 +20,7 @@ import {
   costEfficiency, recency,
   perProvider, perFamily,
   DIRECT_PROVIDERS,
+  type Model,
 } from "pickai";
 
 const models = await fromModelsDev();
@@ -43,16 +44,14 @@ const benchmarks = Object.entries(latestScores).map(([modelId, score]) => ({
 
 // Enrich models with arena scores so they flow through to results.
 // ScoredModel is generic -- recommend() preserves any extra fields you add.
-const enriched = models.map((m) => {
+type ArenaModel = Model & { arena?: number };
+const enriched: ArenaModel[] = models.map((m) => {
   const match = benchmarks.find((b) => matchesModel(b.modelId, m.id));
   return { ...m, arena: match?.score };
 });
 
 // Human preference is the primary signal
-const humanPreference = minMaxCriterion((model) => {
-  const match = benchmarks.find((b) => matchesModel(b.modelId, model.id));
-  return match?.score;
-});
+const humanPreference = minMaxCriterion((model: ArenaModel) => model.arena);
 
 // Rank by human preference (arena), with cost and recency as secondary signals.
 // Top 10 from direct providers, spread across providers and families.
