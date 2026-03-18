@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.1.0
+
+### Features
+
+- **Generic `ScoringCriterion<T>`.** `ScoringCriterion`, `WeightedCriterion`, and `minMaxCriterion` now accept an optional type parameter for enriched model types. This lets criterion callbacks access custom fields (e.g., benchmark scores) without casts. Defaults to `Model`, so existing code is unaffected.
+
+### Examples
+
+- **LMArena Benchmarks** -- human preference scoring using crowdsourced blind comparison data (free, no API key).
+- **AA Benchmarks** -- find the smartest model for your budget using the Artificial Analysis intelligence index.
+- **Multi-Benchmark** -- combine LMArena and AA scores to triangulate quality from multiple sources.
+- Replaced the previous single `benchmark-scoring` example with these three use-case-driven recipes.
+
+## 2.0.1
+
+- Fixed publish workflow to extract only the current version's notes for GitHub releases.
+- Added benchmark example showing how to combine a Purpose profile with LMArena arena scores.
+
 ## 2.0.0
 
 v2 is a ground-up redesign based on real-world testing during library integrations across multiple internal projects as well as the documentation site creation. The catalog switched from OpenRouter to models.dev, gaining structured capability fields that make metadata-only filtering and scoring meaningful. The wrapper abstraction was removed in favor of standalone functions with explicit data flow. Several silent failure patterns were fixed, and new utilities were added to reduce boilerplate for common tasks.
