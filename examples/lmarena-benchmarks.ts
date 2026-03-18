@@ -45,7 +45,7 @@ const benchmarks = Object.entries(latestScores).map(([modelId, score]) => ({
 // ScoredModel is generic -- recommend() preserves any extra fields you add.
 const enriched = models.map((m) => {
   const match = benchmarks.find((b) => matchesModel(b.modelId, m.id));
-  return { ...m, arena: match ? Math.round(match.score) : undefined };
+  return { ...m, arena: match?.score };
 });
 
 // Human preference is the primary signal
@@ -72,6 +72,6 @@ console.table(results.map((m) => ({
   Score: +m.score.toFixed(3),
   Model: m.name,
   Provider: m.provider,
-  Arena: m.arena ?? "n/a",
+  Arena: m.arena != null ? Math.round(m.arena) : "n/a",
   Cost: m.cost?.input != null ? `$${m.cost.input}/M` : "n/a",
 })));

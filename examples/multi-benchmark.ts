@@ -69,7 +69,7 @@ const enriched = models.map((m) => {
   const aa = aaBenchmarks.find((b: { slug: string }) => matchesModel(b.slug, m.id));
   return {
     ...m,
-    arena: arena ? Math.round(arena.score) : undefined,
+    arena: arena?.score,
     quality: aa?.quality,
   };
 });
@@ -110,7 +110,7 @@ console.table(results.map((m) => ({
   Score: +m.score.toFixed(3),
   Model: m.name,
   Provider: m.provider,
-  Arena: m.arena ?? "n/a",
+  Arena: m.arena != null ? Math.round(m.arena) : "n/a",
   Quality: m.quality ?? "n/a",
   Cost: m.cost?.input != null ? `$${m.cost.input}/M` : "n/a",
 })));
