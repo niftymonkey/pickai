@@ -118,6 +118,20 @@ describe("ScoringCriterion", () => {
     expectTypeOf<ScoringCriterion>().parameters.toEqualTypeOf<[Model, Model[]]>();
     expectTypeOf<ScoringCriterion>().returns.toBeNumber();
   });
+
+  it("accepts a generic type parameter for enriched models", () => {
+    type Enriched = Model & { arena?: number };
+    expectTypeOf<ScoringCriterion<Enriched>>().toBeFunction();
+    expectTypeOf<ScoringCriterion<Enriched>>().parameters.toEqualTypeOf<[Enriched, Enriched[]]>();
+  });
+
+  it("base ScoringCriterion is assignable to enriched WeightedCriterion", () => {
+    type Enriched = Model & { arena?: number };
+    const baseCriterion: ScoringCriterion = (_model, _all) => 0.5;
+    // A criterion that takes Model should be usable where Enriched is expected,
+    // since Enriched extends Model (contravariance of function parameters).
+    expectTypeOf(baseCriterion).toMatchTypeOf<ScoringCriterion<Enriched>>();
+  });
 });
 
 describe("Constraint", () => {

@@ -57,11 +57,11 @@ function safeTimestamp(value?: string): number {
  * });
  * ```
  */
-export function minMaxCriterion(
-  getValue: (model: Model) => number | undefined,
+export function minMaxCriterion<T extends Model = Model>(
+  getValue: (model: T) => number | undefined,
   invert = false,
-): ScoringCriterion {
-  return (model, allModels) => {
+): ScoringCriterion<T> {
+  return (model: T, allModels: T[]) => {
     const value = getValue(model);
     if (value == null) return 0;
     const values = allModels
@@ -143,7 +143,7 @@ export const outputCapacity: ScoringCriterion = (model, allModels) => {
  */
 export function scoreModels<T extends Model>(
   models: T[],
-  criteria: WeightedCriterion[],
+  criteria: WeightedCriterion<T>[],
 ): ScoredModel<T>[] {
   if (models.length === 0) return [];
 
