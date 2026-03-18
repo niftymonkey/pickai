@@ -1,6 +1,6 @@
 {
   "name": "pickai",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Filter, score, and recommend AI models across providers. Metadata-first, powered by models.dev. Zero deps.",
   "type": "module",
   "exports": {
