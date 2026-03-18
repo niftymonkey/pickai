@@ -89,11 +89,11 @@ export type ScoredModel<T extends Model = Model> = T & {
 };
 
 /** Scores a model relative to the full set. Returns 0-1. */
-export type ScoringCriterion = (model: Model, allModels: Model[]) => number;
+export type ScoringCriterion<T extends Model = Model> = (model: T, allModels: T[]) => number;
 
 /** A criterion paired with its relative weight. */
-export interface WeightedCriterion {
-  criterion: ScoringCriterion;
+export interface WeightedCriterion<T extends Model = Model> {
+  criterion: ScoringCriterion<T>;
   weight: number;
 }
 
