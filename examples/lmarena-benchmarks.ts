@@ -29,6 +29,7 @@ const models = await fromModelsDev();
 const response = await fetch(
   "https://raw.githubusercontent.com/nakasyou/lmarena-history/main/output/scores.json",
 );
+if (!response.ok) throw new Error(`LMArena fetch failed: ${response.status}`);
 const scoresData = await response.json();
 const dates = Object.keys(scoresData).sort();
 const latestScores = scoresData[dates[dates.length - 1]].text.overall;
@@ -72,5 +73,5 @@ console.table(results.map((m) => ({
   Model: m.name,
   Provider: m.provider,
   Arena: m.arena ?? "n/a",
-  Cost: m.cost?.input ? `$${m.cost.input}/M` : "n/a",
+  Cost: m.cost?.input != null ? `$${m.cost.input}/M` : "n/a",
 })));

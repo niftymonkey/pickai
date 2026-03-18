@@ -36,6 +36,7 @@ const response = await fetch(
   "https://artificialanalysis.ai/api/v2/data/llms/models",
   { headers: { "x-api-key": aaKey } },
 );
+if (!response.ok) throw new Error(`AA fetch failed: ${response.status}`);
 const aaData = await response.json();
 
 // We're pulling just the intelligence index here, but the AA API also
@@ -47,7 +48,7 @@ const benchmarks = aaData.data
     const evals = m.evaluations as Record<string, number | null>;
     return {
       slug: m.slug as string,
-      quality: evals.artificial_analysis_intelligence_index ?? 0,
+      quality: evals.artificial_analysis_intelligence_index ?? undefined,
     };
   });
 
@@ -86,5 +87,5 @@ console.table(results.map((m) => ({
   Model: m.name,
   Provider: m.provider,
   Quality: m.quality ?? "n/a",
-  Cost: m.cost?.input ? `$${m.cost.input}/M` : "n/a",
+  Cost: m.cost?.input != null ? `$${m.cost.input}/M` : "n/a",
 })));

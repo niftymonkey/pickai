@@ -35,6 +35,7 @@ const models = await fromModelsDev();
 const lmResponse = await fetch(
   "https://raw.githubusercontent.com/nakasyou/lmarena-history/main/output/scores.json",
 );
+if (!lmResponse.ok) throw new Error(`LMArena fetch failed: ${lmResponse.status}`);
 const scoresData = await lmResponse.json();
 const dates = Object.keys(scoresData).sort();
 const latestScores = scoresData[dates[dates.length - 1]].text.overall;
@@ -49,6 +50,7 @@ const aaResponse = await fetch(
   "https://artificialanalysis.ai/api/v2/data/llms/models",
   { headers: { "x-api-key": aaKey } },
 );
+if (!aaResponse.ok) throw new Error(`AA fetch failed: ${aaResponse.status}`);
 const aaData = await aaResponse.json();
 const aaBenchmarks = aaData.data
   .filter((m: Record<string, unknown>) => m.evaluations)
@@ -56,7 +58,7 @@ const aaBenchmarks = aaData.data
     const evals = m.evaluations as Record<string, number | null>;
     return {
       slug: m.slug as string,
-      quality: evals.artificial_analysis_intelligence_index ?? 0,
+      quality: evals.artificial_analysis_intelligence_index ?? undefined,
     };
   });
 
@@ -109,5 +111,5 @@ console.table(results.map((m) => ({
   Provider: m.provider,
   Arena: m.arena ?? "n/a",
   Quality: m.quality ?? "n/a",
-  Cost: m.cost?.input ? `$${m.cost.input}/M` : "n/a",
+  Cost: m.cost?.input != null ? `$${m.cost.input}/M` : "n/a",
 })));
