@@ -122,4 +122,4 @@ const arenaScore = minMaxCriterion((model) => {
 const cheapest = minMaxCriterion((model) => model.cost?.input, true);
 ```
 
-See the [Benchmark Scoring](/examples/benchmark-scoring/) example for a full working implementation.
+See the benchmark example recipes for working implementations.

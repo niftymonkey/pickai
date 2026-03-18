@@ -78,7 +78,9 @@ export default defineConfig({
             {
               label: "Recipes",
               items: [
-                { label: "Benchmark Scoring", slug: "examples/benchmark-scoring" },
+                { label: "LMArena Benchmarks", slug: "examples/lmarena-benchmarks" },
+                { label: "AA Benchmarks", slug: "examples/aa-benchmarks" },
+                { label: "Multi-Benchmark", slug: "examples/multi-benchmark" },
                 { label: "Frontier vs. Open-Weight", slug: "examples/frontier-vs-open-weight" },
               ],
             },

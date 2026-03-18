@@ -58,7 +58,7 @@ const [best] = recommend(models, Purpose.Coding, {
 });
 ```
 
-**Score with real benchmark data** using LMArena (Chatbot Arena) or any external quality data as custom scoring criteria. The included [benchmark example](https://pickai.niftymonkey.dev/examples/benchmark-scoring/) fetches live LMArena scores and uses them alongside built-in criteria:
+**Score with real benchmark data** using LMArena (Chatbot Arena), Artificial Analysis, or any external quality data as custom scoring criteria. The included benchmark examples ([LMArena](https://pickai.niftymonkey.dev/examples/lmarena-benchmarks/), [AA](https://pickai.niftymonkey.dev/examples/aa-benchmarks/), [Multi-Benchmark](https://pickai.niftymonkey.dev/examples/multi-benchmark/)) fetch live scores and use them alongside built-in criteria:
 
 ```ts
 import { recommend, minMaxCriterion, matchesModel, costEfficiency } from "pickai";
