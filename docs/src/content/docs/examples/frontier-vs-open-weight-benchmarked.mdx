@@ -1,0 +1,15 @@
+---
+title: Open vs. Closed (Benchmarked)
+description: Compare open and closed models using objective quality benchmarks from Artificial Analysis.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import example from '@examples/frontier-vs-open-weight-benchmarked.ts?raw';
+
+The [basic Open vs. Closed](/examples/frontier-vs-open-weight) example compares models using only metadata (cost, recency, context window). That's enough to see the shape of the landscape, but when you're making a real deployment decision you want actual quality data behind the scores.
+
+This version enriches the same comparison with the [Artificial Analysis](https://artificialanalysis.ai) intelligence index, a composite of standardized benchmarks (MMLU, GPQA, HumanEval, and others). Now the gap between frontier and open-weight models reflects measured task performance, not just pricing and release dates.
+
+Requires `ARTIFICIAL_ANALYSIS_API_KEY`. AA also exposes category-specific scores (coding, math) if your comparison is narrower than general intelligence.
+
+<Code code={example} lang="ts" title="frontier-vs-open-weight-benchmarked.ts" />

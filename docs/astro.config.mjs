@@ -76,12 +76,13 @@ export default defineConfig({
               ],
             },
             {
-              label: "Recipes",
+              label: "Scenarios",
               items: [
-                { label: "LMArena Benchmarks", slug: "examples/lmarena-benchmarks" },
-                { label: "AA Benchmarks", slug: "examples/aa-benchmarks" },
-                { label: "Multi-Benchmark", slug: "examples/multi-benchmark" },
-                { label: "Frontier vs. Open-Weight", slug: "examples/frontier-vs-open-weight" },
+                { label: "Open vs. Closed", slug: "examples/frontier-vs-open-weight" },
+                { label: "Open vs. Closed (Benchmarked)", slug: "examples/frontier-vs-open-weight-benchmarked" },
+                { label: "Human Preference Ranking", slug: "examples/lmarena-benchmarks" },
+                { label: "Objective Quality Ranking", slug: "examples/aa-benchmarks" },
+                { label: "Blending Multiple Sources", slug: "examples/multi-benchmark" },
               ],
             },
           ],

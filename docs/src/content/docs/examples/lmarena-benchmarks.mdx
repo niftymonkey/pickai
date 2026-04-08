@@ -1,9 +1,15 @@
 ---
-title: LMArena Benchmarks
+title: Human Preference Ranking
 description: Score models by human preference using crowdsourced LMArena data.
 ---
 
 import { Code } from '@astrojs/starlight/components';
 import example from '@examples/lmarena-benchmarks.ts?raw';
+
+[LMArena](https://lmarena.ai) (formerly Chatbot Arena) ranks models based on crowdsourced blind comparisons: real users chat with two anonymous models side by side and vote for the response they prefer. The resulting ELO-style scores reflect what people actually like, which can differ from what performs best on standardized benchmarks.
+
+This example uses arena scores as the primary signal for picking a conversational model, with cost and recency as secondary factors. LMArena data is free and requires no API key.
+
+See [Objective Quality Ranking](/examples/aa-benchmarks) for objective benchmark scoring via Artificial Analysis.
 
 <Code code={example} lang="ts" title="lmarena-benchmarks.ts" />

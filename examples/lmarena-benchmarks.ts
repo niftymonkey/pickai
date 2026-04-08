@@ -1,18 +1,4 @@
-/**
- * Human Preference Scoring with LMArena
- *
- * LMArena (formerly Chatbot Arena) ranks models based on crowdsourced
- * blind comparisons: real users chat with two anonymous models side by
- * side and vote for the response they prefer. The resulting ELO-style
- * scores reflect what people actually like, which can differ from what
- * performs best on standardized benchmarks.
- *
- * This example uses arena scores as the primary signal for picking a
- * conversational model, with cost and recency as secondary factors.
- *
- * LMArena data is free and requires no API key.
- * See aa-benchmarks.ts for objective benchmark scoring via Artificial Analysis.
- */
+// Human Preference Ranking -- score models using crowdsourced LMArena data.
 
 import {
   fromModelsDev, recommend,

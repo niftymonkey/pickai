@@ -1,9 +1,15 @@
 ---
-title: AA Benchmarks
+title: Objective Quality Ranking
 description: Find the smartest model for your budget using Artificial Analysis benchmark data.
 ---
 
 import { Code } from '@astrojs/starlight/components';
 import example from '@examples/aa-benchmarks.ts?raw';
+
+[Artificial Analysis](https://artificialanalysis.ai) maintains an intelligence index that composites scores across standardized benchmarks (MMLU, GPQA, HumanEval, etc.) into a single quality number per model. Unlike arena-style human preference scores, this measures objective task performance.
+
+This example uses the intelligence index to find the highest-quality models under a cost ceiling -- useful when you're building a high-volume pipeline where cost matters but you don't want to sacrifice intelligence. Requires an API key from artificialanalysis.ai (set `ARTIFICIAL_ANALYSIS_API_KEY`).
+
+See [Human Preference Ranking](/examples/lmarena-benchmarks) for a free alternative using human preference data.
 
 <Code code={example} lang="ts" title="aa-benchmarks.ts" />

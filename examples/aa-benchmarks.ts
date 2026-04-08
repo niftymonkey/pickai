@@ -1,19 +1,4 @@
-/**
- * Smartest Model for Your Budget with Artificial Analysis
- *
- * Artificial Analysis maintains an intelligence index that composites
- * scores across standardized benchmarks (MMLU, GPQA, HumanEval, etc.)
- * into a single quality number per model. Unlike arena-style human
- * preference scores, this measures objective task performance.
- *
- * This example uses the intelligence index to find the highest-quality
- * models under a cost ceiling -- useful when you're building a
- * high-volume pipeline where cost matters but you don't want to
- * sacrifice intelligence.
- *
- * Requires an API key from artificialanalysis.ai (set ARTIFICIAL_ANALYSIS_API_KEY).
- * See lmarena-benchmarks.ts for a free alternative using human preference data.
- */
+// Objective Quality Ranking -- find the smartest model using Artificial Analysis benchmarks.
 
 import {
   fromModelsDev, recommend,
