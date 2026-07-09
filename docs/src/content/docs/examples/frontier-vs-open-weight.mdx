@@ -1,9 +1,15 @@
 ---
-title: Frontier vs. Open-Weight
+title: Open vs. Closed
 description: Compare top frontier and open-weight models head-to-head.
 ---
 
 import { Code } from '@astrojs/starlight/components';
 import example from '@examples/frontier-vs-open-weight.ts?raw';
+
+Your team has been told you can't use external APIs and must host models locally. That means open-weight only. But how much are you giving up compared to the best frontier models?
+
+The key is scoring everything against the same candidate set so the scores are directly comparable. If you scored frontier and open-weight models separately, the scores would be relative to different ranges and you couldn't compare them.
+
+Want real benchmark data behind these scores? See [Open vs. Closed (Benchmarked)](/examples/frontier-vs-open-weight-benchmarked).
 
 <Code code={example} lang="ts" title="frontier-vs-open-weight.ts" />

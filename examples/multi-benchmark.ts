@@ -1,18 +1,4 @@
-/**
- * Triangulating Quality from Multiple Benchmark Sources
- *
- * No single benchmark tells the whole story. Arena scores reflect what
- * people prefer in conversation; objective benchmarks measure raw task
- * performance. A model can score well on standardized tests but feel
- * robotic, or charm users while fumbling at structured tasks.
- *
- * This example combines two independent quality signals -- LMArena
- * human preference and Artificial Analysis intelligence index -- so
- * models that rank highly on both rise to the top. Cost and recency
- * act as tiebreakers.
- *
- * Requires ARTIFICIAL_ANALYSIS_API_KEY for AA data. LMArena is free.
- */
+// Blending Multiple Sources -- combine LMArena and Artificial Analysis signals.
 
 import {
   fromModelsDev, recommend,

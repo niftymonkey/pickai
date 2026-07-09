@@ -1,15 +1,4 @@
-/**
- * Frontier vs. Open-Weight Comparison
- *
- * Scenario: your team has been told you can't use external APIs and
- * must host models locally. That means open-weight only. But how much
- * are you giving up compared to the best frontier models?
- *
- * The key is scoring everything against the same candidate set so the
- * scores are directly comparable. If you scored frontier and open-weight
- * models separately, the scores would be relative to different ranges
- * and you couldn't compare them.
- */
+// Open vs. Closed -- compare frontier and open-weight models on the same scale.
 
 import {
   fromModelsDev, recommend,
