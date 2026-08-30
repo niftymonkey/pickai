@@ -86,15 +86,39 @@ export interface Model {
 export type ScoredModel<T extends Model = Model> = T & {
   /** Computed score (0-1 range, higher is better) */
   score: number;
+  /**
+   * Fraction of criterion weight backed by real data for this model (0-1).
+   * A score with coverage below 1 is partly missing data, not measured weakness.
+   */
+  coverage: number;
 };
 
-/** Scores a model relative to the full set. Returns 0-1. */
-export type ScoringCriterion<T extends Model = Model> = (model: T, allModels: T[]) => number;
+/**
+ * Scores a model relative to the full set. Returns 0-1, or undefined when
+ * the model has no data for this criterion (undefined contributes 0 to the
+ * score and marks the weight as uncovered).
+ */
+export type ScoringCriterion<T extends Model = Model> = (
+  model: T,
+  allModels: T[],
+) => number | undefined;
 
 /** A criterion paired with its relative weight. */
 export interface WeightedCriterion<T extends Model = Model> {
   criterion: ScoringCriterion<T>;
   weight: number;
+  /** Name used in coverage reports and warnings. Falls back to the criterion function name. */
+  label?: string;
+}
+
+/** Per-criterion data coverage across a candidate set. */
+export interface CriterionCoverage {
+  /** Criterion label, or the function name when no label is set */
+  label: string;
+  /** Number of candidates the criterion produced data for */
+  covered: number;
+  /** Total number of candidates */
+  total: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -175,8 +199,13 @@ export interface FindOptions {
 export interface RecommendOptions {
   /** Additional filter combined with the profile's filter. */
   filter?: ModelFilter | ((model: Model) => boolean);
-  /** Selection constraints (e.g., perProvider, perFamily). */
+  /** Selection constraints (e.g., perProvider, perFamily, perModel). */
   constraints?: Constraint[];
   /** Number of models to return (default: 1). */
   limit?: number;
+  /**
+   * Called with the criteria that produced no data for any candidate.
+   * When every criterion is dead, recommend() throws instead.
+   */
+  onZeroCoverage?: (zeroCoverage: CriterionCoverage[]) => void;
 }

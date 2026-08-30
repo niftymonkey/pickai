@@ -8,6 +8,7 @@ export type {
   ScoredModel,
   ScoringCriterion,
   WeightedCriterion,
+  CriterionCoverage,
   PurposeProfile,
   Constraint,
   FindOptions,
@@ -28,10 +29,14 @@ export {
   knowledgeFreshness,
   outputCapacity,
   scoreModels,
+  criterionCoverage,
 } from "./score";
 
 // Constraints
-export { perProvider, perFamily } from "./constraints";
+export { perProvider, perFamily, perModel } from "./constraints";
+
+// Model-level normalization
+export { normalizeOpenWeights } from "./normalize";
 
 // Filter
 export { applyFilter } from "./filter";

@@ -54,10 +54,13 @@ export default defineConfig({
           label: "Utilities",
           items: [
             { label: "applyFilter", slug: "reference/apply-filter" },
+            { label: "criterionCoverage", slug: "reference/criterion-coverage" },
             { label: "fromModelsDev", slug: "reference/from-models-dev" },
             { label: "matchesModel", slug: "reference/matches-model" },
+            { label: "normalizeOpenWeights", slug: "reference/normalize-open-weights" },
             { label: "parseModelsDevData", slug: "reference/parse-models-dev-data" },
             { label: "perFamily", slug: "reference/per-family" },
+            { label: "perModel", slug: "reference/per-model" },
             { label: "perProvider", slug: "reference/per-provider" },
             { label: "scoreModels", slug: "reference/score-models" },
           ],
@@ -78,6 +81,7 @@ export default defineConfig({
             {
               label: "Recipes",
               items: [
+                { label: "Agent Workload", slug: "examples/agent-workload" },
                 { label: "LMArena Benchmarks", slug: "examples/lmarena-benchmarks" },
                 { label: "AA Benchmarks", slug: "examples/aa-benchmarks" },
                 { label: "Multi-Benchmark", slug: "examples/multi-benchmark" },

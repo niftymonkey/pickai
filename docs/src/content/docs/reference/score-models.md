@@ -23,13 +23,13 @@ function scoreModels<T extends Model>(
 
 ## Returns
 
-`ScoredModel<T>[]`: models with an added `score` property (0-1), sorted by score descending.
+`ScoredModel<T>[]`: models with added `score` (0-1) and `coverage` (0-1) properties, sorted by score descending. `coverage` is the fraction of criterion weight backed by real data for that model.
 
 ## Behavior
 
 - Normalizes weights to sum to 1 (weight 7 and weight 3 become 0.7 and 0.3).
-- Computes the weighted sum per model.
-- All-zero weights produce all-zero scores.
+- Computes the weighted sum per model. Criteria that return `undefined` (no data for that model) contribute 0 and reduce the model's `coverage`.
+- All-zero weights produce all-zero scores with zero coverage.
 - Empty input returns `[]`.
 
 ## Usage
@@ -57,7 +57,7 @@ All built-in criteria use min-max normalization across the candidate set. Scores
 const costEfficiency: ScoringCriterion
 ```
 
-Cheaper models score higher. Based on `model.cost.input` (USD per 1M tokens). Models without pricing data score 0 (unknown cost gets no credit for being cheap).
+Cheaper models score higher. Based on `model.cost.input` (USD per 1M tokens). Models without pricing data are uncovered (unknown cost gets no credit for being cheap).
 
 ### recency
 
@@ -65,7 +65,7 @@ Cheaper models score higher. Based on `model.cost.input` (USD per 1M tokens). Mo
 const recency: ScoringCriterion
 ```
 
-Newer models score higher. Based on `model.releaseDate`. Models without a release date are treated as oldest.
+Newer models score higher. Based on `model.releaseDate`. Models without a release date are uncovered and excluded from the scale, so one dateless model cannot compress everyone else toward the top.
 
 ### contextCapacity
 
@@ -89,7 +89,7 @@ Larger output limits score higher. Based on `model.limit.output`.
 const knowledgeFreshness: ScoringCriterion
 ```
 
-More recent knowledge cutoffs score higher. Based on `model.knowledge` (e.g., `"2025-03"`). Models without a knowledge cutoff are treated as oldest.
+More recent knowledge cutoffs score higher. Based on `model.knowledge` (e.g., `"2025-03"`). Models without a knowledge cutoff are uncovered and excluded from the scale.
 
 ## minMaxCriterion
 
@@ -107,7 +107,9 @@ function minMaxCriterion(
 | `getValue` | `function` | required | Extracts a numeric value from a model, or `undefined` if unavailable. |
 | `invert` | `boolean` | `false` | If `true`, lower values score higher (useful for cost). |
 
-Models where `getValue` returns `undefined` score 0.
+Models where `getValue` returns `undefined` are uncovered: the criterion contributes 0 to their score and lowers their `coverage`.
+
+For lower-is-better fields like cost, use `invert: true` rather than negating inside `getValue`. An expression like `1 - (cost ?? Infinity)` turns missing data into a huge negative score; `invert` keeps `undefined` as "no data".
 
 ```ts
 import { minMaxCriterion, matchesModel } from "pickai";

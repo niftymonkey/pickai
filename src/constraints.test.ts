@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { perProvider, perFamily } from "./constraints";
+import { perProvider, perFamily, perModel } from "./constraints";
 import { fixtures } from "./test-utils";
 import type { Model } from "./types";
 
@@ -59,5 +59,40 @@ describe("perFamily", () => {
     const constraint = perFamily(2);
     const selected: Model[] = [fixtures.opus, fixtures.sonnet]; // 2 claude
     expect(constraint(selected, fixtures.haiku)).toBe(false); // 3rd blocked
+  });
+});
+
+describe("perModel", () => {
+  it("allows first entry of any model", () => {
+    const constraint = perModel();
+    expect(constraint([], fixtures.opus)).toBe(true);
+  });
+
+  it("blocks the same model listed by another provider (default max 1)", () => {
+    const constraint = perModel();
+    const reseller: Model = { ...fixtures.sonnet, provider: "openrouter" };
+    const selected: Model[] = [fixtures.sonnet];
+    expect(constraint(selected, reseller)).toBe(false);
+  });
+
+  it("matches across ID formats (prefix, dots, date suffix)", () => {
+    const constraint = perModel();
+    const direct: Model = { ...fixtures.sonnet, id: "claude-sonnet-4-5-20250929" };
+    const slugged: Model = { ...fixtures.sonnet, id: "anthropic/claude-sonnet-4.5" };
+    expect(constraint([direct], slugged)).toBe(false);
+  });
+
+  it("allows a different model from the same provider", () => {
+    const constraint = perModel();
+    const selected: Model[] = [fixtures.sonnet];
+    expect(constraint(selected, fixtures.opus)).toBe(true);
+  });
+
+  it("respects custom max", () => {
+    const constraint = perModel(2);
+    const reseller: Model = { ...fixtures.sonnet, provider: "openrouter" };
+    expect(constraint([fixtures.sonnet], reseller)).toBe(true);
+    const reseller2: Model = { ...fixtures.sonnet, provider: "vercel" };
+    expect(constraint([fixtures.sonnet, reseller], reseller2)).toBe(false);
   });
 });

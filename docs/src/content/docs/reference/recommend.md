@@ -30,29 +30,32 @@ interface RecommendOptions {
   filter?: ModelFilter | ((model: Model) => boolean);
   constraints?: Constraint[];
   limit?: number;
+  onZeroCoverage?: (zeroCoverage: CriterionCoverage[]) => void;
 }
 ```
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `filter` | `ModelFilter \| function` | none | Additional filter AND-combined with the profile filter. |
-| `constraints` | `Constraint[]` | none | Selection constraints (e.g., `perProvider`, `perFamily`). |
+| `constraints` | `Constraint[]` | none | Selection constraints (e.g., `perProvider`, `perFamily`, `perModel`). |
 | `limit` | `number` | `1` | Number of models to return. |
+| `onZeroCoverage` | `function` | none | Called with the criteria that produced no data for any candidate. |
 
 ## Returns
 
-`ScoredModel<T>[]`: models with an added `score` property (0-1), sorted by score descending.
+`ScoredModel<T>[]`: models with added `score` (0-1) and `coverage` (0-1) properties, sorted by score descending. `coverage` is the fraction of criterion weight backed by real data for that model; below 1 means part of the score is missing data, not measured weakness.
 
 `ScoredModel<T>` preserves the input type. If you pass `Model[]`, you get `ScoredModel<Model>[]`. If you pass a custom type extending `Model`, the extra fields carry through.
 
 ## Pipeline
 
-`recommend()` runs four steps in order:
+`recommend()` runs five steps in order:
 
 1. **Profile filter:** applies `profile.filter` (if any). Deprecated models are excluded by default.
 2. **Options filter:** applies `options.filter` (if any), narrowing the candidates further.
-3. **Score:** evaluates each candidate against `profile.criteria`, producing a weighted score.
-4. **Select:** picks the top `limit` models, respecting any `constraints`.
+3. **Coverage check:** criteria that produce no data for any candidate are reported through `onZeroCoverage`. If *every* criterion is in that state, `recommend()` throws: the ranking would be meaningless, and a silently wrong benchmark key should fail loudly.
+4. **Score:** evaluates each candidate against `profile.criteria`, producing a weighted score.
+5. **Select:** picks the top `limit` models, respecting any `constraints`.
 
 ## Usage
 

@@ -18,7 +18,9 @@ import { fromModelsDev } from "pickai";
 const models = await fromModelsDev();
 ```
 
-The full catalog includes many resellers and aggregators. When calling `find()` or `recommend()`, you can narrow results to known providers using the [Provider Constants](/concepts/filtering/#provider-constants).
+The full catalog includes many resellers and aggregators. When calling `find()` or `recommend()`, you can narrow results to known providers using the [Provider Constants](/concepts/filtering/#provider-constants), and collapse duplicate listings of the same model with [`perModel()`](/reference/per-model/).
+
+Reseller metadata is not normalized and can be wrong. The same model can appear at wildly different price points across entries, including bogus `$0` listings, which distorts any cost-weighted ranking. Fields like `openWeights` can also disagree between entries of the same model; use [`normalizeOpenWeights()`](/reference/normalize-open-weights/) before splitting on that field. When price accuracy matters, prefer `DIRECT_PROVIDERS` or verify against the provider's pricing page.
 
 ### Pre-fetched Data
 
@@ -80,7 +82,7 @@ The remaining fields are optional, but specific pickai features depend on them:
 | `structuredOutput` | `structuredOutput` filter |
 | `status` | `excludeDeprecated` filter |
 
-Missing optional fields are handled gracefully. Models without `cost` score 0 on `costEfficiency` (unknown cost gets no credit for being cheap). Models without `releaseDate` or `knowledge` score as oldest in their respective criteria.
+Missing optional fields are handled gracefully. Models without `cost`, `releaseDate`, or `knowledge` are uncovered on the corresponding criteria: they get no score contribution there, and the gap shows up in the result's `coverage`. See [Missing Data and Coverage](/concepts/scoring/#missing-data-and-coverage).
 
 ## Full Example
 

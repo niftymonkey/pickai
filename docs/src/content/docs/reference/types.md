@@ -142,34 +142,51 @@ interface RecommendOptions {
   filter?: ModelFilter | ((model: Model) => boolean);
   constraints?: Constraint[];
   limit?: number;   // Default: 1
+  onZeroCoverage?: (zeroCoverage: CriterionCoverage[]) => void;
 }
 ```
 
 ## ScoredModel
 
-A model with an attached score. Generic preserves the input type through scoring.
+A model with an attached score and data coverage. Generic preserves the input type through scoring.
 
 ```ts
 type ScoredModel<T extends Model = Model> = T & {
-  score: number;  // 0-1 range, higher is better
+  score: number;     // 0-1 range, higher is better
+  coverage: number;  // 0-1: fraction of criterion weight backed by real data
 };
 ```
 
+A score with `coverage` below 1 is partly missing data, not measured weakness. See [Missing Data and Coverage](/concepts/scoring/#missing-data-and-coverage).
+
 ## ScoringCriterion
 
-A function that scores a model from 0 to 1.
+A function that scores a model from 0 to 1, or returns `undefined` when the model has no data for the criterion. Undefined contributes 0 to the score and marks the weight as uncovered.
 
 ```ts
-type ScoringCriterion = (model: Model, allModels: Model[]) => number;
+type ScoringCriterion = (model: Model, allModels: Model[]) => number | undefined;
 ```
 
 ## WeightedCriterion
 
-A scoring criterion paired with its relative weight.
+A scoring criterion paired with its relative weight. The optional `label` names the criterion in coverage reports and warnings; without it, reports fall back to the criterion's function name.
 
 ```ts
 interface WeightedCriterion {
   criterion: ScoringCriterion;
   weight: number;
+  label?: string;
+}
+```
+
+## CriterionCoverage
+
+Per-criterion data coverage across a candidate set, as returned by [`criterionCoverage()`](/reference/criterion-coverage/) and passed to `onZeroCoverage`.
+
+```ts
+interface CriterionCoverage {
+  label: string;    // criterion label, or function name when no label is set
+  covered: number;  // candidates the criterion produced data for
+  total: number;    // total candidates
 }
 ```
