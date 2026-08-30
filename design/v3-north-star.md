@@ -66,7 +66,8 @@ belongs to the user's own evaluation, and a tool that pretends otherwise is lyin
 - It removes what they are not allowed to use, and names the rule that removed it.
 - It orders what remains by the axis they choose, because we do not know which need binds their
   project this week.
-- It shows what each option will actually cost them at their volume.
+- It shows what each option costs: the published rates, side by side, compared against the rest of
+  the list.
 - It says plainly which questions it cannot answer.
 - It hands back the decision as code, so they can re-run it when the catalog moves.
 

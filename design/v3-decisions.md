@@ -43,6 +43,9 @@ constraint system, and the weighted-criteria engine all survive. Do not reopen t
 
 ### 9.2 Cost ranks on absolute dollars, not a normalized score
 
+**Revised by 9.22 (2026-08-30):** the "projected cost per task" half of this decision is dead.
+What survives is the core: no normalized cost score, absolute published numbers only. See 9.22.
+
 Cost should push a model up the order. In `Purpose.Quality` it currently carries weight 1 of 13
 while recency carries 5. The fix is to rank on projected cost per task at the user's token shape,
 an absolute reproducible number, rather than on a min-maxed `cost.input`. Per-token price does not
@@ -93,6 +96,9 @@ Still open, and deliberately routed to the grilling session rather than decided 
 - **Is the unit of selection a model or a model-and-endpoint.**
 - **Whether policy gates (residency, retention, license) can be sourced at all**, or get parked the
   way lifecycle did. If they get parked, the North Star's rule 3 has gates it cannot enforce.
+
+**All three closed by the grilling session, 2026-08-30:** `Purpose` deleted (9.20), model level
+(9.24), residency and retention parked with license reframed as user-declared (9.25).
 
 ### 9.7 The ID module is larger than the public surface, and that is the BYOD gap
 
@@ -342,17 +348,16 @@ This supersedes the product summary in section 1. Do not silently reword it.
 > You probably have two or three models in mind already. The catalog has 3,558. One you have never
 > heard of might be the right one.
 >
-> Start with the rules you did not choose. Customer data cannot leave the EU. Your company pays for
-> Azure and will not add a vendor. Your contract forbids the provider from storing your prompts.
-> Each rule cuts hundreds of models, and the app names the rule that cut them, so you watch the
-> count drop and see why.
+> Start with your project's hard rules. Maybe you are locked into one vendor. Maybe the job needs a
+> capability most models lack. Whatever your rules are, each one cuts a swath of the catalog, and
+> the app names the rule that cut them, so you watch the count drop and see why.
 >
 > Sort what is left by whatever matters this week. Cheapest, most capable, biggest context, newest.
 > You pick, because we do not know which one binds your project. Every number says where it came
 > from and when it was measured. Where nobody has measured it, the app says so instead of guessing.
 >
-> You end up with three to seven models to test, in order, with a fallback chain. Each one shows the
-> per-token rate and what that rate costs at your actual volume.
+> You end up with a short, reasonable set of models to test, in order, with a fallback chain. Each
+> one shows its published rates, side by side, and how they compare to the cheapest on your list.
 >
 > Then take the code. The answer expires: models ship every week and prices move. The code saves the
 > decision you just made. Run it next quarter to find out whether it still holds, instead of coming
@@ -362,16 +367,18 @@ This supersedes the product summary in section 1. Do not silently reword it.
 
 1. Discovery is a stated goal. The app must surface models the user did not know about, not just
    rank the ones they named.
-2. Eligibility gates are the opening move, and **every gate must name itself when it fires**. This
-   requires the policy fields from 9.8 (residency, retention, license held) that models.dev does not
-   carry.
+2. Eligibility gates are the opening move, and **every gate must name itself when it fires**
+   (9.31). The gates are the ones real today: provider allow/exclude, modality, context, output,
+   and the cost fence (9.23). Residency and retention are parked (9.25); the pitch deliberately
+   names no specific rule so it does not promise them.
 3. **The user picks the sort. We do not pick for them.** This is the correction to v2's profile
    weights and it is deliberate: the research shows the binding constraint varies per project, so
    the app offers the axis rather than assuming it. Every number renders with source and date
    (9.4, 9.14), and absent data renders as absent rather than as zero (the coverage work).
-4. The deliverable is an ordered set of 3-7 with a fallback chain, never a rank-1 answer. Cost shows
-   **both** the per-token rate and the projected spend at the user's volume. Showing only the
-   projection reads as hiding the rate.
+4. The deliverable is an ordered short set with a fallback chain, never a rank-1 answer (3-7 stays
+   the internal build target per 9.32; the number stays out of the pitch by Mark's call). Cost
+   shows the published rates side by side plus the comparison to the cheapest on the list (9.22).
+   No volume projection, anywhere.
 5. **The code export exists for re-evaluation over time, not to avoid the UI.** Mark's framing: the
    web app exists precisely because people do not want to write code to make this choice. The code
    is what lets them re-run the same decision on their own schedule as the catalog moves. This is
@@ -383,6 +390,12 @@ successor pointers, and it needs a new data source. Scope undecided. See 9.16 wh
 
 **Provenance note:** drafted here, revised against Mark's four corrections, then run through his
 `unslop` pass in another tool. That pass is not available in this environment.
+
+**Revised 2026-08-30, wording approved by Mark.** Paragraph 2 was rewritten because its residency
+and retention examples became parked gates (9.25), and because specific examples make readers
+without those exact concerns self-eject; it now uses soft "maybe" examples. Paragraph 4 was
+rewritten because the volume projection died (9.22) and Mark keeps numbers out of the pitch. Three
+drafts were iterated; the text above is the approved middle ground.
 
 ### 9.16 Lifecycle data: PARKED for v3 (Mark's call, 2026-08-29)
 
@@ -481,3 +494,167 @@ now live at `design/research/north-star-research.md`.
 The continue document belongs at the repo root and git-ignored, per the `continue` skill's
 convention: a handoff is personal session state. Decisions were pulled out of it into this file
 precisely so that nothing load-bearing lives in an ignored file.
+
+---
+
+These came out of the grilling session on `v3-api-surface.md`, 2026-08-30. Mark decided each one
+individually. The settled surface itself lives in `v3-api-surface.md`; these entries carry the why.
+
+### 9.20 `Purpose` is deleted. Profiles, if ever, are UI presets.
+
+No built-in profiles ship in v3. A named blend of weights is the library picking the user's axis
+and hiding the pick behind a virtue word, which North Star rule 4 forbids and which made
+`Purpose.Quality` a lie in v2 (recency wearing the word Quality). The paved road for beginners is
+`recommend` with a named axis, which is already a one-liner.
+
+The future home for "click here for a common setup" is the web app: situation-named presets (the
+six North Star situations are the natural list) that fill in visible, editable values. The pick
+stays on screen and the exported code carries the final values, never the preset name. That is the
+same pattern 9.3 already endorses for the workload form. **Reopen trigger:** if the shipped app
+shows users stalling at "pick your sort," presets become UI work, not library work.
+
+### 9.21 All five built-in criteria are deleted. Catalog facts are never scores.
+
+`costEfficiency`, `contextCapacity`, `outputCapacity`, `recency`, and `knowledgeFreshness` all go.
+One rule replaces per-criterion argument: **catalog facts are filters and sort axes, never
+scores; scores come only from measured, attributed data.** Every 0-1 criterion over catalog
+metadata needs either min-max (unstable, and banned as default behavior by rule 1) or an invented
+fixed scale (an assumption wearing a number). Nothing is lost: every deleted criterion's fact
+stays filterable, sortable, and visible, and `sortByKnowledgeCutoff` is added so knowledge cutoff
+remains a pickable axis.
+
+This goes one further than the draft, which kept `knowledgeFreshness` as a low-weight tiebreaker.
+Mark cut it with the rest.
+
+The weighted engine (`scoreModels`, `criterionCoverage`, coverage) survives per 9.1, fueled by
+benchmark metrics and BYOD data, where the source defines the scale. `minMaxCriterion` stays
+exported, opt-in only.
+
+Results render as a table of facts, sortable by any column, with benchmark score as the default
+sort. Mark's framing: people will absolutely want to re-sort the same list by input rate, output
+rate, and the rest of the metadata they find useful.
+
+### 9.22 Workload-based cost projection is dead. Cost renders as rates plus multiples.
+
+Revises 9.2 and pitch paragraph 4. `projectCost` and `Workload` never ship.
+
+Mark killed the projection in two steps. First: a projection assumes both models spend the same
+tokens, and reasoning models do not (thinking tokens), so the number reads truer than it is.
+Second, and decisive: he does not expect users to identify their workload well, so the input to
+the arithmetic is a guess, and a guess times a rate is a wrong number with our name on it. "This
+whole project-based cost thing just is not it and it needs to stop being a thing."
+
+What ships instead: show $/M input and $/M output as published, each with source and date, and
+beside each a multiple, "input 2x, output 5x the cheapest on your list." Division on numbers
+already on screen, checkable by eye. Unknown price renders as "price unknown" and joins no
+comparison (rule 1). No 0-1 cost score exists anywhere, so the min-max cost bugs cannot return.
+Input and output rates can disagree about which model is cheaper; both are shown, and the
+disagreement goes in the rule 10 "not covered" list. Thinking-token spend goes there too.
+
+### 9.23 `maxCostInput` / `maxCostOutput` stay, resemantized as an outlier fence
+
+The draft proposed replacing them with a `Workload` budget (dead, 9.22) or dropping them. Mark
+supplied the missing context: they exist because script runs occasionally surfaced models at $100+
+per million tokens, and he wanted them gone. That is not budget reasoning, it is a fence against
+the absurd, and a fence is a gate on an absolute fact.
+
+Sharpened semantics, to be documented: the fence cuts only models whose **known** price is above
+the ceiling. Unknown price is never cut by this rule; an unknown price is not proven absurd, and
+cutting it would turn absence into a number (rule 1). The old "silent bypass" was a bug only under
+the budget reading. When the fence fires, it names itself (9.31). Auto-detecting outliers was
+rejected: an invented threshold deciding for the user.
+
+### 9.24 The unit of selection is the model, said out loud
+
+Not model-and-endpoint. Endpoint selection is routing and rule 9 says pickai is not a router.
+The cost of this call: `minOutput`, `minContext`, and the provider filters describe model-level
+numbers that endpoints may undercut (`gpt-oss-120b` ships 8,192 to 117,964 max output by
+endpoint). The honest fix is a plain label in docs, UI, and output: these numbers are model-level,
+your endpoint may differ. `minOutput` stays under that label rather than being dropped.
+
+### 9.25 Policy gates: residency and retention parked; license is the user's own fact
+
+`dataResidency` and `zeroRetention` are parked the way lifecycle was (9.16): models.dev does not
+carry them, they are provider-level facts needing a new hand-maintained feed, and Mark chose not
+to take on that upkeep for v3. Not rejected: parked. **Reopen trigger:** if usage shows the
+eligibility step failing to cut meaningfully without them, or users asking where the EU rule went,
+the provider-level hand-kept file (small, slow-moving, source-and-date per row) is the design on
+the shelf.
+
+`licenseHeld` needs no source at all and never did: "we pay for Azure, no new vendors" is the
+user's own fact, declared through the existing `providers` / `excludeProviders` filters. It needs
+a firing message, not a dataset.
+
+Consequence accepted with the call: the pitch's opening paragraph loses its residency and
+retention examples and gets rewritten around gates that are real today (vendor rule, modality,
+context, the 9.23 fence). Pitch rewrite requires Mark's explicit approval per 9.15.
+
+### 9.26 `fromArena` fetches live. No snapshot ships.
+
+Freshness is the whole reason the arena dataset won (9.10, 9.11); a snapshot bakes staleness into
+the package and rule 6 says the answer expires. The fetch is one GET to
+`datasets-server.huggingface.co/rows`, plain JSON, no key, zero dependencies. Offline and
+pinned-date runs are already covered by BYOD machinery: run `fromArena` once, save the JSON,
+replay through `fromBenchmarkJSON`. Determinism concerns are answered by `measuredAt` riding on
+every `BenchmarkSet`: two different answers on two days are both defensible.
+
+### 9.27 Rival configuration ratings: expose all, average never
+
+The arena rates configurations; models.dev catalogs models. After the effort-suffix folding that
+9.14 requires, 9 models hold rival ratings up to 19 Elo apart. The joined model carries every
+rating with its configuration name. The UI renders the spread as a band ("1350-1369 across 3
+configs"), the same honesty 9.14 already mandates for confidence intervals. When a single sort key
+is needed, use the best-rated configuration's real score, labeled with which configuration it was.
+Averaging manufactures a number nobody measured (rule 5). Silent first-match (the 9.9 bug) dies by
+construction because the join carries plurality instead of discarding it.
+
+### 9.28 Benchmark scores are named metrics with structured values
+
+`metrics: Record<string, { value: number; low?: number; high?: number }>`, one row per rated thing
+as the source names it. Named metrics because sources publish several things at once and a single
+`value` forces a parse-time choice that breaks on the next metric. Structured values because 9.14
+requires rendering confidence intervals, so the shape must carry them first-class and validatably.
+Suffix-key conventions (`"overall_low"`) were rejected: invisible to the schema validator, and
+magic key names make BYOD the harder path (rule 8).
+
+### 9.29 ID exports: `normalizeModelId`, `parseModelId`, `resolveProvider` go public
+
+Satisfies 9.7's requirement that a BYOD user can build the same join the built-in adapter uses:
+normalize both sides, compare, and when that fails, parse and inspect. The other six functions in
+`src/id.ts` stay internal, deliberately, so internals can be reworked without breaking changes.
+`matchesModel` gets its two fixes for everyone (variants, spaces; 9.9). Exporting all ten was
+rejected as freezing plumbing into public API.
+
+### 9.30 The `attachment` filter is dropped; the field stays on `Model`
+
+`attachment` disagrees with `modalities.input` on 289 catalog entries, so two filters over the
+same intent can return contradicting sets. One question, one filter: `modality` over
+`modalities.input`. The raw boolean stays visible on `Model` because it is catalog data and rule 2
+says show what the source said. Deriving one field from the other was rejected: we do not know
+which field models.dev maintains better, and silently rewriting source data is its own lie.
+
+### 9.31 Explanations are the library's job, both halves
+
+Filtering can return, alongside survivors, the removed models tagged with the rule that cut them.
+Scored results carry per-metric contributions and the labeled sort key from 9.27. The pitch makes
+naming-the-rule core behavior, and the exported code must reproduce the app's answer (9.3),
+explanation included; UI-side recompute would write the logic twice and give script users nothing.
+Carrier shape (second return field vs options flag) is an implementation detail.
+
+### 9.32 `recommend` becomes the orchestrator over explicit inputs
+
+No `Purpose` argument. Inputs: models, a filter, an optional `BenchmarkSet`, an ordering (a
+comparator or weights over named benchmark metrics), and constraints. It runs filter, join, order,
+and returns the ordered 3-7 shortlist with explanations, coverage, and the unrated bucket.
+Everything it does can be composed by hand from `find` + `joinBenchmarks` + a sort; `recommend` is
+the paved road, and the code export reads as one call with named arguments, re-runnable next
+quarter (rule 6). Deleting it was rejected: it reopens 9.1 and scatters the
+constraint-dedup-shortlist plumbing into every consumer.
+
+### 9.33 Results are a table of facts; benchmark score is the default sort
+
+Mark's requirement, stated while deleting the criteria: people must be able to re-sort the same
+list by the metadata they find useful (input rate, output rate, context, max output, release date,
+knowledge cutoff, provider, open weights), not only by the score. Score is the default ordering;
+every fact is a column; models without a score sit in an unrated bucket rather than at the bottom
+of the ranking (rule 1).
