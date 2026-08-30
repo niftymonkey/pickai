@@ -1,3 +1,8 @@
 packages:
   - "."
   - "docs"
+  - "web"
+
+onlyBuiltDependencies:
+  - esbuild
+  - unrs-resolver
