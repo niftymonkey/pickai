@@ -21,10 +21,13 @@ One [`CriterionCoverage`](/reference/types/#criterioncoverage) per criterion, in
 Run it against your candidate set before trusting a ranking:
 
 ```ts
-import { criterionCoverage, costEfficiency, minMaxCriterion } from "pickai";
+import { criterionCoverage, costEfficiency, minMaxCriterion, type Model } from "pickai";
+
+// Enriched model type carrying external benchmark data
+type BenchmarkedModel = Model & { tauBanking?: number };
 
 const criteria = [
-  { criterion: minMaxCriterion((m) => m.evals?.tau_banking), weight: 4, label: "tool-calling" },
+  { criterion: minMaxCriterion((m: BenchmarkedModel) => m.tauBanking), weight: 4, label: "tool-calling" },
   { criterion: costEfficiency, weight: 2, label: "cost" },
 ];
 

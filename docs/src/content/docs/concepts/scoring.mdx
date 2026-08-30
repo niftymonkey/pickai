@@ -12,7 +12,7 @@ Each model gets a score between 0 and 1 based on weighted criteria. The highest-
 
 ## How Scoring Works
 
-1. **Criteria** evaluate a single dimension (cost, recency, context size). Returns 0 to 1.
+1. **Criteria** evaluate a single dimension (cost, recency, context size). Returns 0 to 1, or `undefined` when the model has no data for that dimension.
 2. **Weights** set relative importance. Weight 5 matters 5x as much as weight 1.
 3. **Normalization:** weights are normalized, then multiplied by each criterion's score.
 4. **Final score:** the weighted sum, always between 0 and 1.

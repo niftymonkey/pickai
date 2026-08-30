@@ -159,12 +159,20 @@ export const outputCapacity: ScoringCriterion = (model, allModels) => {
  * - Attaches coverage: the fraction of weight whose criterion had data
  * - Returns ScoredModel[] sorted by score descending
  * - All-zero weights produce all-zero scores with zero coverage
+ * - Throws on negative or non-finite weights, which would break the
+ *   0-1 contract of both score and coverage
  */
 export function scoreModels<T extends Model>(
   models: T[],
   criteria: WeightedCriterion<T>[],
 ): ScoredModel<T>[] {
   if (models.length === 0) return [];
+
+  for (const { weight } of criteria) {
+    if (!Number.isFinite(weight) || weight < 0) {
+      throw new Error(`scoreModels(): weights must be finite and >= 0, got ${weight}`);
+    }
+  }
 
   const totalWeight = criteria.reduce((sum, c) => sum + c.weight, 0);
 

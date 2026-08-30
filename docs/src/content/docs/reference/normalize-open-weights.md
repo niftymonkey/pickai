@@ -19,8 +19,10 @@ import { fromModelsDev, normalizeOpenWeights } from "pickai";
 const models = normalizeOpenWeights(await fromModelsDev());
 
 const openWeight = models.filter((m) => m.openWeights);
-const hosted = models.filter((m) => !m.openWeights);
+const hosted = models.filter((m) => m.openWeights === false);
 // The same physical model can no longer land in both lists.
+// Entries with openWeights undefined are unknown, not hosted; handle
+// them separately if your split needs to be exhaustive.
 ```
 
 Run it once, right after loading the catalog, before any filtering or splitting that reads `openWeights`.

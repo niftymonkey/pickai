@@ -27,7 +27,7 @@ import {
   fromModelsDev, recommend,
   minMaxCriterion, matchesModel, criterionCoverage,
   contextCapacity,
-  perModel, normalizeOpenWeights,
+  perModel, normalizeOpenWeights, applyFilter,
   type Model,
 } from "pickai";
 
@@ -84,8 +84,10 @@ const agentProfile = {
 };
 
 // Sanity-check the profile before trusting a ranking: a criterion with
-// covered 0 reads a field that exists for no candidate.
-const candidates = agentModels.filter((m) => m.toolCall);
+// covered 0 reads a field that exists for no candidate. applyFilter with
+// the profile's own filter yields the same candidate set recommend() scores
+// (including its default exclusion of deprecated models).
+const candidates = applyFilter(agentModels, agentProfile.filter);
 console.log("Criterion coverage:");
 console.table(criterionCoverage(candidates, agentProfile.criteria));
 

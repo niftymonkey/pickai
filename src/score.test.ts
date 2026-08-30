@@ -425,6 +425,19 @@ describe("scoreModels", () => {
     ]);
     expect(result[0].coverage).toBe(0);
   });
+
+  it("throws on negative or non-finite weights", () => {
+    const models = [fixtures.haiku];
+    expect(() =>
+      scoreModels(models, [{ criterion: costEfficiency, weight: -1 }]),
+    ).toThrow(/finite/);
+    expect(() =>
+      scoreModels(models, [{ criterion: costEfficiency, weight: NaN }]),
+    ).toThrow(/finite/);
+    expect(() =>
+      scoreModels(models, [{ criterion: costEfficiency, weight: Infinity }]),
+    ).toThrow(/finite/);
+  });
 });
 
 // ============================================
