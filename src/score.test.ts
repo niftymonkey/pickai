@@ -7,6 +7,7 @@ import {
   knowledgeFreshness,
   outputCapacity,
   scoreModels,
+  criterionCoverage,
 } from "./score";
 import { createModel, fixtures, allModels } from "./test-utils";
 
@@ -25,16 +26,16 @@ describe("minMaxCriterion", () => {
     expect(criterion(fixtures.sonnet, models)).toBeLessThan(1);
   });
 
-  it("returns 0 when getValue returns undefined", () => {
+  it("returns undefined when getValue returns undefined (uncovered)", () => {
     const criterion = minMaxCriterion(() => undefined);
-    expect(criterion(fixtures.sonnet, allModels)).toBe(0);
+    expect(criterion(fixtures.sonnet, allModels)).toBeUndefined();
   });
 
-  it("returns 0 for model with undefined when others have values", () => {
+  it("returns undefined for model without data when others have values", () => {
     const scores = new Map([["claude-sonnet-4-5", 80]]);
     const criterion = minMaxCriterion((m) => scores.get(m.id));
     const models = [fixtures.sonnet, fixtures.opus];
-    expect(criterion(fixtures.opus, models)).toBe(0);
+    expect(criterion(fixtures.opus, models)).toBeUndefined();
     expect(criterion(fixtures.sonnet, models)).toBeGreaterThanOrEqual(0);
   });
 
@@ -66,10 +67,10 @@ describe("costEfficiency", () => {
   it("scores cheaper models higher", () => {
     const models = [fixtures.flash, fixtures.sonnet, fixtures.opus];
     expect(costEfficiency(fixtures.flash, models)).toBeGreaterThan(
-      costEfficiency(fixtures.sonnet, models)
+      costEfficiency(fixtures.sonnet, models)!
     );
     expect(costEfficiency(fixtures.sonnet, models)).toBeGreaterThan(
-      costEfficiency(fixtures.opus, models)
+      costEfficiency(fixtures.opus, models)!
     );
   });
 
@@ -93,11 +94,11 @@ describe("costEfficiency", () => {
     expect(costEfficiency(fixtures.sonnet, models)).toBe(1);
   });
 
-  it("returns 0 for models with missing cost (unknown is not cheap)", () => {
+  it("returns undefined for models with missing cost (unknown is not cheap)", () => {
     const unknown = createModel({ id: "unknown-model", cost: undefined });
     const paid = createModel({ id: "paid-model", cost: { input: 5, output: 25 } });
     const models = [unknown, paid];
-    expect(costEfficiency(unknown, models)).toBe(0);
+    expect(costEfficiency(unknown, models)).toBeUndefined();
     expect(costEfficiency(paid, models)).toBeCloseTo(1.0);
   });
 
@@ -118,10 +119,10 @@ describe("contextCapacity", () => {
   it("scores larger context models higher", () => {
     const models = [fixtures.gpt4o, fixtures.sonnet, fixtures.geminiPro];
     expect(contextCapacity(fixtures.geminiPro, models)).toBeGreaterThan(
-      contextCapacity(fixtures.sonnet, models)
+      contextCapacity(fixtures.sonnet, models)!
     );
     expect(contextCapacity(fixtures.sonnet, models)).toBeGreaterThan(
-      contextCapacity(fixtures.gpt4o, models)
+      contextCapacity(fixtures.gpt4o, models)!
     );
   });
 
@@ -161,10 +162,10 @@ describe("recency", () => {
   it("scores newer models higher", () => {
     const models = [fixtures.gpt4o, fixtures.sonnet, fixtures.gpt52];
     expect(recency(fixtures.gpt52, models)).toBeGreaterThan(
-      recency(fixtures.sonnet, models)
+      recency(fixtures.sonnet, models)!
     );
     expect(recency(fixtures.sonnet, models)).toBeGreaterThan(
-      recency(fixtures.gpt4o, models)
+      recency(fixtures.gpt4o, models)!
     );
   });
 
@@ -182,12 +183,22 @@ describe("recency", () => {
     expect(recency(same[0], same)).toBe(0);
   });
 
-  it("treats missing releaseDate as epoch (oldest)", () => {
+  it("returns undefined for missing releaseDate (uncovered)", () => {
     const noDate = createModel({ id: "no-date" });
     const hasDate = createModel({ id: "has-date", releaseDate: "2025-06-01" });
     const models = [noDate, hasDate];
-    expect(recency(noDate, models)).toBeCloseTo(0.0);
-    expect(recency(hasDate, models)).toBeCloseTo(1.0);
+    expect(recency(noDate, models)).toBeUndefined();
+  });
+
+  it("excludes dateless models from the scale (no epoch skew)", () => {
+    const noDate = createModel({ id: "no-date" });
+    const older = createModel({ id: "older", releaseDate: "2024-01-01" });
+    const newer = createModel({ id: "newer", releaseDate: "2025-06-01" });
+    const models = [noDate, older, newer];
+    // Without the dateless model dragging min to 1970, the dated models
+    // span the full 0-1 range instead of bunching near 1.
+    expect(recency(older, models)).toBeCloseTo(0.0);
+    expect(recency(newer, models)).toBeCloseTo(1.0);
   });
 
   it("handles single model (returns 0)", () => {
@@ -205,10 +216,10 @@ describe("knowledgeFreshness", () => {
     const models = [fixtures.gpt4o, fixtures.sonnet, fixtures.gpt52];
     // gpt4o: 2024-06, sonnet: 2025-03, gpt52: 2025-09
     expect(knowledgeFreshness(fixtures.gpt52, models)).toBeGreaterThan(
-      knowledgeFreshness(fixtures.sonnet, models)
+      knowledgeFreshness(fixtures.sonnet, models)!
     );
     expect(knowledgeFreshness(fixtures.sonnet, models)).toBeGreaterThan(
-      knowledgeFreshness(fixtures.gpt4o, models)
+      knowledgeFreshness(fixtures.gpt4o, models)!
     );
   });
 
@@ -220,12 +231,20 @@ describe("knowledgeFreshness", () => {
     expect(knowledgeFreshness(old, models)).toBeCloseTo(0.0);
   });
 
-  it("treats missing knowledge as oldest", () => {
+  it("returns undefined for missing knowledge (uncovered)", () => {
     const noKnowledge = createModel({ id: "no-k" });
     const hasKnowledge = createModel({ id: "has-k", knowledge: "2025-01" });
     const models = [noKnowledge, hasKnowledge];
-    expect(knowledgeFreshness(noKnowledge, models)).toBeCloseTo(0.0);
-    expect(knowledgeFreshness(hasKnowledge, models)).toBeCloseTo(1.0);
+    expect(knowledgeFreshness(noKnowledge, models)).toBeUndefined();
+  });
+
+  it("excludes models without knowledge from the scale", () => {
+    const noKnowledge = createModel({ id: "no-k" });
+    const older = createModel({ id: "old-k", knowledge: "2024-01" });
+    const newer = createModel({ id: "new-k", knowledge: "2025-06" });
+    const models = [noKnowledge, older, newer];
+    expect(knowledgeFreshness(older, models)).toBeCloseTo(0.0);
+    expect(knowledgeFreshness(newer, models)).toBeCloseTo(1.0);
   });
 
   it("returns 0 when all models have same knowledge", () => {
@@ -246,10 +265,10 @@ describe("outputCapacity", () => {
     const models = [fixtures.haiku, fixtures.sonnet, fixtures.geminiPro];
     // haiku: 8192, sonnet: 16000, geminiPro: 65536
     expect(outputCapacity(fixtures.geminiPro, models)).toBeGreaterThan(
-      outputCapacity(fixtures.sonnet, models)
+      outputCapacity(fixtures.sonnet, models)!
     );
     expect(outputCapacity(fixtures.sonnet, models)).toBeGreaterThan(
-      outputCapacity(fixtures.haiku, models)
+      outputCapacity(fixtures.haiku, models)!
     );
   });
 
@@ -339,19 +358,11 @@ describe("scoreModels", () => {
       { criterion: costEfficiency, weight: 1 },
     ]);
     expect(result[0].id).toBe(fixtures.flash.id);
-    expect(result[0].score).toBeCloseTo(costEfficiency(fixtures.flash, models));
-    expect(result[1].score).toBeCloseTo(costEfficiency(fixtures.opus, models));
+    expect(result[0].score).toBeCloseTo(costEfficiency(fixtures.flash, models)!);
+    expect(result[1].score).toBeCloseTo(costEfficiency(fixtures.opus, models)!);
   });
 
   it("dominant weight controls ranking", () => {
-    const models = [fixtures.haiku, fixtures.opus];
-    // With 95% weight on recency, newer model should win
-    const recencyHeavy = scoreModels(models, [
-      { criterion: costEfficiency, weight: 0.05 },
-      { criterion: recency, weight: 0.95 },
-    ]);
-    // Both have similar release dates (2025-10-01 vs 2025-09-29), so recency alone
-    // won't differentiate much. Use a clearer test:
     const models2 = [fixtures.gpt4oMini, fixtures.gpt52];
     const costHeavy = scoreModels(models2, [
       { criterion: costEfficiency, weight: 0.95 },
@@ -372,5 +383,87 @@ describe("scoreModels", () => {
     expect(result).toHaveLength(2);
     expect(result[0].score).toBe(0);
     expect(result[1].score).toBe(0);
+  });
+
+  it("attaches coverage 1 when every criterion has data", () => {
+    const models = [fixtures.haiku, fixtures.sonnet];
+    const result = scoreModels(models, [
+      { criterion: costEfficiency, weight: 1 },
+      { criterion: contextCapacity, weight: 1 },
+    ]);
+    for (const m of result) {
+      expect(m.coverage).toBe(1);
+    }
+  });
+
+  it("coverage reflects the weight of uncovered criteria per model", () => {
+    const priced = createModel({ id: "priced", cost: { input: 3, output: 15 } });
+    const unpriced = createModel({ id: "unpriced", cost: undefined });
+    const result = scoreModels([priced, unpriced], [
+      { criterion: costEfficiency, weight: 3 },
+      { criterion: contextCapacity, weight: 7 },
+    ]);
+    const pricedResult = result.find((m) => m.id === "priced")!;
+    const unpricedResult = result.find((m) => m.id === "unpriced")!;
+    expect(pricedResult.coverage).toBe(1);
+    expect(unpricedResult.coverage).toBeCloseTo(0.7);
+  });
+
+  it("uncovered criteria contribute 0 to the score", () => {
+    const priced = createModel({ id: "priced", cost: { input: 3, output: 15 } });
+    const unpriced = createModel({ id: "unpriced", cost: undefined });
+    const result = scoreModels([priced, unpriced], [
+      { criterion: costEfficiency, weight: 1 },
+    ]);
+    const unpricedResult = result.find((m) => m.id === "unpriced")!;
+    expect(unpricedResult.score).toBe(0);
+  });
+
+  it("all-zero weights produce zero coverage", () => {
+    const result = scoreModels([fixtures.haiku], [
+      { criterion: costEfficiency, weight: 0 },
+    ]);
+    expect(result[0].coverage).toBe(0);
+  });
+});
+
+// ============================================
+// criterionCoverage
+// ============================================
+
+describe("criterionCoverage", () => {
+  it("reports full coverage for criteria with data everywhere", () => {
+    const models = [fixtures.haiku, fixtures.sonnet];
+    const report = criterionCoverage(models, [
+      { criterion: contextCapacity, weight: 1 },
+    ]);
+    expect(report).toEqual([{ label: "contextCapacity", covered: 2, total: 2 }]);
+  });
+
+  it("counts only models the criterion has data for", () => {
+    const priced = createModel({ id: "priced", cost: { input: 3, output: 15 } });
+    const unpriced = createModel({ id: "unpriced", cost: undefined });
+    const report = criterionCoverage([priced, unpriced], [
+      { criterion: costEfficiency, weight: 1 },
+    ]);
+    expect(report[0].covered).toBe(1);
+    expect(report[0].total).toBe(2);
+  });
+
+  it("reports 0 covered for a criterion that never finds data", () => {
+    const dead = minMaxCriterion(() => undefined);
+    const report = criterionCoverage([fixtures.haiku, fixtures.sonnet], [
+      { criterion: dead, weight: 5, label: "tool-calling" },
+    ]);
+    expect(report).toEqual([{ label: "tool-calling", covered: 0, total: 2 }]);
+  });
+
+  it("prefers label, falls back to function name", () => {
+    const report = criterionCoverage([fixtures.haiku], [
+      { criterion: costEfficiency, weight: 1, label: "cost" },
+      { criterion: contextCapacity, weight: 1 },
+    ]);
+    expect(report[0].label).toBe("cost");
+    expect(report[1].label).toBe("contextCapacity");
   });
 });

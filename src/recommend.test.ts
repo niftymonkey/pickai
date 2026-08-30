@@ -1,7 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { recommend } from "./recommend";
-import { costEfficiency, recency, contextCapacity, knowledgeFreshness } from "./score";
-import { perProvider, perFamily } from "./constraints";
+import {
+  costEfficiency,
+  recency,
+  contextCapacity,
+  knowledgeFreshness,
+  minMaxCriterion,
+} from "./score";
+import { perProvider } from "./constraints";
 import { fixtures, allModels } from "./test-utils";
 import type { PurposeProfile } from "./types";
 
@@ -132,5 +138,45 @@ describe("recommend", () => {
     for (let i = 0; i < result.length - 1; i++) {
       expect(result[i].score).toBeGreaterThanOrEqual(result[i + 1].score);
     }
+  });
+
+  it("results carry coverage", () => {
+    const result = recommend(allModels, cheapProfile, { limit: 3 });
+    for (const m of result) {
+      expect(m.coverage).toBeGreaterThan(0);
+      expect(m.coverage).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("throws when no criterion produces data for any candidate", () => {
+    const deadProfile: PurposeProfile = {
+      criteria: [
+        { criterion: minMaxCriterion(() => undefined), weight: 5, label: "tool-calling" },
+      ],
+    };
+    expect(() => recommend(allModels, deadProfile)).toThrow(/tool-calling/);
+  });
+
+  it("calls onZeroCoverage with dead criteria when others still have data", () => {
+    const onZeroCoverage = vi.fn();
+    const partlyDeadProfile: PurposeProfile = {
+      criteria: [
+        { criterion: minMaxCriterion(() => undefined), weight: 5, label: "tool-calling" },
+        { criterion: costEfficiency, weight: 2, label: "cost" },
+      ],
+    };
+    const result = recommend(allModels, partlyDeadProfile, { limit: 3, onZeroCoverage });
+    expect(result.length).toBeGreaterThan(0);
+    expect(onZeroCoverage).toHaveBeenCalledTimes(1);
+    const reported = onZeroCoverage.mock.calls[0][0];
+    expect(reported).toHaveLength(1);
+    expect(reported[0].label).toBe("tool-calling");
+    expect(reported[0].covered).toBe(0);
+  });
+
+  it("does not call onZeroCoverage when all criteria have data", () => {
+    const onZeroCoverage = vi.fn();
+    recommend(allModels, cheapProfile, { limit: 3, onZeroCoverage });
+    expect(onZeroCoverage).not.toHaveBeenCalled();
   });
 });

@@ -6,7 +6,7 @@ import { fixtures } from "./test-utils";
 
 /** Helper: create a ScoredModel from a fixture with a given score */
 function scored(fixture: (typeof fixtures)[keyof typeof fixtures], score: number): ScoredModel {
-  return { ...fixture, score };
+  return { ...fixture, score, coverage: 1 };
 }
 
 // Pre-scored models (sorted descending by score, as scoreModels would return)

@@ -32,11 +32,11 @@ pickai ships five scoring criteria. All use [min-max normalization](https://en.w
 
 ### costEfficiency
 
-Cheaper models score higher. Based on input cost per 1M tokens. Models without pricing data score 0 (unknown cost gets no credit for being cheap).
+Cheaper models score higher. Based on input cost per 1M tokens. Models without pricing data are uncovered (unknown cost gets no credit for being cheap).
 
 ### recency
 
-Newer models score higher. Based on `releaseDate`. Models without a release date are treated as oldest.
+Newer models score higher. Based on `releaseDate`. Models without a release date are uncovered and excluded from the scale.
 
 ### contextCapacity
 
@@ -48,14 +48,23 @@ Larger output limits score higher. Based on `limit.output`.
 
 ### knowledgeFreshness
 
-More recent knowledge cutoffs score higher. Based on the `knowledge` field (e.g., `"2025-03"`). Models without a knowledge cutoff are treated as oldest.
+More recent knowledge cutoffs score higher. Based on the `knowledge` field (e.g., `"2025-03"`). Models without a knowledge cutoff are uncovered and excluded from the scale.
+
+## Missing Data and Coverage
+
+"We have no data for this model" and "this model scored terribly" are different situations, and pickai keeps them apart:
+
+- A criterion returns `undefined` when a model has no data for it. That contributes 0 to the score, same as before, but it is tracked.
+- Every scored result carries `coverage`: the fraction of criterion weight backed by real data for that model. A new model missing one benchmark might rank low with `coverage: 0.7`; that reads "partly unmeasured", not "weak".
+- [`criterionCoverage()`](/reference/criterion-coverage/) reports how many candidates each criterion found data for. A criterion covering zero candidates usually means a wrong field key.
+- [`recommend()`](/reference/recommend/) reports dead criteria through `onZeroCoverage` and throws when every criterion is dead, so a broken profile fails loudly instead of producing a plausible-looking ranking.
 
 ## Writing Custom Criteria
 
-A `ScoringCriterion` is a function that receives a model and the full candidate list, and returns a number from 0 to 1:
+A `ScoringCriterion` is a function that receives a model and the full candidate list, and returns a number from 0 to 1, or `undefined` when the model has no data for the criterion:
 
 ```ts
-type ScoringCriterion = (model: Model, allModels: Model[]) => number;
+type ScoringCriterion = (model: Model, allModels: Model[]) => number | undefined;
 ```
 
 The `allModels` parameter lets you do relative scoring (min-max normalization). For simple binary criteria, you can ignore it:

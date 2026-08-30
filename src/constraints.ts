@@ -6,6 +6,7 @@
  */
 
 import type { Model, Constraint } from "./types";
+import { matchesModel } from "./id";
 
 /**
  * Constraint: limit models per provider for diversity.
@@ -14,6 +15,19 @@ import type { Model, Constraint } from "./types";
 export function perProvider(max = 1): Constraint {
   return (selected: Model[], candidate: Model) => {
     const count = selected.filter((m) => m.provider === candidate.provider).length;
+    return count < max;
+  };
+}
+
+/**
+ * Constraint: limit entries per physical model.
+ * Matches on model identity (matchesModel), so the same model listed by
+ * multiple providers or resellers fills a single slot.
+ * Default: max 1 per model.
+ */
+export function perModel(max = 1): Constraint {
+  return (selected: Model[], candidate: Model) => {
+    const count = selected.filter((m) => matchesModel(m.id, candidate.id)).length;
     return count < max;
   };
 }

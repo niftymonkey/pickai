@@ -84,7 +84,10 @@ const [best] = recommend(models, {
 | Filter and sort | `find(models, options)` with declarative filters or predicates |
 | Pick the best model | `recommend(models, profile, options)` with scored ranking |
 | Enforce diversity | `perProvider(n)`, `perFamily(n)`, or custom constraints |
+| Dedupe reseller listings | `perModel(n)` for one slot per physical model |
 | Score directly | `scoreModels(models, criteria)` for custom pipelines |
+| Check data coverage | `criterionCoverage(models, criteria)`, plus `coverage` on every result |
+| Normalize catalog facts | `normalizeOpenWeights(models)` before open-weight/hosted splits |
 | Match model IDs | `matchesModel(a, b)` for fuzzy cross-format comparison |
 | Build custom criteria | `minMaxCriterion(getValue)` for min-max normalized scoring |
 | Filter providers | `DIRECT_PROVIDERS`, `OPENROUTER_PROVIDERS`, `ALL_KNOWN_PROVIDERS` |

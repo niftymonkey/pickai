@@ -113,10 +113,10 @@ describe("ScoredModel", () => {
 });
 
 describe("ScoringCriterion", () => {
-  it("is a function (model, allModels) => number", () => {
+  it("is a function (model, allModels) => number | undefined", () => {
     expectTypeOf<ScoringCriterion>().toBeFunction();
     expectTypeOf<ScoringCriterion>().parameters.toEqualTypeOf<[Model, Model[]]>();
-    expectTypeOf<ScoringCriterion>().returns.toBeNumber();
+    expectTypeOf<ScoringCriterion>().returns.toEqualTypeOf<number | undefined>();
   });
 
   it("accepts a generic type parameter for enriched models", () => {
