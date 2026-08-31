@@ -81,3 +81,7 @@ export { joinBenchmarks } from "./benchmarks/joinBenchmarks";
 export type { RatingBand, MetricRating, RatedIdentity, JoinResult } from "./benchmarks/joinBenchmarks";
 export { blendRatings } from "./benchmarks/blendRatings";
 export type { BlendedRating } from "./benchmarks/blendRatings";
+
+// Benchmark sources
+export { fromArena } from "./sources/fromArena";
+export { fromBenchmarkJSON } from "./sources/fromBenchmarkJSON";
