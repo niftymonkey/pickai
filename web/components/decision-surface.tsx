@@ -23,6 +23,13 @@ import {
   saveRules,
   subscribeSavedRules,
 } from "@/lib/saved-rules";
+import {
+  parsePins,
+  readPinsRaw,
+  readPinsServer,
+  savePins,
+  subscribePins,
+} from "@/lib/saved-pins";
 import type { Preset } from "@/lib/presets";
 import type { RatedModel, ScoreSource } from "@/lib/benchmarks";
 import { AnimatedNumber, CountHinge } from "./count-hinge";
@@ -46,10 +53,15 @@ export function DecisionSurface({
 }) {
   const [rules, setRules] = useState<Rule[]>([]);
   const [axis, setAxis] = useState<SortAxis>("score");
-  const [pins, setPins] = useState<string[]>([]);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const pinsRaw = useSyncExternalStore(
+    subscribePins,
+    readPinsRaw,
+    readPinsServer,
+  );
+  const pins = useMemo(() => parsePins(pinsRaw), [pinsRaw]);
   const [weights, setWeights] = useState<Record<string, number>>({
     overall: 1,
   });
@@ -231,21 +243,19 @@ export function DecisionSurface({
   }
 
   function togglePin(key: string) {
-    setPins((current) =>
-      current.includes(key)
-        ? current.filter((pin) => pin !== key)
-        : [...current, key],
+    savePins(
+      pins.includes(key)
+        ? pins.filter((pin) => pin !== key)
+        : [...pins, key],
     );
   }
 
   function movePin(index: number, delta: -1 | 1) {
-    setPins((current) => {
-      const target = index + delta;
-      if (target < 0 || target >= current.length) return current;
-      const next = [...current];
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
-    });
+    const target = index + delta;
+    if (target < 0 || target >= pins.length) return;
+    const next = [...pins];
+    [next[index], next[target]] = [next[target], next[index]];
+    savePins(next);
   }
 
   const biggestCutter =

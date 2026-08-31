@@ -51,10 +51,10 @@ export const PRESETS: Preset[] = [
   },
   {
     name: "Forced switch",
-    hint: "Exclude the provider you are leaving, then edit it",
+    hint: "Exclude the maker you are leaving, then edit it",
     axis: "score",
     build: (rid) => [
-      { id: rid(), kind: "provider", mode: "exclude", providers: ["anthropic"] },
+      { id: rid(), kind: "maker", mode: "exclude", makers: ["anthropic"] },
     ],
   },
   {
