@@ -67,3 +67,10 @@ export { listingSeller } from "./identity/listingSeller";
 // Model catalog
 export { groupByModel } from "./catalog/groupByModel";
 export type { ModelIdentity } from "./catalog/groupByModel";
+
+// Rules over model identities
+export { applyRules } from "./filter/applyRules";
+export type { FilterStep, FilterResult } from "./filter/applyRules";
+export { explainCut } from "./filter/explainCut";
+export { ruleLabel } from "./filter/rule";
+export type { Rule, CatalogRule, Capability } from "./filter/rule";
