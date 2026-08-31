@@ -54,7 +54,7 @@ export { recommend } from "./recommend";
 export { Purpose } from "./purpose";
 
 // Provider constants
-export { DIRECT_PROVIDERS, OPENROUTER_PROVIDERS, ALL_KNOWN_PROVIDERS } from "./providers";
+export { DIRECT_PROVIDERS, OPENROUTER_PROVIDERS, ALL_KNOWN_PROVIDERS } from "./identity/providers";
 
 // Model identity
 export { matchesModel } from "./identity/matchesModel";
@@ -63,3 +63,7 @@ export { parseModelId } from "./identity/parseModelId";
 export type { ParsedModelId } from "./identity/parseModelId";
 export { modelMaker } from "./identity/modelMaker";
 export { listingSeller } from "./identity/listingSeller";
+
+// Model catalog
+export { groupByModel } from "./catalog/groupByModel";
+export type { ModelIdentity } from "./catalog/groupByModel";
