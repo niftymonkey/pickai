@@ -50,6 +50,12 @@ describe("parseArenaRows", () => {
     ]);
   });
 
+  // 50 live rows carried organization "" on 2026-08-31; an empty name is no maker at all.
+  it("an empty organization means no maker, never a maker named the empty string", () => {
+    const set = parseArenaRows([row("intellect-3", "overall", 1300, { organization: "" })]);
+    expect(set.scores[0].maker).toBeUndefined();
+  });
+
   it("carries organization as the score's maker and the per-row license", () => {
     const set = parseArenaRows([
       row("glm-4-6", "overall", 1400, { organization: "Zhipu", license: "MIT" }),

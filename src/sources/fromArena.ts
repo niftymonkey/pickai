@@ -57,7 +57,10 @@ const parseArenaRows = (rows: ArenaRow[]): BenchmarkSet => {
     let score = byConfig.get(raw.model_name);
     if (score === undefined) {
       score = { modelId: raw.model_name, metrics: {} };
-      if (typeof raw.organization === "string") score.maker = raw.organization;
+      // Live rows carry organization "" for some models; an empty name is no maker at all.
+      if (typeof raw.organization === "string" && raw.organization !== "") {
+        score.maker = raw.organization;
+      }
       if (typeof raw.license === "string") score.license = raw.license;
       byConfig.set(raw.model_name, score);
     }

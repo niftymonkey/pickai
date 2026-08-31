@@ -47,6 +47,15 @@ describe("fromBenchmarkJSON", () => {
     expect(set.scores[0].metrics.on_prem).toEqual({ value: 0 });
   });
 
+  // A document naming a maker as "" is junk; documents are rejected, never guessed at.
+  it("rejects an empty maker string, naming the exact path", () => {
+    expect(() =>
+      fromBenchmarkJSON(
+        document({ scores: [{ modelId: "intellect-3", maker: "", metrics: { overall: 1300 } }] }),
+      ),
+    ).toThrow("scores[0].maker must be a non-empty string");
+  });
+
   it("rejects missing provenance, naming the field", () => {
     expect(() => fromBenchmarkJSON(document({ source: undefined }))).toThrow(/source/);
     expect(() => fromBenchmarkJSON(document({ measuredAt: undefined }))).toThrow(/measuredAt/);

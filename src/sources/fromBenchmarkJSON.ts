@@ -37,7 +37,11 @@ const parseScore = (value: unknown, path: string): BenchmarkScore => {
     modelId: asString(record.modelId, `${path}.modelId`),
     metrics: {},
   };
-  if (record.maker !== undefined) score.maker = asString(record.maker, `${path}.maker`);
+  if (record.maker !== undefined) {
+    const maker = asString(record.maker, `${path}.maker`);
+    if (maker === "") reject(`${path}.maker`, "a non-empty string");
+    score.maker = maker;
+  }
   if (record.license !== undefined) score.license = asString(record.license, `${path}.license`);
   const metrics = asRecord(record.metrics, `${path}.metrics`);
   for (const [name, metric] of Object.entries(metrics)) {
