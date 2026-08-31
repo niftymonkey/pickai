@@ -73,4 +73,11 @@ export { applyRules } from "./filter/applyRules";
 export type { FilterStep, FilterResult } from "./filter/applyRules";
 export { explainCut } from "./filter/explainCut";
 export { ruleLabel } from "./filter/rule";
-export type { Rule, CatalogRule, Capability } from "./filter/rule";
+export type { Rule, CatalogRule, MetricRule, Capability } from "./filter/rule";
+
+// Benchmarks
+export type { MetricValue, BenchmarkScore, BenchmarkSet } from "./benchmarks/benchmarkSet";
+export { joinBenchmarks } from "./benchmarks/joinBenchmarks";
+export type { RatingBand, MetricRating, RatedIdentity, JoinResult } from "./benchmarks/joinBenchmarks";
+export { blendRatings } from "./benchmarks/blendRatings";
+export type { BlendedRating } from "./benchmarks/blendRatings";

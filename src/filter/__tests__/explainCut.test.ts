@@ -1,4 +1,4 @@
-import { describe, it, expect, test } from "vitest";
+import { describe, it, expect } from "vitest";
 import { explainCut } from "../explainCut";
 
 const listing = (
@@ -45,5 +45,16 @@ describe("explainCut", () => {
     const first = { kind: "provider", mode: "exclude", providers: ["anthropic"] } as const;
     const second = { kind: "provider", mode: "exclude", providers: ["openrouter"] } as const;
     expect(explainCut(claude, [first, second])).toBe(second);
+  });
+});
+
+describe("metric rules", () => {
+  it("names the metric rule that cut a model", () => {
+    const weak = {
+      ...identity("davinci-002", "openai", [listing("davinci-002", "openai")]),
+      metrics: { overall: 1200 },
+    };
+    const floor = { kind: "metric", metric: "overall", min: 1400 } as const;
+    expect(explainCut(weak, [floor])).toBe(floor);
   });
 });

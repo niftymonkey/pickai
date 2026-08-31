@@ -14,9 +14,10 @@ type CatalogRule =
   | { kind: "minKnowledge"; date: string }
   | { kind: "excludeDeprecated" };
 
-// Widens to CatalogRule | MetricRule when the benchmarks slice lands
-// (Mark, 2026-08-31): rules over measured metrics stay out of the catalog set.
-type Rule = CatalogRule;
+/** A rule over one measured metric, name-blind so any benchmark or BYOD field can rule (9.34). */
+type MetricRule = { kind: "metric"; metric: string; min?: number; max?: number };
+
+type Rule = CatalogRule | MetricRule;
 
 const CAPABILITY_WORDS: Record<Capability, string> = {
   reasoning: "reasoning",
@@ -57,8 +58,16 @@ const ruleLabel = (rule: Rule): string => {
       return `Knows the world since ${rule.date}`;
     case "excludeDeprecated":
       return "No deprecated models";
+    case "metric": {
+      if (rule.min !== undefined && rule.max !== undefined) {
+        return `${rule.metric} between ${rule.min} and ${rule.max}`;
+      }
+      if (rule.min !== undefined) return `${rule.metric} at least ${rule.min}`;
+      if (rule.max !== undefined) return `${rule.metric} at most ${rule.max}`;
+      return `${rule.metric} at any level`;
+    }
   }
 };
 
 export { ruleLabel };
-export type { Rule, CatalogRule, Capability };
+export type { Rule, CatalogRule, MetricRule, Capability };

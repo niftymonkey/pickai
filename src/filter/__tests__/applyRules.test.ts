@@ -1,4 +1,4 @@
-import { describe, it, expect, test } from "vitest";
+import { describe, it, expect } from "vitest";
 import { applyRules } from "../applyRules";
 
 /** A listing as the catalog carries it, shaped by hand to keep the test fence honest. */
@@ -172,5 +172,46 @@ describe("applyRules", () => {
     ]);
     expect(result.survivors).toEqual([]);
     expect(result.steps[1]).toMatchObject({ cutModels: 1, remainingModels: 0 });
+  });
+});
+
+describe("metric rules", () => {
+  const strong = {
+    ...identity("claude-opus-5", "anthropic", [listing("claude-opus-5", "anthropic")]),
+    metrics: { overall: 1450 },
+  };
+  const weak = {
+    ...identity("davinci-002", "openai", [listing("davinci-002", "openai")]),
+    metrics: { overall: 1200 },
+  };
+
+  it("a min metric rule cuts a model rated below the floor", () => {
+    const result = applyRules([strong, weak], [{ kind: "metric", metric: "overall", min: 1400 }]);
+    expect(result.survivors).toEqual([strong]);
+  });
+
+  it("a max metric rule cuts a model rated above the ceiling", () => {
+    const result = applyRules([strong, weak], [{ kind: "metric", metric: "overall", max: 1300 }]);
+    expect(result.survivors).toEqual([weak]);
+  });
+
+  it("a model without the named metric survives the rule and stays unrated", () => {
+    const unrated = identity("glm-4-6", null, [listing("glm-4-6", "zhipu")]);
+    const result = applyRules([strong, unrated], [{ kind: "metric", metric: "overall", min: 1400 }]);
+    expect(result.survivors).toEqual([strong, unrated]);
+  });
+
+  it("a provider prune keeps a rated identity's extra fields", () => {
+    const rated = {
+      ...identity("claude-opus-5", "anthropic", [
+        listing("claude-opus-5", "anthropic"),
+        listing("claude-opus-5", "reseller"),
+      ]),
+      metrics: { overall: 1450 },
+    };
+    const result = applyRules([rated], [{ kind: "provider", mode: "exclude", providers: ["reseller"] }]);
+    expect(result.survivors).toHaveLength(1);
+    expect(result.survivors[0].metrics).toEqual({ overall: 1450 });
+    expect(result.survivors[0].listings).toHaveLength(1);
   });
 });

@@ -32,6 +32,14 @@ const passesRepresentative = (identity: ModelIdentity, rule: RepresentativeRule)
       return representative.knowledge !== undefined && representative.knowledge >= rule.date;
     case "excludeDeprecated":
       return representative.status !== "deprecated";
+    case "metric": {
+      // A model missing the metric survives the rule and stays unrated (9.34).
+      const value = identity.metrics?.[rule.metric];
+      if (value === undefined) return true;
+      if (rule.min !== undefined && value < rule.min) return false;
+      if (rule.max !== undefined && value > rule.max) return false;
+      return true;
+    }
   }
 };
 
@@ -40,7 +48,7 @@ const passesRepresentative = (identity: ModelIdentity, rule: RepresentativeRule)
  * listings and re-elect; the model dies only when no acceptable seller
  * remains (finding 12). Every other rule judges the representative.
  */
-const applyRule = (identity: ModelIdentity, rule: Rule): ModelIdentity | null => {
+const applyRule = <T extends ModelIdentity>(identity: T, rule: Rule): T | null => {
   if (rule.kind === "provider") {
     const kept = identity.listings.filter((candidate) =>
       rule.mode === "allow"
@@ -50,8 +58,7 @@ const applyRule = (identity: ModelIdentity, rule: Rule): ModelIdentity | null =>
     if (kept.length === 0) return null;
     if (kept.length === identity.listings.length) return identity;
     return {
-      key: identity.key,
-      maker: identity.maker,
+      ...identity,
       representative: electRepresentative(kept, identity.maker),
       listings: kept,
     };

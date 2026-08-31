@@ -1,4 +1,4 @@
-import { describe, it, expect, test } from "vitest";
+import { describe, it, expect } from "vitest";
 import { ruleLabel } from "../rule";
 
 describe("ruleLabel", () => {
@@ -16,5 +16,15 @@ describe("ruleLabel", () => {
     expect(ruleLabel({ kind: "costFence", side: "output", ceiling: 100 })).toBe("Output price at most $100/M");
     expect(ruleLabel({ kind: "minKnowledge", date: "2024-01" })).toBe("Knows the world since 2024-01");
     expect(ruleLabel({ kind: "excludeDeprecated" })).toBe("No deprecated models");
+  });
+});
+
+describe("metric rule labels", () => {
+  it("speaks a floor, a ceiling, and a range", () => {
+    expect(ruleLabel({ kind: "metric", metric: "overall", min: 1400 })).toBe("overall at least 1400");
+    expect(ruleLabel({ kind: "metric", metric: "coding", max: 1300 })).toBe("coding at most 1300");
+    expect(ruleLabel({ kind: "metric", metric: "overall", min: 1300, max: 1400 })).toBe(
+      "overall between 1300 and 1400",
+    );
   });
 });

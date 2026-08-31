@@ -16,19 +16,19 @@ interface FilterStep {
   remainingModels: number;
 }
 
-interface FilterResult {
-  survivors: ModelIdentity[];
+interface FilterResult<T extends ModelIdentity = ModelIdentity> {
+  survivors: T[];
   steps: FilterStep[];
 }
 
 const countListings = (identities: ModelIdentity[]): number =>
   identities.reduce((total, identity) => total + identity.listings.length, 0);
 
-const applyRules = (identities: ModelIdentity[], rules: Rule[]): FilterResult => {
+const applyRules = <T extends ModelIdentity>(identities: T[], rules: Rule[]): FilterResult<T> => {
   let remaining = identities;
   const steps: FilterStep[] = [];
   for (const rule of rules) {
-    const next: ModelIdentity[] = [];
+    const next: T[] = [];
     for (const identity of remaining) {
       const kept = applyRule(identity, rule);
       if (kept) next.push(kept);

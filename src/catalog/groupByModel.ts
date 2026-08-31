@@ -14,6 +14,8 @@ interface ModelIdentity {
   representative: Model;
   /** Every seller listing, none dropped. */
   listings: Model[];
+  /** Measured values by metric name. A benchmark join writes it; grouping never does. */
+  metrics?: Record<string, number>;
 }
 
 const groupByModel = (listings: Model[]): ModelIdentity[] => {
