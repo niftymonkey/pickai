@@ -48,7 +48,7 @@ These bind the planning half. A coding agent that finds a plan's claim about the
 Step 2 picks from this menu per feature. The escalations are mandatory when they apply, never optional. Every step names its actor: Mark or the agent.
 
 - Unit tests at the agreed seams, run with `pnpm test`. The floor, always present. Actor: the agent.
-- The production build, `pnpm build` for the library and `pnpm --filter pickai-web build` for the app, plus `pnpm --filter pickai-web lint`. Editor diagnostics are not a judge; these are. Actor: the agent. There is no root `typecheck` script today; `pnpm build` runs tsup with declaration output and is the type judge until one exists.
+- The production build, `pnpm build` for the library and `pnpm --filter pickai-web build` for the app, plus `pnpm --filter pickai-web lint`. Editor diagnostics are not a judge; these are. Actor: the agent. `pnpm typecheck` runs `tsc --noEmit` over `src` including tests; `pnpm build` alone does not type-check test files, which once let a broken test fixture ship green.
 - A change a library caller can see: an example run against the real catalog, with the output actually read. A published API surface change also updates the docs site under `docs/`. Actor: the agent.
 - A change the web app renders: a rendered check of the built app, driven with `playwright-cli` and never the Playwright MCP, with the screenshot actually read. The dev server is not the judge; build first. Actor: the agent.
 - A change to how the app feels to use: Mark runs it. The agent delivers the build ready and reports it ready, because only Mark can feel it. The agent never claims the feel is right.

@@ -15,7 +15,8 @@ The coding rules themselves are in `.claude/rules/`: `code-core.md` is language-
 ## Commands
 
 - `pnpm test` (vitest, from the root)
-- `pnpm build` (tsup; also the type judge, there is no `typecheck` script yet)
+- `pnpm typecheck` (tsc over `src`, tests included; `pnpm build` checks only what `dist` needs)
+- `pnpm build` (tsup)
 - `pnpm --filter pickai-web build` and `pnpm --filter pickai-web lint`
 - `pnpm --filter pickai-web dev` runs the app on port 3100
 

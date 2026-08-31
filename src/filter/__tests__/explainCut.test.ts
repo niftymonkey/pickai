@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { explainCut } from "../explainCut";
+import type { Rule } from "../rule";
 
 const listing = (
   id: string,
@@ -42,8 +43,8 @@ describe("explainCut", () => {
       listing("claude-opus-5", "anthropic"),
       listing("openrouter/claude-opus-5", "openrouter"),
     ]);
-    const first = { kind: "provider", mode: "exclude", providers: ["anthropic"] } as const;
-    const second = { kind: "provider", mode: "exclude", providers: ["openrouter"] } as const;
+    const first: Rule = { kind: "provider", mode: "exclude", providers: ["anthropic"] };
+    const second: Rule = { kind: "provider", mode: "exclude", providers: ["openrouter"] };
     expect(explainCut(claude, [first, second])).toBe(second);
   });
 });
