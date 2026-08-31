@@ -4,15 +4,10 @@ export type {
   ModelCost,
   ModelLimit,
   ModelModalities,
-  ModelFilter,
   ScoredModel,
   ScoringCriterion,
   WeightedCriterion,
   CriterionCoverage,
-  PurposeProfile,
-  Constraint,
-  FindOptions,
-  RecommendOptions,
 } from "./types";
 
 // Source
@@ -32,26 +27,8 @@ export {
   criterionCoverage,
 } from "./score";
 
-// Constraints
-export { perProvider, perFamily, perModel } from "./constraints";
-
 // Model-level normalization
 export { normalizeOpenWeights } from "./normalize";
-
-// Filter
-export { applyFilter } from "./filter";
-
-// Sort comparators
-export { sortByCost, sortByRecency, sortByContext, sortByOutput } from "./sort";
-
-// Find
-export { find } from "./find";
-
-// Recommend
-export { recommend } from "./recommend";
-
-// Purpose profiles
-export { Purpose } from "./purpose";
 
 // Provider constants
 export { DIRECT_PROVIDERS, OPENROUTER_PROVIDERS, ALL_KNOWN_PROVIDERS } from "./identity/providers";
@@ -85,3 +62,32 @@ export type { BlendedRating } from "./benchmarks/blendRatings";
 // Benchmark sources
 export { fromArena } from "./sources/fromArena";
 export { fromBenchmarkJSON } from "./sources/fromBenchmarkJSON";
+
+// Sort comparators
+export {
+  sortByCost,
+  sortByOutputCost,
+  sortByContext,
+  sortByOutput,
+  sortByRecency,
+  sortByKnowledgeCutoff,
+  sortByProvider,
+  sortByOpenWeights,
+  sortByMetric,
+} from "./order/comparators";
+export type { SortDirection, IdentityComparator } from "./order/comparators";
+
+// Find and recommend
+export { find } from "./recommend/find";
+export type { FindOptions, FindResult } from "./recommend/find";
+export { recommend } from "./recommend/recommend";
+export type {
+  MetricWeights,
+  RecommendOptions,
+  RecommendWithBenchmarks,
+  RankedModel,
+  Recommendation,
+} from "./recommend/recommend";
+export type { ModelFilter } from "./recommend/modelFilter";
+export { perMaker, perFamily } from "./recommend/constraints";
+export type { ModelConstraint } from "./recommend/constraints";
