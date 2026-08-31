@@ -41,6 +41,7 @@ export type { BlendedRating } from "./benchmarks/blendRatings";
 // Benchmark sources
 export { fromArena } from "./sources/fromArena";
 export { fromBenchmarkJSON } from "./sources/fromBenchmarkJSON";
+export { fromOpenRouter } from "./sources/fromOpenRouter";
 
 // Sort comparators
 export {
