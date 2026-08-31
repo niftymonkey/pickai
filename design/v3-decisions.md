@@ -658,3 +658,7 @@ list by the metadata they find useful (input rate, output rate, context, max out
 knowledge cutoff, provider, open weights), not only by the score. Score is the default ordering;
 every fact is a column; models without a score sit in an unrated bucket rather than at the bottom
 of the ranking (rule 1).
+
+### 9.34 Rules split into catalog rules and metric rules, and metric rules are name-blind
+
+Raised by Mark on 2026-08-31 while reviewing the filter module: nothing benchmark-flavored may be encoded into the core rule types, and anything a benchmark set carries must be rule-able. The rule union is therefore two halves. `CatalogRule` holds the closed set of kinds that read models.dev facts (plus the inferred maker, which the join may later enrich from a source's organization field without the rule changing). `MetricRule` arrives with the benchmarks slice as one kind, typed over `string` metric names with min/max thresholds, never a union of names, so a rule on an LMArena category or on a BYOD field like `ifbench` flows through with zero code changes. This extends finding 13's name-blindness from ordering weights to rules. A model with no value for a rule's metric survives the rule and stays in the unrated bucket, consistent with the 9.23 fence and rule 1. `fromArena` emits every category the dataset publishes, not a curated subset, and boolean BYOD facts ride as 0/1 metrics.
