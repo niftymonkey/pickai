@@ -6,7 +6,7 @@
  */
 
 import type { Model, Constraint } from "./types";
-import { matchesModel } from "./id";
+import { matchesModel } from "./identity/matchesModel";
 
 /**
  * Constraint: limit models per provider for diversity.

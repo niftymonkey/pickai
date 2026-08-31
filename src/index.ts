@@ -56,5 +56,10 @@ export { Purpose } from "./purpose";
 // Provider constants
 export { DIRECT_PROVIDERS, OPENROUTER_PROVIDERS, ALL_KNOWN_PROVIDERS } from "./providers";
 
-// ID utilities
-export { matchesModel } from "./id";
+// Model identity
+export { matchesModel } from "./identity/matchesModel";
+export { normalizeModelId } from "./identity/normalizeModelId";
+export { parseModelId } from "./identity/parseModelId";
+export type { ParsedModelId } from "./identity/parseModelId";
+export { modelMaker } from "./identity/modelMaker";
+export { listingSeller } from "./identity/listingSeller";

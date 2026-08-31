@@ -7,7 +7,7 @@
  */
 
 import type { Model } from "./types";
-import { normalizeModelId } from "./id";
+import { normalizeModelId } from "./identity/normalizeModelId";
 
 /**
  * Normalize openWeights across all entries of the same model.

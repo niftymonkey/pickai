@@ -6,7 +6,7 @@
  */
 
 import type { Model, ModelCost, ModelLimit, ModelModalities } from "./types";
-import { deriveOpenRouterId } from "./id";
+import { deriveOpenRouterId } from "./identity/deriveOpenRouterId";
 
 // ---------------------------------------------------------------------------
 // models.dev API types (as returned by the API)
