@@ -270,6 +270,8 @@ reasoning-effort folding and OpenRouter does not.
   clause that a model-selection library plausibly falls under. This is silence plus risk, not
   consent. Distinct from AA's s2.5, which is an explicit ban.
 
+**Addendum (2026-08-31), from `design/research/openrouter-terms.md`:** the "silence plus risk" read understates OpenRouter's side. `/api/v1/models` is deliberately published for keyless programmatic use (docs with keyless curl examples, open CORS, public cache headers, an RSS feed of the endpoint) while the neighbouring `/api/v1/benchmarks` is auth-gated, LiteLLM ships weekly keyless fetches of the same URL without objection, and the competing-service clause's operative subject is reselling API access to Models, which pickai does not do. The residual risk is Artificial Analysis, whose numbers the `benchmarks.artificial_analysis` fields carry: AA's Data Platform Terms bind only AA's own Customers and carry no flow-down, so no contract binds pickai, but AA has publicly objected to model-selection uses and EU/UK database rights need no contract. Consequence for 9.14's opt-in note: the stated reason is not "we are unsure this is allowed" but "these numbers originate with Artificial Analysis, whose terms restrict model-selection uses by their own customers, and OpenRouter grants no explicit reuse right, so the choice is yours."
+
 ### 9.12 New bug found: `deriveOpenRouterId` is wrong for ~46 models
 
 Not a benchmark issue. `openRouterId` is a **documented public field on every `Model`**, and it is
