@@ -1,31 +1,10 @@
 // Types
-export type {
-  Model,
-  ModelCost,
-  ModelLimit,
-  ModelModalities,
-  ScoredModel,
-  ScoringCriterion,
-  WeightedCriterion,
-  CriterionCoverage,
-} from "./types";
+export type { Model, ModelCost, ModelLimit, ModelModalities } from "./types";
 
 // Source
 export { fromModelsDev } from "./source";
 export { parseModelsDevData } from "./source";
 export type { ModelsDevData } from "./source";
-
-// Scoring criteria
-export {
-  minMaxCriterion,
-  costEfficiency,
-  contextCapacity,
-  recency,
-  knowledgeFreshness,
-  outputCapacity,
-  scoreModels,
-  criterionCoverage,
-} from "./score";
 
 // Model-level normalization
 export { normalizeOpenWeights } from "./normalize";

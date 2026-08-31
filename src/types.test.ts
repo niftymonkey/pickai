@@ -4,14 +4,7 @@
  */
 
 import { describe, it, expectTypeOf } from "vitest";
-import type {
-  Model,
-  ModelCost,
-  ModelLimit,
-  ModelModalities,
-  ScoringCriterion,
-  ScoredModel,
-} from "./types";
+import type { Model, ModelCost, ModelLimit, ModelModalities } from "./types";
 
 describe("Model", () => {
   it("has required fields", () => {
@@ -54,43 +47,5 @@ describe("ModelLimit", () => {
   it("has required context and output", () => {
     expectTypeOf<ModelLimit>().toHaveProperty("context").toBeNumber();
     expectTypeOf<ModelLimit>().toHaveProperty("output").toBeNumber();
-  });
-});
-
-describe("ScoredModel", () => {
-  it("extends Model with score", () => {
-    expectTypeOf<ScoredModel>().toHaveProperty("score").toBeNumber();
-    expectTypeOf<ScoredModel>().toHaveProperty("id").toBeString();
-    expectTypeOf<ScoredModel>().toHaveProperty("provider").toBeString();
-  });
-
-  it("preserves generic type", () => {
-    interface CustomModel extends Model {
-      custom: string;
-    }
-    expectTypeOf<ScoredModel<CustomModel>>().toHaveProperty("custom").toBeString();
-    expectTypeOf<ScoredModel<CustomModel>>().toHaveProperty("score").toBeNumber();
-  });
-});
-
-describe("ScoringCriterion", () => {
-  it("is a function (model, allModels) => number | undefined", () => {
-    expectTypeOf<ScoringCriterion>().toBeFunction();
-    expectTypeOf<ScoringCriterion>().parameters.toEqualTypeOf<[Model, Model[]]>();
-    expectTypeOf<ScoringCriterion>().returns.toEqualTypeOf<number | undefined>();
-  });
-
-  it("accepts a generic type parameter for enriched models", () => {
-    type Enriched = Model & { arena?: number };
-    expectTypeOf<ScoringCriterion<Enriched>>().toBeFunction();
-    expectTypeOf<ScoringCriterion<Enriched>>().parameters.toEqualTypeOf<[Enriched, Enriched[]]>();
-  });
-
-  it("base ScoringCriterion is assignable to enriched WeightedCriterion", () => {
-    type Enriched = Model & { arena?: number };
-    const baseCriterion: ScoringCriterion = (_model, _all) => 0.5;
-    // A criterion that takes Model should be usable where Enriched is expected,
-    // since Enriched extends Model (contravariance of function parameters).
-    expectTypeOf(baseCriterion).toMatchTypeOf<ScoringCriterion<Enriched>>();
   });
 });
