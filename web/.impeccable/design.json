@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-31T05:30:00Z",
+  "title": "Design System: pickai",
+  "extensions": {
+    "colorMeta": {
+      "bench": { "role": "neutral", "displayName": "Drafting Paper", "canonical": "oklch(94% 0.01 250)", "canonicalDark": "oklch(18.5% 0.006 255)", "tonalRamp": ["oklch(15% 0.01 250)", "oklch(27% 0.01 250)", "oklch(39% 0.01 250)", "oklch(51% 0.01 250)", "oklch(63% 0.01 250)", "oklch(75% 0.01 250)", "oklch(87% 0.01 250)", "oklch(95% 0.01 250)"] },
+      "card": { "role": "neutral", "displayName": "Sheet White", "canonical": "oklch(97% 0.005 250)", "canonicalDark": "oklch(24% 0.008 255)", "tonalRamp": ["oklch(15% 0.005 250)", "oklch(27% 0.005 250)", "oklch(39% 0.005 250)", "oklch(51% 0.005 250)", "oklch(63% 0.005 250)", "oklch(75% 0.005 250)", "oklch(87% 0.005 250)", "oklch(97% 0.005 250)"] },
+      "ink": { "role": "neutral", "displayName": "Iron Ink", "canonical": "oklch(22% 0.03 265)", "canonicalDark": "oklch(93% 0.005 255)", "tonalRamp": ["oklch(15% 0.03 265)", "oklch(27% 0.03 265)", "oklch(39% 0.03 265)", "oklch(51% 0.03 265)", "oklch(63% 0.03 265)", "oklch(75% 0.03 265)", "oklch(87% 0.03 265)", "oklch(95% 0.02 265)"] },
+      "accent": { "role": "primary", "displayName": "Structural Cobalt", "canonical": "oklch(52% 0.2 262)", "canonicalDark": "oklch(72% 0.12 250)", "tonalRamp": ["oklch(15% 0.12 262)", "oklch(27% 0.16 262)", "oklch(39% 0.19 262)", "oklch(52% 0.2 262)", "oklch(63% 0.17 260)", "oklch(75% 0.12 256)", "oklch(87% 0.07 258)", "oklch(95% 0.03 258)"] },
+      "rail-bg": { "role": "neutral", "displayName": "Blueprint Slate", "canonical": "oklch(27% 0.07 265)", "canonicalDark": "oklch(14.5% 0.006 255)", "tonalRamp": ["oklch(15% 0.07 265)", "oklch(27% 0.07 265)", "oklch(39% 0.07 265)", "oklch(51% 0.06 265)", "oklch(63% 0.05 262)", "oklch(75% 0.04 258)", "oklch(87% 0.02 255)", "oklch(95% 0.01 252)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Count Readout", "purpose": "The survivor count on the rules rail. Nowhere else." },
+      "data": { "displayName": "Measured Mono", "purpose": "Every rate, score, date, count, and model ID. Tabular figures always." }
+    },
+    "shadows": [
+      { "name": "float-sm", "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)", "purpose": "The theme switcher pill, the only small floating element." },
+      { "name": "float-lg", "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)", "purpose": "The mobile rules drawer sheet." }
+    ],
+    "motion": [
+      { "name": "ease-out-quart", "value": "cubic-bezier(0.25, 1, 0.5, 1)", "purpose": "Default easing for every transition and the rule-fire flash." },
+      { "name": "count-tween", "value": "360ms rAF tween, quartic ease-out", "purpose": "The survivor count animating between values; duration 0 under reduced motion." },
+      { "name": "rule-fire", "value": "700ms ease-out-quart background+outline flash", "purpose": "A newly added rule card announcing itself." },
+      { "name": "ghost-flight", "value": "520ms ease-out-quart, 90ms stagger", "purpose": "Preset rules flying from the tapped button to the rules home." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The commit action of a form: Add rule, Done.",
+      "html": "<button class=\"ds-btn-primary\">Add rule</button>",
+      "css": ".ds-btn-primary { background: var(--accent); color: var(--card); padding: 4px 10px; border: none; border-radius: 6px; font-size: 0.75rem; font-weight: 500; transition: background-color 150ms; } .ds-btn-primary:hover { background: var(--accent-deep); } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.4; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Quiet bordered action: Pin, Collapse, Rules.",
+      "html": "<button class=\"ds-btn-secondary\">Collapse</button>",
+      "css": ".ds-btn-secondary { background: var(--card); color: var(--ink-2); padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 0.75rem; transition: color 150ms, border-color 150ms; } .ds-btn-secondary:hover { border-color: var(--accent); color: var(--accent-ink); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Metric Chip (active)",
+      "kind": "chip",
+      "refersTo": "chip-metric-active",
+      "description": "A weighted score-blend metric with its steppers.",
+      "html": "<span class=\"ds-chip-metric\"><button class=\"ds-chip-step\" aria-label=\"Less\">-</button><span>Coding <b class=\"ds-chip-w\">2</b></span><button class=\"ds-chip-step\" aria-label=\"More\">+</button></span>",
+      "css": ".ds-chip-metric { display: inline-flex; align-items: center; gap: 2px; background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 8px; padding: 2px 4px; font-size: 0.75rem; } .ds-chip-step { background: none; border: none; color: inherit; font-family: monospace; padding: 2px 6px; border-radius: 4px; cursor: pointer; } .ds-chip-w { font-family: monospace; font-variant-numeric: tabular-nums; font-weight: 400; margin-left: 4px; }"
+    },
+    {
+      "name": "Rule Card",
+      "kind": "card",
+      "refersTo": "rule-card",
+      "description": "One applied rule on the rail with its cut count.",
+      "html": "<div class=\"ds-rule-card\"><div class=\"ds-rule-head\"><span>Needs tool calling</span><button aria-label=\"Remove\" class=\"ds-rule-x\">&times;</button></div><p class=\"ds-rule-cut\">cut <span class=\"ds-num\">474</span> models, <span class=\"ds-num\">1,410</span> left</p></div>",
+      "css": ".ds-rule-card { background: var(--rail-card); border: 1px solid var(--rail-line); border-radius: 8px; padding: 8px 12px; color: var(--rail-ink); font-size: 0.875rem; max-width: 260px; } .ds-rule-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; } .ds-rule-x { background: none; border: none; color: var(--rail-ink-3); font-size: 1rem; padding: 6px 10px; margin: -6px -10px; border-radius: 6px; cursor: pointer; } .ds-rule-x:hover { background: var(--rail-hover); color: var(--rail-ink); } .ds-rule-cut { margin: 2px 0 0; font-size: 0.75rem; color: var(--rail-ink-2); } .ds-num { font-family: monospace; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Find a model across every text fact.",
+      "html": "<input class=\"ds-input-search\" type=\"search\" placeholder=\"Find a model in your results\" />",
+      "css": ".ds-input-search { background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 0.875rem; width: 320px; } .ds-input-search::placeholder { color: var(--ink-3); } .ds-input-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Unknown Chip",
+      "kind": "custom",
+      "description": "Absent data as a designed state: hatched, labeled.",
+      "html": "<span class=\"ds-unknown\">price unknown</span>",
+      "css": ".ds-unknown { display: inline-block; border-radius: 4px; padding: 2px 6px; font-size: 0.75rem; color: var(--ink-2); background-image: repeating-linear-gradient(-45deg, transparent 0 4px, var(--hatch-line) 4px 6px); }"
+    },
+    {
+      "name": "Situation Chip",
+      "kind": "chip",
+      "description": "A one-tap preset that fills in visible rules.",
+      "html": "<button class=\"ds-situation\">Coding agent</button>",
+      "css": ".ds-situation { background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 0.875rem; font-weight: 500; text-align: left; transition: border-color 150ms, background-color 150ms; cursor: pointer; } .ds-situation:hover { border-color: var(--accent); background: var(--accent-soft); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Instrument Bench",
+    "overview": "A calm workbench where a developer assembles a decision. The bench itself is quiet: cool blueprint-tinted paper, generous space, nothing shouting. The instruments on it are exact: aligned monospace numbers, sources and dates beside every figure, unknowns labeled as unknowns. The delight lives in the hands, not the chrome. Two committed themes share every token through light-dark(): Blueprint (light) and Night (dark).",
+    "keyCharacteristics": [
+      "Quiet shell, exact data, tactile interactions",
+      "One cobalt accent, used sparingly and meaningfully",
+      "Numbers in monospace with tabular figures; they align or they are wrong",
+      "Unknown is a designed state (hatched), visually distinct from empty and from zero",
+      "The rules panel is its own dark surface in both themes; the live count sits on it",
+      "Every visual decision lands as a token, so recolor and theming are swaps, not rewrites"
+    ],
+    "rules": [
+      { "name": "The Token Door Rule", "body": "Every color exists only as a CSS custom property. Recoloring or adding a theme is a token swap, never a screen edit.", "section": "colors" },
+      { "name": "The Quiet Bench Rule", "body": "The accent appears on at most one class of element per screen. If two things compete for the accent, one of them does not get it.", "section": "colors" },
+      { "name": "The Unrated Hue Rule", "body": "Unknown renders as the hatched treatment with a label, never gray-as-afterthought and never red-as-error.", "section": "colors" },
+      { "name": "The Dark Rail Rule", "body": "The rules panel is a visibly different, darker surface in both themes. The survivor count lives on it, beside the rules that cause it.", "section": "colors" },
+      { "name": "The Measured Mono Rule", "body": "Rates, scores, dates, model IDs, and counts are always monospace with tabular figures. If columns of numbers do not align, the type is wrong.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. Depth appears only on the two floating elements; a shadow on a table row or card is a bug.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do put source name and measurement date beside every number, in the UI itself.",
+      "Do render uncertainty as bands (low-high) and label partial blends (2/3 metrics).",
+      "Do give every pointer interaction a keyboard path.",
+      "Do design the unknown state deliberately on every screen that shows data.",
+      "Do route every color through a token; light-dark() carries both themes."
+    ],
+    "donts": [
+      "Don't use the AI-tool SaaS template: dark purple gradients, glassmorphism, hero metrics, sparkle icons.",
+      "Don't ship leaderboard trophy energy or any rank-1 visual emphasis.",
+      "Don't build enterprise BI walls of charts.",
+      "Don't add a chatbot, a prose input box, or conversational framing anywhere.",
+      "Don't use pure #000 or #fff, side-stripe borders, gradient text, or em dashes in copy.",
+      "Don't put the accent on two competing element classes on one screen.",
+      "Don't render a measured value in the sans face."
+    ]
+  }
+}
