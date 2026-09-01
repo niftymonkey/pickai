@@ -18,6 +18,11 @@ test("token counts under a million show K, at or above show M, no trailing zero 
   expect(formatTokens(1_500_000)).toBe("1.5M");
   expect(formatTokens(32_768)).toBe("32.8K");
 });
+test("token counts of 999,500 and above render 1M, never 1000K", () => {
+  expect(formatTokens(999_500)).toBe("1M");
+  expect(formatTokens(999_950)).toBe("1M");
+  expect(formatTokens(999_499)).toBe("999.5K");
+});
 test("a release date renders as month and year", () => {
   expect(formatReleased("2025-09-29")).toBe("Sep 2025");
   expect(formatReleased("2024-01-04")).toBe("Jan 2024");

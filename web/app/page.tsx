@@ -1,8 +1,6 @@
-// The catalog page: the whole models.dev catalog, one row per model identity.
+// The catalog page: the whole models.dev catalog, handed to the client-side decision surface.
 
-import { CatalogHeader } from "@/components/catalog-header";
-import { CatalogTable } from "@/components/catalog-table";
-import { catalogCounts, catalogRows } from "@/core/catalog-view";
+import { DecisionSurface } from "@/components/decision-surface";
 import { loadCatalog } from "@/lib/catalog";
 
 const CatalogPage = async () => {
@@ -17,13 +15,7 @@ const CatalogPage = async () => {
       </main>
     );
   }
-  const { models, listings } = catalogCounts(catalog.identities);
-  return (
-    <main className="mx-auto max-w-7xl px-6 py-8">
-      <CatalogHeader models={models} listings={listings} />
-      <CatalogTable rows={catalogRows(catalog.identities)} />
-    </main>
-  );
+  return <DecisionSurface identities={catalog.identities} />;
 };
 
 export const revalidate = 3600;

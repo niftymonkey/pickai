@@ -10,8 +10,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "pickai": "workspace:*",
+    "@tanstack/react-virtual": "^3.14.10",
     "next": "16.3.4",
+    "pickai": "workspace:*",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },

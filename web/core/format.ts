@@ -8,8 +8,9 @@ const withOneDecimalAtMost = (scaled: number): string => {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 };
 
+// From 999,500 the K form would round toward "1000K", so the M form takes over there.
 const formatTokens = (n: number): string =>
-  n >= 1_000_000
+  n >= 999_500
     ? `${withOneDecimalAtMost(n / 1_000_000)}M`
     : `${withOneDecimalAtMost(n / 1_000)}K`;
 

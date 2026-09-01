@@ -1,11 +1,27 @@
-// The catalog as a grouped table: one row per model identity.
+// The catalog as a grouped table: one row per model identity, virtualized so
+// only the rows in view (plus overscan) reach the DOM; spacer rows keep the
+// scroll geometry of the full list.
 
+import { useEffect, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import type { CatalogRow } from "@/core/catalog-view";
 import { formatCutoff, formatPrice, formatReleased, formatTokens } from "@/core/format";
 
 interface CatalogTableProps {
   rows: CatalogRow[];
 }
+
+// The table layout is fixed, because with only visible rows in the DOM an
+// automatic layout would resize columns as rows scroll in and out. The numeric
+// columns are pinned at the full catalog's natural max-content widths; Model
+// and Maker take the leftover width and truncate, so any name fits any window.
+const COLUMN_WIDTHS: (number | undefined)[] = [undefined, 150, 78, 117, 117, 87, 104, 89, 89];
+const COLUMN_COUNT = COLUMN_WIDTHS.length;
+const TABLE_MIN_WIDTH = 960;
+
+// Rows measure 37px, or 38px when a hatched unknown chip stretches the line
+// box; this seeds the virtualizer and measureElement refines per row.
+const ESTIMATED_ROW_HEIGHT = 38;
 
 const Unknown = ({ label }: { label: string }) => (
   <span className="hatch inline-block rounded-sm px-1.5 py-0.5 text-xs text-ink-3">{label}</span>
@@ -14,44 +30,120 @@ const Unknown = ({ label }: { label: string }) => (
 const fact = <T,>(value: T | null, render: (value: T) => string, unknownLabel: string) =>
   value === null ? <Unknown label={unknownLabel} /> : render(value);
 
-const numericCell = "tnum px-3 py-2 text-right whitespace-nowrap";
-const numericHead = "px-3 py-2 text-right font-medium";
+// Borders live on the cells, not the rows: the table is border-separate so the
+// sticky header carries its own border and each row's height is its own.
+const rowBorder = (last: boolean) => (last ? "" : "border-b border-line ");
+const numericCell = (last: boolean) => `${rowBorder(last)}tnum px-3 py-2 text-right whitespace-nowrap`;
+const numericHead = "border-b border-line-2 px-3 py-2 text-right font-medium";
 
-const CatalogTable = ({ rows }: CatalogTableProps) => (
-  <div className="overflow-x-auto rounded-lg border border-line bg-card">
-    <table className="w-full border-collapse text-sm">
-      <thead>
-        <tr className="border-b border-line-2 text-xs tracking-wide text-ink-2 uppercase">
-          <th className="px-3 py-2 text-left font-medium">Model</th>
-          <th className="px-3 py-2 text-left font-medium">Maker</th>
-          <th className={numericHead}>Sellers</th>
-          <th className={numericHead}>Input $/M</th>
-          <th className={numericHead}>Output $/M</th>
-          <th className={numericHead}>Context</th>
-          <th className={numericHead}>Max output</th>
-          <th className={numericHead}>Released</th>
-          <th className={numericHead}>Cutoff</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => (
-          <tr key={row.key} className="border-b border-line last:border-b-0">
-            <td className="px-3 py-2 font-medium whitespace-nowrap">{row.name}</td>
-            <td className="px-3 py-2 whitespace-nowrap text-ink-2">
-              {fact(row.maker, (maker) => maker, "unknown")}
-            </td>
-            <td className={numericCell}>{row.sellerCount}</td>
-            <td className={numericCell}>{fact(row.costIn, formatPrice, "price unknown")}</td>
-            <td className={numericCell}>{fact(row.costOut, formatPrice, "price unknown")}</td>
-            <td className={numericCell}>{fact(row.context, formatTokens, "unknown")}</td>
-            <td className={numericCell}>{fact(row.output, formatTokens, "unknown")}</td>
-            <td className={numericCell}>{fact(row.released, formatReleased, "unknown")}</td>
-            <td className={numericCell}>{fact(row.cutoff, formatCutoff, "unknown")}</td>
+// How long the scrollbar stays visible after the last scroll event.
+const SCROLLBAR_LINGER_MS = 800;
+
+const CatalogTable = ({ rows }: CatalogTableProps) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Syncs with the DOM scroll state: the class rides the element directly so
+  // scrolling never re-renders the table.
+  useEffect(() => {
+    const region = scrollRef.current;
+    if (region === null) return;
+    let linger: number | undefined;
+    const showScrollbarWhileScrolling = () => {
+      region.classList.add("scrolling");
+      window.clearTimeout(linger);
+      linger = window.setTimeout(() => region.classList.remove("scrolling"), SCROLLBAR_LINGER_MS);
+    };
+    region.addEventListener("scroll", showScrollbarWhileScrolling, { passive: true });
+    return () => {
+      region.removeEventListener("scroll", showScrollbarWhileScrolling);
+      window.clearTimeout(linger);
+    };
+  }, []);
+  // useVirtualizer returns functions the React Compiler cannot memoize, so it
+  // skips this component; nothing virtualizer-derived leaves it.
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const virtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    overscan: 10,
+    useFlushSync: false,
+  });
+  const items = virtualizer.getVirtualItems();
+  const padTop = items.length === 0 ? 0 : items[0].start;
+  const padBottom =
+    items.length === 0 ? 0 : virtualizer.getTotalSize() - items[items.length - 1].end;
+
+  return (
+    <div
+      ref={scrollRef}
+      className="quiet-scrollbar max-h-[max(20rem,calc(100dvh-11.25rem))] overflow-auto rounded-lg border border-line bg-card"
+    >
+      <table
+        className="w-full border-separate border-spacing-0 text-sm"
+        style={{ tableLayout: "fixed", minWidth: TABLE_MIN_WIDTH }}
+      >
+        <colgroup>
+          {COLUMN_WIDTHS.map((width, column) => (
+            <col key={column} style={width === undefined ? undefined : { width }} />
+          ))}
+        </colgroup>
+        <thead className="sticky top-0 z-10 bg-card">
+          <tr className="text-xs tracking-wide text-ink-2 uppercase">
+            <th className="border-b border-line-2 px-3 py-2 text-left font-medium">Model</th>
+            <th className="border-b border-line-2 px-3 py-2 text-left font-medium">Maker</th>
+            <th className={numericHead}>Sellers</th>
+            <th className={numericHead}>Input $/M</th>
+            <th className={numericHead}>Output $/M</th>
+            <th className={numericHead}>Context</th>
+            <th className={numericHead}>Max output</th>
+            <th className={numericHead}>Released</th>
+            <th className={numericHead}>Cutoff</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
+        </thead>
+        <tbody>
+          {padTop > 0 && (
+            <tr aria-hidden style={{ height: padTop }}>
+              <td colSpan={COLUMN_COUNT} className="p-0" />
+            </tr>
+          )}
+          {items.map((item) => {
+            const row = rows[item.index];
+            const last = item.index === rows.length - 1;
+            return (
+              <tr
+                key={row.key}
+                ref={virtualizer.measureElement}
+                data-index={item.index}
+              >
+                <td className={`${rowBorder(last)}truncate px-3 py-2 font-medium`} title={row.name}>
+                  {row.name}
+                </td>
+                <td
+                  className={`${rowBorder(last)}truncate px-3 py-2 text-ink-2`}
+                  title={row.maker ?? undefined}
+                >
+                  {fact(row.maker, (maker) => maker, "unknown")}
+                </td>
+                <td className={numericCell(last)}>{row.sellerCount}</td>
+                <td className={numericCell(last)}>{fact(row.costIn, formatPrice, "price unknown")}</td>
+                <td className={numericCell(last)}>{fact(row.costOut, formatPrice, "price unknown")}</td>
+                <td className={numericCell(last)}>{fact(row.context, formatTokens, "unknown")}</td>
+                <td className={numericCell(last)}>{fact(row.output, formatTokens, "unknown")}</td>
+                <td className={numericCell(last)}>{fact(row.released, formatReleased, "unknown")}</td>
+                <td className={numericCell(last)}>{fact(row.cutoff, formatCutoff, "unknown")}</td>
+              </tr>
+            );
+          })}
+          {padBottom > 0 && (
+            <tr aria-hidden style={{ height: padBottom }}>
+              <td colSpan={COLUMN_COUNT} className="p-0" />
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 export { CatalogTable };

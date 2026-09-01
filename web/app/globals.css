@@ -15,6 +15,13 @@
   --accent-soft: light-dark(oklch(92.5% 0.05 258), oklch(30% 0.05 250));
   --accent-ink: light-dark(oklch(42% 0.17 262), oklch(80% 0.1 245));
   --hatch-line: light-dark(oklch(90.5% 0.018 255), oklch(29% 0.008 255));
+  --rail-bg: light-dark(oklch(27% 0.07 265), oklch(14.5% 0.006 255));
+  --rail-card: light-dark(oklch(32% 0.075 265), oklch(21% 0.008 255));
+  --rail-ink: light-dark(oklch(96% 0.01 250), oklch(93% 0.005 255));
+  --rail-ink-2: light-dark(oklch(80% 0.035 255), oklch(76% 0.008 255));
+  --rail-ink-3: light-dark(oklch(66% 0.05 260), oklch(58% 0.012 255));
+  --rail-line: light-dark(oklch(40% 0.075 265), oklch(28% 0.01 255));
+  --rail-hover: light-dark(oklch(37% 0.075 265), oklch(25% 0.01 255));
 }
 
 /* For the future theme switcher: an explicit choice pins light-dark() to one side. */
@@ -40,6 +47,14 @@ html[data-theme="dark"] {
   --color-accent-soft: var(--accent-soft);
   --color-accent-ink: var(--accent-ink);
   --color-hatch-line: var(--hatch-line);
+  --color-rail-bg: var(--rail-bg);
+  --color-rail-card: var(--rail-card);
+  --color-rail-ink: var(--rail-ink);
+  --color-rail-ink-2: var(--rail-ink-2);
+  --color-rail-ink-3: var(--rail-ink-3);
+  --color-rail-line: var(--rail-line);
+  --color-rail-hover: var(--rail-hover);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -61,4 +76,16 @@ body {
 
 .hatch {
   background: repeating-linear-gradient(-45deg, transparent 0 4px, var(--hatch-line) 4px 6px);
+}
+
+/* Scrollbars in a quiet-scrollbar region are invisible until the region
+   scrolls; a script toggles .scrolling because CSS cannot see scroll motion. */
+.quiet-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.quiet-scrollbar.scrolling {
+  scrollbar-color: var(--line-2) transparent;
 }
