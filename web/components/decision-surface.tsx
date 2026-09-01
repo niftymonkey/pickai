@@ -12,7 +12,7 @@ import type { FacetState } from "@/core/decision";
 import { defaultWeights, metricList, rateIdentities, scoreBoard } from "@/core/score-view";
 import { INITIAL_SOURCE, confirmFetch, fetchFailed, fetchLanded, pickSource } from "@/core/source-switch";
 import type { ScoreSourceId, SourceState, SourceStep } from "@/core/source-switch";
-import type { ArenaSource } from "@/lib/benchmarks";
+import type { BenchmarkSource } from "@/lib/benchmarks";
 import { BlendEditor } from "./blend-editor";
 import { CatalogHeader } from "./catalog-header";
 import { CatalogSearch } from "./catalog-search";
@@ -25,7 +25,7 @@ import { ScoreSource } from "./score-source";
 
 interface DecisionSurfaceProps {
   identities: ModelIdentity[];
-  arena: ArenaSource;
+  arena: BenchmarkSource;
   /** The date the catalog came down from models.dev. */
   fetchedAt: string;
 }
@@ -63,14 +63,10 @@ const DecisionSurface = ({ identities, arena, fetchedAt }: DecisionSurfaceProps)
   >({});
 
   const { source, openRouter } = sourceState;
+  // A stale arena set still scores: the caption says it is old, the board stays populated.
+  const arenaSet = arena.status === "unavailable" ? null : arena.set;
   const activeSet =
-    source === "arena"
-      ? arena.status === "ok"
-        ? arena.set
-        : null
-      : openRouter.phase === "ok"
-        ? openRouter.set
-        : null;
+    source === "arena" ? arenaSet : openRouter.phase === "ok" ? openRouter.set : null;
   const weights = weightsBySource[source] ?? defaultWeights(activeSet);
 
   const scorable = useMemo(() => rateIdentities(identities, activeSet), [identities, activeSet]);

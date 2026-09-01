@@ -1,12 +1,12 @@
 // The score-source switch's face: segmented toggle, measurement caption, terms offer, retry.
 
-import type { ArenaSource } from "@/lib/benchmarks";
+import type { BenchmarkSource } from "@/lib/benchmarks";
 import type { ScoreSourceId, SourceState } from "@/core/source-switch";
 import { InfoHover } from "./info-hover";
 
 interface ScoreSourceProps {
   state: SourceState;
-  arena: ArenaSource;
+  arena: BenchmarkSource;
   onPick: (source: ScoreSourceId) => void;
   /** The consent button and the retry button both land here. */
   onConfirmFetch: () => void;
@@ -19,12 +19,18 @@ const SOURCE_TIPS: Record<ScoreSourceId, string> = {
     "Artificial Analysis runs its own benchmark suites and publishes 0-100 index scores. The numbers come via OpenRouter.",
 };
 
-const arenaCaption = (arena: ArenaSource): string =>
-  arena.status === "ok"
-    ? `measured ${arena.set.measuredAt}`
-    : `LMArena unavailable (${arena.reason}, scores absent this load)`;
+const arenaCaption = (arena: BenchmarkSource): string => {
+  switch (arena.status) {
+    case "ok":
+      return `measured ${arena.set.measuredAt}`;
+    case "stale":
+      return `measured ${arena.set.measuredAt} · live fetch failed, showing the last good data`;
+    case "unavailable":
+      return `LMArena unavailable (${arena.reason}, scores absent this load)`;
+  }
+};
 
-const caption = (state: SourceState, arena: ArenaSource): string => {
+const caption = (state: SourceState, arena: BenchmarkSource): string => {
   const { source, openRouter } = state;
   if (source === "openrouter" && openRouter.phase === "ok")
     return `measured ${openRouter.set.measuredAt}`;
