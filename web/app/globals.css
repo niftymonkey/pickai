@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light dark;
+  --bench: light-dark(oklch(94% 0.01 250), oklch(18.5% 0.006 255));
+  --bench-2: light-dark(oklch(91% 0.014 250), oklch(22.5% 0.007 255));
+  --card: light-dark(oklch(97% 0.005 250), oklch(24% 0.008 255));
+  --ink: light-dark(oklch(22% 0.03 265), oklch(93% 0.005 255));
+  --ink-2: light-dark(oklch(42% 0.04 262), oklch(76% 0.008 255));
+  --ink-3: light-dark(oklch(57% 0.035 260), oklch(60% 0.01 255));
+  --line: light-dark(oklch(86% 0.02 255), oklch(31% 0.01 255));
+  --line-2: light-dark(oklch(78% 0.028 255), oklch(39% 0.012 255));
+  --accent: light-dark(oklch(52% 0.2 262), oklch(72% 0.12 250));
+  --accent-deep: light-dark(oklch(44% 0.19 262), oklch(64% 0.12 252));
+  --accent-soft: light-dark(oklch(92.5% 0.05 258), oklch(30% 0.05 250));
+  --accent-ink: light-dark(oklch(42% 0.17 262), oklch(80% 0.1 245));
+  --hatch-line: light-dark(oklch(90.5% 0.018 255), oklch(29% 0.008 255));
+}
+
+/* For the future theme switcher: an explicit choice pins light-dark() to one side. */
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bench: var(--bench);
+  --color-bench-2: var(--bench-2);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-hatch-line: var(--hatch-line);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: var(--bench);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.hatch {
+  background: repeating-linear-gradient(-45deg, transparent 0 4px, var(--hatch-line) 4px 6px);
 }
