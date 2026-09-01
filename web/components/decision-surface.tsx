@@ -1,13 +1,17 @@
 "use client";
 
-// The one client driver: owns the facet state and the query, runs the library, hands powers down.
+// The one client driver: owns the facet state, the query, and the score source,
+// runs the library, hands powers down.
 
 import { useMemo, useState } from "react";
-import { applyRules, ruleLabel } from "pickai";
-import type { ModelIdentity } from "pickai";
-import { catalogCounts, catalogRows } from "@/core/catalog-view";
-import { EMPTY_FACETS, biggestCut, deriveRules, searchModels } from "@/core/decision";
+import { applyRules, fromOpenRouter, ruleLabel } from "pickai";
+import type { BenchmarkSet, ModelIdentity } from "pickai";
+import { catalogCounts } from "@/core/catalog-view";
+import { EMPTY_FACETS, biggestCut, deriveRules, searchModels, withoutSelection } from "@/core/decision";
 import type { FacetState } from "@/core/decision";
+import { defaultWeights, metricList, rateIdentities, scoreBoard } from "@/core/score-view";
+import type { ArenaSource } from "@/lib/benchmarks";
+import { BlendEditor } from "./blend-editor";
 import { CatalogHeader } from "./catalog-header";
 import { CatalogSearch } from "./catalog-search";
 import { CatalogTable } from "./catalog-table";
@@ -15,14 +19,24 @@ import { CountHinge } from "./count-hinge";
 import { RuleRail } from "./rule-rail";
 import type { EmptiedBy, RuleOptions } from "./rule-rail";
 import type { CutCount } from "./facet-row";
+import { ScoreSource } from "./score-source";
+import type { OpenRouterSource, ScoreSourceId } from "./score-source";
 
 interface DecisionSurfaceProps {
   identities: ModelIdentity[];
+  arena: ArenaSource;
 }
+
+/** The browser-side OpenRouter fetch: the set stays here, the display gets its phase. */
+type OpenRouterFetch =
+  | { phase: "idle" }
+  | { phase: "loading" }
+  | { phase: "ok"; set: BenchmarkSet }
+  | { phase: "failed"; reason: string };
 
 const distinctSorted = (values: string[]): string[] => [...new Set(values)].sort();
 
-const catalogOptions = (identities: ModelIdentity[]): RuleOptions => ({
+const catalogOptions = (identities: ModelIdentity[]): Omit<RuleOptions, "metrics"> => ({
   sellers: distinctSorted(
     identities.flatMap(({ listings }) => listings.map(({ provider }) => provider)),
   ),
@@ -37,16 +51,37 @@ const catalogOptions = (identities: ModelIdentity[]): RuleOptions => ({
   ),
 });
 
-const DecisionSurface = ({ identities }: DecisionSurfaceProps) => {
+const displayedOpenRouter = (fetch: OpenRouterFetch): OpenRouterSource =>
+  fetch.phase === "ok" ? { phase: "ok", measuredAt: fetch.set.measuredAt } : fetch;
+
+const DecisionSurface = ({ identities, arena }: DecisionSurfaceProps) => {
   const [facets, setFacets] = useState<FacetState>(EMPTY_FACETS);
   const [query, setQuery] = useState("");
+  const [source, setSource] = useState<ScoreSourceId>("arena");
+  const [openRouter, setOpenRouter] = useState<OpenRouterFetch>({ phase: "idle" });
+  const [weightsBySource, setWeightsBySource] = useState<
+    Partial<Record<ScoreSourceId, Record<string, number>>>
+  >({});
 
+  const activeSet =
+    source === "arena"
+      ? arena.status === "ok"
+        ? arena.set
+        : null
+      : openRouter.phase === "ok"
+        ? openRouter.set
+        : null;
+  const weights = weightsBySource[source] ?? defaultWeights(activeSet);
+
+  const scorable = useMemo(() => rateIdentities(identities, activeSet), [identities, activeSet]);
   const derived = useMemo(() => deriveRules(facets), [facets]);
   const rules = useMemo(() => derived.map(({ rule }) => rule), [derived]);
-  const result = useMemo(() => applyRules(identities, rules), [identities, rules]);
+  const result = useMemo(() => applyRules(scorable, rules), [scorable, rules]);
   const totals = useMemo(() => catalogCounts(identities), [identities]);
   const remaining = useMemo(() => catalogCounts(result.survivors), [result]);
-  const options = useMemo(() => catalogOptions(identities), [identities]);
+  const metrics = useMemo(() => metricList(activeSet), [activeSet]);
+  const baseOptions = useMemo(() => catalogOptions(identities), [identities]);
+  const options: RuleOptions = { ...baseOptions, metrics };
 
   const cuts: Record<string, CutCount> = Object.fromEntries(
     derived.map(({ facet, selection }, index) => [
@@ -66,8 +101,8 @@ const DecisionSurface = ({ identities }: DecisionSurfaceProps) => {
         };
 
   const hits = useMemo(
-    () => searchModels(identities, rules, query),
-    [identities, rules, query],
+    () => searchModels(scorable, rules, query),
+    [scorable, rules, query],
   );
   const searching = query.trim() !== "";
   const survivingHitKeys = new Set(
@@ -81,8 +116,28 @@ const DecisionSurface = ({ identities }: DecisionSurfaceProps) => {
     )
     .slice(0, 5);
 
-  const rows = useMemo(() => catalogRows(result.survivors), [result]);
-  const shownRows = searching ? rows.filter(({ key }) => survivingHitKeys.has(key)) : rows;
+  const board = useMemo(() => scoreBoard(result.survivors, weights), [result, weights]);
+  const shownRows = searching
+    ? board.rows.filter(({ key }) => survivingHitKeys.has(key))
+    : board.rows;
+
+  const switchSource = (next: ScoreSourceId) => {
+    if (next === source) return;
+    setSource(next);
+    // The metric vocabulary changes with the source, so an active floor cannot carry over.
+    if (facets.metricFloor !== null) setFacets(withoutSelection(facets, "metricFloor", "value"));
+    if (next === "openrouter" && openRouter.phase !== "ok" && openRouter.phase !== "loading") {
+      setOpenRouter({ phase: "loading" });
+      fromOpenRouter()
+        .then((set) => setOpenRouter({ phase: "ok", set }))
+        .catch((error: unknown) =>
+          setOpenRouter({
+            phase: "failed",
+            reason: error instanceof Error ? error.message : String(error),
+          }),
+        );
+    }
+  };
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6">
@@ -115,7 +170,18 @@ const DecisionSurface = ({ identities }: DecisionSurfaceProps) => {
             nothingFound={searching && hits.length === 0}
             onQueryChange={setQuery}
           />
-          <CatalogTable rows={shownRows} />
+          <ScoreSource
+            source={source}
+            arena={arena}
+            openRouter={displayedOpenRouter(openRouter)}
+            onSwitch={switchSource}
+          />
+          <BlendEditor
+            metrics={metrics}
+            weights={weights}
+            onChange={(next) => setWeightsBySource({ ...weightsBySource, [source]: next })}
+          />
+          <CatalogTable rows={shownRows} scale={board.scale} />
         </main>
       </div>
     </div>

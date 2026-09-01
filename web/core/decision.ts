@@ -2,6 +2,7 @@
 
 import { explainCut, ruleLabel } from "pickai";
 import type { Capability, FilterStep, ModelIdentity, Rule } from "pickai";
+import { metricLabel } from "./score-view";
 
 type RosterMode = "allow" | "exclude";
 
@@ -20,7 +21,8 @@ type Facet =
   | "sellers"
   | "costFence"
   | "minKnowledge"
-  | "excludeDeprecated";
+  | "excludeDeprecated"
+  | "metricFloor";
 
 /** The whole rail's live state; every row is present, active or not. */
 interface FacetState {
@@ -33,6 +35,7 @@ interface FacetState {
   fences: { input: number | null; output: number | null };
   minKnowledge: string | null;
   excludeDeprecated: boolean;
+  metricFloor: { metric: string; min: number } | null;
 }
 
 const EMPTY_FACETS: FacetState = {
@@ -45,6 +48,7 @@ const EMPTY_FACETS: FacetState = {
   fences: { input: null, output: null },
   minKnowledge: null,
   excludeDeprecated: false,
+  metricFloor: null,
 };
 
 /** One derived rule, addressable by its row and the selection within it. */
@@ -144,6 +148,15 @@ const deriveRules = (state: FacetState): DerivedRule[] => [
         } satisfies DerivedRule,
       ]
     : []),
+  ...(state.metricFloor === null
+    ? []
+    : [
+        {
+          facet: "metricFloor",
+          selection: "value",
+          rule: { kind: "metric", metric: state.metricFloor.metric, min: state.metricFloor.min },
+        } satisfies DerivedRule,
+      ]),
 ];
 
 const toggled = <T extends string>(names: T[], name: T): T[] =>
@@ -180,6 +193,8 @@ const withoutSelection = (state: FacetState, facet: Facet, selection: string): F
       return { ...state, minKnowledge: null };
     case "excludeDeprecated":
       return { ...state, excludeDeprecated: false };
+    case "metricFloor":
+      return { ...state, metricFloor: null };
   }
 };
 
@@ -210,6 +225,10 @@ const facetSummary = (state: FacetState, facet: Facet): string | null => {
       );
       return parts.length === 0 ? null : parts.join(" · ");
     }
+    case "metricFloor":
+      return state.metricFloor === null
+        ? null
+        : `${metricLabel(state.metricFloor.metric)} at least ${state.metricFloor.min}`;
     default: {
       const derived = deriveRules(state).filter((entry) => entry.facet === facet);
       return derived.length === 0 ? null : derived.map(({ rule }) => ruleLabel(rule)).join(" · ");

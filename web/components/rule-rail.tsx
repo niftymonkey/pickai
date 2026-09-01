@@ -9,19 +9,22 @@ import {
   FacetRow,
   FenceBody,
   KnowledgeBody,
+  MetricFloorBody,
   ModalityBody,
   ToggleRow,
   TokenFloorBody,
 } from "./facet-row";
 import type { CutCount } from "./facet-row";
 import { RosterChecklist } from "./roster-checklist";
+import type { Metric } from "@/core/score-view";
 
-/** The option lists the rows offer, drawn from the live catalog by the driver. */
+/** The option lists the rows offer, drawn from the live catalog and score source by the driver. */
 interface RuleOptions {
   sellers: string[];
   makers: string[];
   inputModalities: string[];
   outputModalities: string[];
+  metrics: Metric[];
 }
 
 /** Present only when the rules cut everything: the heaviest cutter, offered for removal. */
@@ -54,12 +57,14 @@ const ROW_NAMES: Record<Exclude<Facet, "excludeDeprecated">, string> = {
   sellers: "Sellers",
   costFence: "Price fence",
   minKnowledge: "Knowledge cutoff",
+  metricFloor: "Score floor",
 };
 
 const GROUPS: { title: string; facets: Facet[] }[] = [
   { title: "What it must do", facets: ["capability", "modality", "minContext", "minOutput"] },
   { title: "Who made it, who sells it", facets: ["makers", "sellers"] },
   { title: "Cost and housekeeping", facets: ["costFence", "minKnowledge", "excludeDeprecated"] },
+  { title: "Measured score", facets: ["metricFloor"] },
 ];
 
 const headerId = (facet: Facet): string => `facet-header-${facet}`;
@@ -195,6 +200,14 @@ const RuleRail = ({ state, cuts, options, activeRuleCount, emptiedBy, onChange }
           <KnowledgeBody
             date={state.minKnowledge}
             onSet={(date) => onChange({ ...state, minKnowledge: date })}
+          />
+        );
+      case "metricFloor":
+        return (
+          <MetricFloorBody
+            metrics={options.metrics}
+            floor={state.metricFloor}
+            onSet={(metricFloor) => onChange({ ...state, metricFloor })}
           />
         );
     }

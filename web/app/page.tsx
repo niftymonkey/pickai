@@ -2,9 +2,10 @@
 
 import { DecisionSurface } from "@/components/decision-surface";
 import { loadCatalog } from "@/lib/catalog";
+import { loadArena } from "@/lib/benchmarks";
 
 const CatalogPage = async () => {
-  const catalog = await loadCatalog();
+  const [catalog, arena] = await Promise.all([loadCatalog(), loadArena()]);
   if (catalog.status === "unavailable") {
     return (
       <main className="mx-auto max-w-2xl px-6 py-16">
@@ -15,7 +16,7 @@ const CatalogPage = async () => {
       </main>
     );
   }
-  return <DecisionSurface identities={catalog.identities} />;
+  return <DecisionSurface identities={catalog.identities} arena={arena} />;
 };
 
 export const revalidate = 3600;

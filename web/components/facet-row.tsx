@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import type { Capability } from "pickai";
 import { formatTokens } from "@/core/format";
+import type { Metric } from "@/core/score-view";
 
 interface CutCount {
   cutModels: number;
@@ -374,6 +375,88 @@ const KnowledgeBody = ({
   </div>
 );
 
+type MetricFloor = { metric: string; min: number } | null;
+
+const parsedFloor = (text: string): number | null => {
+  const trimmed = text.trim();
+  if (trimmed === "") return null;
+  const min = Number(trimmed);
+  return Number.isFinite(min) ? min : null;
+};
+
+const MetricFloorBody = ({
+  metrics,
+  floor,
+  onSet,
+}: {
+  metrics: Metric[];
+  floor: MetricFloor;
+  onSet: (floor: MetricFloor) => void;
+}) => {
+  const [text, setText] = useState(floor === null ? "" : String(floor.min));
+  const [chosen, setChosen] = useState(floor?.metric ?? metrics[0]?.name ?? "");
+  const [syncedFloor, setSyncedFloor] = useState(floor);
+  // Outside changes (the zero-survivor card, a source switch) refresh the draft during render,
+  // keeping the input mounted so focus survives a commit.
+  if (floor !== syncedFloor) {
+    setSyncedFloor(floor);
+    setText(floor === null ? "" : String(floor.min));
+    if (floor !== null) setChosen(floor.metric);
+  }
+  if (metrics.length === 0) {
+    return <p className={promptClass}>No measured metrics this load, so there is nothing to rule on.</p>;
+  }
+  const commit = () => {
+    const min = parsedFloor(text);
+    if (min === null && text.trim() !== "") {
+      // An unparseable floor reverts to the applied value; nothing changes silently.
+      setText(floor === null ? "" : String(floor.min));
+      return;
+    }
+    const next: MetricFloor = min === null ? null : { metric: chosen, min };
+    if (next?.metric !== floor?.metric || next?.min !== floor?.min) onSet(next);
+  };
+  const chooseMetric = (metric: string) => {
+    setChosen(metric);
+    // An applied floor follows the metric change instantly; a bare draft waits for its value.
+    if (floor !== null && metric !== floor.metric) onSet({ metric, min: floor.min });
+  };
+  return (
+    <div className="flex flex-col gap-1.5">
+      <p className={promptClass}>
+        Keep models whose score on one metric is at least this. Models the metric never measured
+        survive and stay unrated.
+      </p>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <select
+          value={chosen}
+          aria-label="Metric to rule on"
+          onChange={(event) => chooseMetric(event.target.value)}
+          className="rounded-md border border-rail-line bg-rail-hover px-2 py-1 text-xs text-rail-ink"
+        >
+          {metrics.map(({ name, label }) => (
+            <option key={name} value={name}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <input
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          inputMode="decimal"
+          aria-label="Minimum score"
+          placeholder="any"
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") commit();
+          }}
+          className="w-20 rounded-md border border-rail-line bg-rail-hover px-2 py-1 font-mono text-xs text-rail-ink placeholder:text-rail-ink-3"
+        />
+      </div>
+    </div>
+  );
+};
+
 export {
   FacetRow,
   ToggleRow,
@@ -382,5 +465,6 @@ export {
   TokenFloorBody,
   FenceBody,
   KnowledgeBody,
+  MetricFloorBody,
 };
 export type { CutCount };

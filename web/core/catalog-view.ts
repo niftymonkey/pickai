@@ -33,16 +33,10 @@ const rowFromIdentity = ({ key, maker, representative, listings }: ModelIdentity
   cutoff: representative.knowledge ?? null,
 });
 
-const byDisplayName = (a: CatalogRow, b: CatalogRow): number =>
-  a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
-
-const catalogRows = (identities: ModelIdentity[]): CatalogRow[] =>
-  identities.map(rowFromIdentity).sort(byDisplayName);
-
 const catalogCounts = (identities: ModelIdentity[]): { models: number; listings: number } => ({
   models: identities.length,
   listings: identities.reduce((total, { listings }) => total + listings.length, 0),
 });
 
-export { catalogRows, catalogCounts };
+export { catalogCounts, rowFromIdentity };
 export type { CatalogRow };

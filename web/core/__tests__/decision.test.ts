@@ -107,7 +107,24 @@ const fullState: FacetState = {
   fences: { input: 5, output: 15 },
   minKnowledge: "2025-01",
   excludeDeprecated: true,
+  metricFloor: { metric: "overall", min: 1400 },
 };
+
+test("the metric floor derives its rule last in rail order", () => {
+  expect(deriveRules({ ...EMPTY_FACETS, metricFloor: { metric: "coding", min: 1450 } })).toEqual([
+    {
+      facet: "metricFloor",
+      selection: "value",
+      rule: { kind: "metric", metric: "coding", min: 1450 },
+    },
+  ]);
+});
+
+test("the metric floor summarizes with its display label", () => {
+  expect(
+    facetSummary({ ...EMPTY_FACETS, metricFloor: { metric: "overall", min: 1400 } }, "metricFloor"),
+  ).toBe("Overall at least 1400");
+});
 
 test("a full state derives in rail order", () => {
   expect(deriveRules(fullState).map(({ facet, selection }) => `${facet}:${selection}`)).toEqual([
@@ -123,6 +140,7 @@ test("a full state derives in rail order", () => {
     "costFence:output",
     "minKnowledge:value",
     "excludeDeprecated:value",
+    "metricFloor:value",
   ]);
 });
 
@@ -158,6 +176,7 @@ test("an off facet summarizes to null", () => {
     "costFence",
     "minKnowledge",
     "excludeDeprecated",
+    "metricFloor",
   ] as const) {
     expect(facetSummary(EMPTY_FACETS, facet)).toBeNull();
   }
