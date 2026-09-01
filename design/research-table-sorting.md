@@ -3,8 +3,8 @@
 Research sweep, 2026-08-30. Primary sources only: the WAI-ARIA spec and Authoring Practices
 Guide, design system documentation (Carbon, Polaris, USWDS, Material, SAP Fiori), data grid
 vendor docs (AG Grid, TanStack Table, Angular Material), and product documentation (Linear,
-Stripe). Written against the current `web/components/results-table.tsx` implementation and the
-constraints in `design/v3-north-star.md` and `web/PRODUCT.md`.
+Stripe). Written against the current `prototypes/web/components/results-table.tsx` implementation and the
+constraints in `design/v3-north-star.md` and `prototypes/web/PRODUCT.md`.
 
 ---
 
@@ -232,7 +232,7 @@ Today the only signal is a color change on the active header label. Per APG and 
 ### 4. Fix the aria-sort bug
 
 `results-table.tsx` sets `aria-sort="descending"` on the active header unconditionally, but
-`costIn`/`costOut` sort ascending (comparators in `web/lib/engine.ts`). The attribute
+`costIn`/`costOut` sort ascending (comparators in `prototypes/web/lib/engine.ts`). The attribute
 currently lies on the two price axes. It must reflect the real direction, and continue to
 appear on only one header at a time per the ARIA spec.
 

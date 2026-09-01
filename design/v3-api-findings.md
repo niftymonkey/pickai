@@ -68,7 +68,7 @@ length gets the misleading number. Grouping (finding 1) is what makes the honest
 
 ## 8. The real `fromArena` works, and here is its shape
 
-Prototyped 2026-08-30 in `web/lib/benchmarks.ts` against the live dataset, replacing an earlier
+Prototyped 2026-08-30 in `prototypes/web/lib/benchmarks.ts` against the live dataset, replacing an earlier
 fabricated mock (which taught its own lesson: "mocked" labels get read as "cached real data."
 Never fabricate values; fetch or leave absent).
 

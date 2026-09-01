@@ -20,7 +20,7 @@ A prototype exists to teach: what is possible, what feels right, what is missing
 
 Production code is built fresh by the flow below.
 
-`web/` is a prototype. It taught the shape of the decision surface and the library constraints recorded in `design/v3-api-findings.md`, and that is the whole of what it delivers. The v3 web application is built fresh against the real library under these rules, with the prototype kept open beside it as the visual reference. No module is lifted out of it and it is never rewired to call the library.
+`prototypes/web/` is a prototype. It taught the shape of the decision surface and the library constraints recorded in `design/v3-api-findings.md`, and that is the whole of what it delivers. The v3 web application at `web/` is built fresh against the real library under these rules, with the prototype kept open beside it as the visual reference. No module is lifted out of it and it is never rewired to call the library.
 
 ## The per-feature flow
 
