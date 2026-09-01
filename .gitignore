@@ -10,3 +10,5 @@ dist/
 examples/_api-cache.json
 
 .playwright-cli/
+.vercel
+.env*
