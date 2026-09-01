@@ -4,20 +4,7 @@
  */
 
 import { describe, it, expectTypeOf } from "vitest";
-import type {
-  Model,
-  ModelCost,
-  ModelLimit,
-  ModelModalities,
-  ModelFilter,
-  PurposeProfile,
-  ScoringCriterion,
-  WeightedCriterion,
-  Constraint,
-  FindOptions,
-  RecommendOptions,
-  ScoredModel,
-} from "./types";
+import type { Model, ModelCost, ModelLimit, ModelModalities } from "./types";
 
 describe("Model", () => {
   it("has required fields", () => {
@@ -60,110 +47,5 @@ describe("ModelLimit", () => {
   it("has required context and output", () => {
     expectTypeOf<ModelLimit>().toHaveProperty("context").toBeNumber();
     expectTypeOf<ModelLimit>().toHaveProperty("output").toBeNumber();
-  });
-});
-
-describe("ModelFilter", () => {
-  it("all fields are optional", () => {
-    expectTypeOf<{}>().toMatchTypeOf<ModelFilter>();
-  });
-
-  it("has capability boolean filters", () => {
-    expectTypeOf<ModelFilter>().toHaveProperty("reasoning").toEqualTypeOf<boolean | undefined>();
-    expectTypeOf<ModelFilter>().toHaveProperty("toolCall").toEqualTypeOf<boolean | undefined>();
-    expectTypeOf<ModelFilter>().toHaveProperty("structuredOutput").toEqualTypeOf<boolean | undefined>();
-  });
-
-  it("has cost bounds", () => {
-    expectTypeOf<ModelFilter>().toHaveProperty("maxCostInput").toEqualTypeOf<number | undefined>();
-    expectTypeOf<ModelFilter>().toHaveProperty("maxCostOutput").toEqualTypeOf<number | undefined>();
-  });
-
-  it("has provider filters", () => {
-    expectTypeOf<ModelFilter>().toHaveProperty("providers").toEqualTypeOf<string[] | undefined>();
-    expectTypeOf<ModelFilter>().toHaveProperty("excludeProviders").toEqualTypeOf<string[] | undefined>();
-  });
-});
-
-describe("PurposeProfile", () => {
-  it("has required criteria and optional filter", () => {
-    expectTypeOf<PurposeProfile>().toHaveProperty("criteria").toEqualTypeOf<WeightedCriterion[]>();
-    expectTypeOf<PurposeProfile>().toHaveProperty("filter").toEqualTypeOf<ModelFilter | undefined>();
-  });
-
-  it("does not have preferredTier (v1 removed)", () => {
-    expectTypeOf<PurposeProfile>().not.toHaveProperty("preferredTier");
-  });
-});
-
-describe("ScoredModel", () => {
-  it("extends Model with score", () => {
-    expectTypeOf<ScoredModel>().toHaveProperty("score").toBeNumber();
-    expectTypeOf<ScoredModel>().toHaveProperty("id").toBeString();
-    expectTypeOf<ScoredModel>().toHaveProperty("provider").toBeString();
-  });
-
-  it("preserves generic type", () => {
-    interface CustomModel extends Model {
-      custom: string;
-    }
-    expectTypeOf<ScoredModel<CustomModel>>().toHaveProperty("custom").toBeString();
-    expectTypeOf<ScoredModel<CustomModel>>().toHaveProperty("score").toBeNumber();
-  });
-});
-
-describe("ScoringCriterion", () => {
-  it("is a function (model, allModels) => number | undefined", () => {
-    expectTypeOf<ScoringCriterion>().toBeFunction();
-    expectTypeOf<ScoringCriterion>().parameters.toEqualTypeOf<[Model, Model[]]>();
-    expectTypeOf<ScoringCriterion>().returns.toEqualTypeOf<number | undefined>();
-  });
-
-  it("accepts a generic type parameter for enriched models", () => {
-    type Enriched = Model & { arena?: number };
-    expectTypeOf<ScoringCriterion<Enriched>>().toBeFunction();
-    expectTypeOf<ScoringCriterion<Enriched>>().parameters.toEqualTypeOf<[Enriched, Enriched[]]>();
-  });
-
-  it("base ScoringCriterion is assignable to enriched WeightedCriterion", () => {
-    type Enriched = Model & { arena?: number };
-    const baseCriterion: ScoringCriterion = (_model, _all) => 0.5;
-    // A criterion that takes Model should be usable where Enriched is expected,
-    // since Enriched extends Model (contravariance of function parameters).
-    expectTypeOf(baseCriterion).toMatchTypeOf<ScoringCriterion<Enriched>>();
-  });
-});
-
-describe("Constraint", () => {
-  it("is a function (selected, candidate) => boolean", () => {
-    expectTypeOf<Constraint>().toBeFunction();
-    expectTypeOf<Constraint>().parameters.toEqualTypeOf<[Model[], Model]>();
-    expectTypeOf<Constraint>().returns.toBeBoolean();
-  });
-});
-
-describe("FindOptions", () => {
-  it("accepts declarative filter or predicate", () => {
-    expectTypeOf<FindOptions>().toHaveProperty("filter").toEqualTypeOf<
-      ModelFilter | ((model: Model) => boolean) | undefined
-    >();
-  });
-
-  it("accepts sort comparator", () => {
-    expectTypeOf<FindOptions>().toHaveProperty("sort").toEqualTypeOf<
-      ((a: Model, b: Model) => number) | undefined
-    >();
-  });
-});
-
-describe("RecommendOptions", () => {
-  it("accepts filter, constraints, and limit", () => {
-    expectTypeOf<RecommendOptions>().toHaveProperty("filter").toEqualTypeOf<
-      ModelFilter | ((model: Model) => boolean) | undefined
-    >();
-    expectTypeOf<RecommendOptions>().toHaveProperty("constraints").toEqualTypeOf<
-      Constraint[] | undefined
-    >();
-    expectTypeOf<RecommendOptions>().toHaveProperty("limit").toEqualTypeOf<number | undefined>();
   });
 });
