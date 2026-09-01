@@ -42,18 +42,29 @@ interface CountHingeProps {
 
 const CountHinge = ({ survivors, total, ruleCount }: CountHingeProps) => (
   <div>
-    <p className="tnum font-mono text-4xl font-semibold tracking-tight text-rail-ink">
-      <AnimatedNumber value={survivors} />
-    </p>
-    <p className="mt-0.5 text-xs text-rail-ink-2">
-      {ruleCount === 0 ? (
-        <>models in the catalog, before any rules</>
-      ) : (
-        <>
-          of <span className="tnum">{total.toLocaleString("en-US")}</span> models pass your{" "}
-          {ruleCount === 1 ? "rule" : "rules"}
-        </>
-      )}
+    {/* The tween repaints every frame, so the visible number hides from the accessibility
+        tree and a quiet live region announces only the settled value. */}
+    <div aria-hidden>
+      <p className="tnum font-mono text-4xl font-semibold tracking-tight text-rail-ink">
+        <AnimatedNumber value={survivors} />
+      </p>
+      <p className="mt-0.5 text-xs text-rail-ink-2">
+        {ruleCount === 0 ? (
+          <>models in the catalog, before any rules</>
+        ) : (
+          <>
+            of <span className="tnum">{total.toLocaleString("en-US")}</span> models pass your{" "}
+            {ruleCount === 1 ? "rule" : "rules"}
+          </>
+        )}
+      </p>
+    </div>
+    <p className="sr-only" aria-live="polite">
+      {ruleCount === 0
+        ? `${survivors.toLocaleString("en-US")} models in the catalog, before any rules`
+        : `${survivors.toLocaleString("en-US")} of ${total.toLocaleString("en-US")} models pass your ${
+            ruleCount === 1 ? "rule" : "rules"
+          }`}
     </p>
   </div>
 );

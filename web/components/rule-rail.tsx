@@ -1,66 +1,85 @@
-// The dark rail's rule list: each card speaks its rule's words and shows its cut in both units.
+// The dark rail: nine permanent facet rows in three quiet groups; a rule is a row's live state.
 
-import { useState } from "react";
-import type { Rule } from "pickai";
-import { RULE_KIND_GROUPS, RuleForm } from "./rule-form";
-import type { FormKind, RuleOptions } from "./rule-form";
+import { useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { EMPTY_FACETS, facetSummary, toggled, withoutSelection } from "@/core/decision";
+import type { Facet, FacetState } from "@/core/decision";
+import {
+  CapabilityBody,
+  FacetRow,
+  FenceBody,
+  KnowledgeBody,
+  ModalityBody,
+  ToggleRow,
+  TokenFloorBody,
+} from "./facet-row";
+import type { CutCount } from "./facet-row";
+import { RosterChecklist } from "./roster-checklist";
 
-interface RuleCard {
-  id: string;
-  rule: Rule;
-  label: string;
-  cutModels: number;
-  cutListings: number;
+/** The option lists the rows offer, drawn from the live catalog by the driver. */
+interface RuleOptions {
+  sellers: string[];
+  makers: string[];
+  inputModalities: string[];
+  outputModalities: string[];
 }
 
 /** Present only when the rules cut everything: the heaviest cutter, offered for removal. */
 interface EmptiedBy {
-  id: string;
+  facet: Facet;
+  selection: string;
   label: string;
   cutModels: number;
 }
 
 interface RuleRailProps {
-  cards: RuleCard[];
+  state: FacetState;
+  /** Cut counts per derived rule, keyed `facet:selection`. */
+  cuts: Record<string, CutCount>;
   options: RuleOptions;
+  activeRuleCount: number;
   emptiedBy?: EmptiedBy;
-  onAdd: (rule: Rule) => void;
-  onUpdate: (id: string, rule: Rule) => void;
-  onRemove: (id: string) => void;
-  onClearAll: () => void;
+  onChange: (state: FacetState) => void;
 }
 
-type AddState = null | { stage: "picking" } | { stage: "form"; kind: FormKind };
+const CONTEXT_STOPS = [32_000, 128_000, 200_000, 1_000_000];
+const OUTPUT_STOPS = [8_000, 16_000, 64_000, 128_000];
 
-const editableKind = (rule: Rule): FormKind | null => {
-  switch (rule.kind) {
-    case "excludeDeprecated":
-    case "metric":
-      return null;
-    default:
-      return rule.kind;
-  }
+const ROW_NAMES: Record<Exclude<Facet, "excludeDeprecated">, string> = {
+  capability: "Capabilities",
+  modality: "Input & output",
+  minContext: "Context floor",
+  minOutput: "Output floor",
+  makers: "Makers",
+  sellers: "Sellers",
+  costFence: "Price fence",
+  minKnowledge: "Knowledge cutoff",
+};
+
+const GROUPS: { title: string; facets: Facet[] }[] = [
+  { title: "What it must do", facets: ["capability", "modality", "minContext", "minOutput"] },
+  { title: "Who made it, who sells it", facets: ["makers", "sellers"] },
+  { title: "Cost and housekeeping", facets: ["costFence", "minKnowledge", "excludeDeprecated"] },
+];
+
+const headerId = (facet: Facet): string => `facet-header-${facet}`;
+
+const rowCut = (cuts: Record<string, CutCount>, facet: Facet): CutCount | null => {
+  const own = Object.entries(cuts).filter(([key]) => key.startsWith(`${facet}:`));
+  if (own.length === 0) return null;
+  return own.reduce(
+    (total, [, cut]) => ({
+      cutModels: total.cutModels + cut.cutModels,
+      cutListings: total.cutListings + cut.cutListings,
+    }),
+    { cutModels: 0, cutListings: 0 },
+  );
 };
 
 const counted = (n: number, unit: string): string =>
   `${n.toLocaleString("en-US")} ${unit}${n === 1 ? "" : "s"}`;
 
-const cardActionClass =
-  "-my-1 rounded-md px-2 py-1 text-xs text-rail-ink-3 transition-colors duration-150 hover:bg-rail-hover hover:text-rail-ink";
-
-const CutLine = ({ cutModels, cutListings }: { cutModels: number; cutListings: number }) => (
-  <p className="mt-0.5 text-xs text-rail-ink-2">
-    {cutModels === 0 && cutListings === 0 ? (
-      "cut nothing"
-    ) : (
-      <span className="tnum">
-        cut {counted(cutModels, "model")}, {counted(cutListings, "listing")}
-      </span>
-    )}
-  </p>
-);
-
-const EmptiedByCard = ({ emptiedBy, onRemove }: { emptiedBy: EmptiedBy; onRemove: (id: string) => void }) => (
+const EmptiedByCard = ({ emptiedBy, onRemove }: { emptiedBy: EmptiedBy; onRemove: () => void }) => (
   <div className="rounded-lg border border-rail-line bg-rail-card px-3 py-2.5">
     <p className="text-sm font-medium text-rail-ink">Your rules cut everything.</p>
     <p className="mt-1 text-xs text-rail-ink-2">
@@ -70,7 +89,7 @@ const EmptiedByCard = ({ emptiedBy, onRemove }: { emptiedBy: EmptiedBy; onRemove
     </p>
     <button
       type="button"
-      onClick={() => onRemove(emptiedBy.id)}
+      onClick={onRemove}
       className="mt-2 rounded-md border border-rail-line px-2.5 py-1 text-xs text-rail-ink transition-colors duration-150 hover:border-accent hover:bg-accent-soft hover:text-accent-ink"
     >
       Remove &ldquo;{emptiedBy.label}&rdquo;
@@ -78,66 +97,123 @@ const EmptiedByCard = ({ emptiedBy, onRemove }: { emptiedBy: EmptiedBy; onRemove
   </div>
 );
 
-const KindPicker = ({
-  onPick,
-  onCancel,
-}: {
-  onPick: (kind: FormKind | "excludeDeprecated") => void;
-  onCancel: () => void;
-}) => (
-  <div className="rounded-lg border border-rail-line bg-rail-card p-3">
-    {RULE_KIND_GROUPS.map((group) => (
-      <div key={group.title} className="mb-2 last:mb-0">
-        <p className="mb-1 text-xs text-rail-ink-3">{group.title}</p>
-        <div className="flex flex-wrap gap-1.5">
-          {group.picks.map(({ kind, label }) => (
-            <button
-              key={kind}
-              type="button"
-              onClick={() => onPick(kind)}
-              className="rounded-md border border-rail-line px-2 py-1 text-xs text-rail-ink transition-colors duration-150 hover:border-accent hover:bg-accent-soft hover:text-accent-ink"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-    ))}
-    <button
-      type="button"
-      onClick={onCancel}
-      className="mt-1 text-xs text-rail-ink-3 transition-colors duration-150 hover:text-rail-ink"
-    >
-      Cancel
-    </button>
-  </div>
-);
+const RuleRail = ({ state, cuts, options, activeRuleCount, emptiedBy, onChange }: RuleRailProps) => {
+  const [open, setOpen] = useState<Partial<Record<Facet, boolean>>>({});
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
-const RuleRail = ({ cards, options, emptiedBy, onAdd, onUpdate, onRemove, onClearAll }: RuleRailProps) => {
-  const [addState, setAddState] = useState<AddState>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const toggleOpen = (facet: Facet) =>
+    setOpen((current) => ({ ...current, [facet]: !current[facet] }));
+  const close = (facet: Facet) => setOpen((current) => ({ ...current, [facet]: false }));
 
-  const add = (rule: Rule) => {
-    onAdd(rule);
-    setAddState(null);
+  const clearAll = () => {
+    onChange(EMPTY_FACETS);
+    headingRef.current?.focus();
   };
-  const update = (id: string, rule: Rule) => {
-    onUpdate(id, rule);
-    setEditingId(null);
+
+  const removeEmptiedBy = ({ facet, selection }: EmptiedBy) => {
+    onChange(withoutSelection(state, facet, selection));
+    document.getElementById(headerId(facet))?.focus();
   };
-  const pick = (kind: FormKind | "excludeDeprecated") => {
-    if (kind === "excludeDeprecated") add({ kind });
-    else setAddState({ stage: "form", kind });
+
+  const body = (facet: Exclude<Facet, "excludeDeprecated">): ReactNode => {
+    switch (facet) {
+      case "capability":
+        return (
+          <CapabilityBody
+            picked={state.capabilities}
+            cuts={cuts}
+            onToggle={(capability) =>
+              onChange({ ...state, capabilities: toggled(state.capabilities, capability) })
+            }
+          />
+        );
+      case "modality":
+        return (
+          <ModalityBody
+            picked={state.modalities}
+            inputNames={options.inputModalities}
+            outputNames={options.outputModalities}
+            cuts={cuts}
+            onToggle={(side, modality) =>
+              onChange({
+                ...state,
+                modalities: {
+                  ...state.modalities,
+                  [side]: toggled(state.modalities[side], modality),
+                },
+              })
+            }
+          />
+        );
+      case "minContext":
+        return (
+          <TokenFloorBody
+            prompt="Context window at least"
+            stops={CONTEXT_STOPS}
+            value={state.minContext}
+            onSet={(tokens) => onChange({ ...state, minContext: tokens })}
+          />
+        );
+      case "minOutput":
+        return (
+          <TokenFloorBody
+            prompt="Max output at least"
+            stops={OUTPUT_STOPS}
+            value={state.minOutput}
+            onSet={(tokens) => onChange({ ...state, minOutput: tokens })}
+          />
+        );
+      case "makers":
+        return (
+          <RosterChecklist
+            noun="makers"
+            roster={state.makers}
+            names={options.makers}
+            onChange={(makers) => onChange({ ...state, makers })}
+          />
+        );
+      case "sellers":
+        return (
+          <RosterChecklist
+            noun="sellers"
+            roster={state.sellers}
+            names={options.sellers}
+            onChange={(sellers) => onChange({ ...state, sellers })}
+          />
+        );
+      case "costFence":
+        return (
+          <FenceBody
+            fences={state.fences}
+            onSet={(side, ceiling) =>
+              onChange({ ...state, fences: { ...state.fences, [side]: ceiling } })
+            }
+          />
+        );
+      case "minKnowledge":
+        return (
+          <KnowledgeBody
+            date={state.minKnowledge}
+            onSet={(date) => onChange({ ...state, minKnowledge: date })}
+          />
+        );
+    }
   };
 
   return (
     <section aria-label="Your rules" className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-xs font-medium tracking-wider text-rail-ink-3 uppercase">Your rules</h2>
-        {cards.length > 0 && (
+        <h2
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-xs font-medium tracking-wider text-rail-ink-3 uppercase"
+        >
+          Your rules
+        </h2>
+        {activeRuleCount > 0 && (
           <button
             type="button"
-            onClick={onClearAll}
+            onClick={clearAll}
             className="-my-1.5 -mr-1.5 rounded-md px-2.5 py-1.5 text-xs text-rail-ink-3 transition-colors duration-150 hover:bg-rail-hover hover:text-rail-ink"
           >
             Clear all
@@ -145,85 +221,54 @@ const RuleRail = ({ cards, options, emptiedBy, onAdd, onUpdate, onRemove, onClea
         )}
       </div>
 
-      {cards.length === 0 && addState === null && (
+      {activeRuleCount === 0 && (
         <p className="text-sm text-rail-ink-2">No rules yet. The whole catalog is on the bench.</p>
       )}
 
-      <ul className="flex flex-col gap-2">
-        {cards.map((card) => {
-          const kind = editableKind(card.rule);
-          return (
-            <li key={card.id} className="rounded-lg border border-rail-line bg-rail-card px-3 py-2">
-              {editingId === card.id && kind !== null ? (
-                <RuleForm
-                  kind={kind}
-                  options={options}
-                  initial={card.rule}
-                  onSubmit={(rule) => update(card.id, rule)}
-                  onCancel={() => setEditingId(null)}
+      {GROUPS.map((group) => (
+        <div key={group.title}>
+          <p className="mt-1 mb-1.5 text-xs text-rail-ink-3">{group.title}</p>
+          <ul className="flex flex-col gap-2">
+            {group.facets.map((facet) =>
+              facet === "excludeDeprecated" ? (
+                <ToggleRow
+                  key={facet}
+                  name="No deprecated models"
+                  active={state.excludeDeprecated}
+                  cut={rowCut(cuts, facet)}
+                  headerId={headerId(facet)}
+                  onToggle={() =>
+                    onChange({ ...state, excludeDeprecated: !state.excludeDeprecated })
+                  }
                 />
               ) : (
-                <>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm text-rail-ink">{card.label}</span>
-                    <span className="flex shrink-0 items-center">
-                      {kind !== null && (
-                        <button
-                          type="button"
-                          aria-label={`Edit rule: ${card.label}`}
-                          onClick={() => setEditingId(card.id)}
-                          className={cardActionClass}
-                        >
-                          Edit
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        aria-label={`Remove rule: ${card.label}`}
-                        onClick={() => onRemove(card.id)}
-                        className={`${cardActionClass} -mr-1.5 text-base leading-none`}
-                      >
-                        &times;
-                      </button>
-                    </span>
-                  </div>
-                  <CutLine cutModels={card.cutModels} cutListings={card.cutListings} />
-                </>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-
-      {emptiedBy && <EmptiedByCard emptiedBy={emptiedBy} onRemove={onRemove} />}
-
-      {addState === null && (
-        <button
-          type="button"
-          onClick={() => setAddState({ stage: "picking" })}
-          className="rounded-lg border border-dashed border-rail-line px-3 py-2 text-left text-sm text-rail-ink-2 transition-colors duration-150 hover:border-accent hover:text-rail-ink"
-        >
-          + Add a rule
-        </button>
-      )}
-
-      {addState?.stage === "picking" && (
-        <KindPicker onPick={pick} onCancel={() => setAddState(null)} />
-      )}
-
-      {addState?.stage === "form" && (
-        <div className="rounded-lg border border-rail-line bg-rail-card p-3">
-          <RuleForm
-            kind={addState.kind}
-            options={options}
-            onSubmit={add}
-            onCancel={() => setAddState(null)}
-          />
+                <FacetRow
+                  key={facet}
+                  name={ROW_NAMES[facet]}
+                  summary={facetSummary(state, facet)}
+                  cut={rowCut(cuts, facet)}
+                  open={open[facet] === true}
+                  headerId={headerId(facet)}
+                  onToggle={() => toggleOpen(facet)}
+                  onClose={() => close(facet)}
+                >
+                  {body(facet)}
+                </FacetRow>
+              ),
+            )}
+          </ul>
         </div>
-      )}
+      ))}
+
+      {/* Always present so the zero-survivor guidance is announced when it appears. */}
+      <div aria-live="polite">
+        {emptiedBy && (
+          <EmptiedByCard emptiedBy={emptiedBy} onRemove={() => removeEmptiedBy(emptiedBy)} />
+        )}
+      </div>
     </section>
   );
 };
 
 export { RuleRail };
-export type { RuleCard, EmptiedBy };
+export type { RuleOptions, EmptiedBy };

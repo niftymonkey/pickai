@@ -24,7 +24,7 @@ const TABLE_MIN_WIDTH = 960;
 const ESTIMATED_ROW_HEIGHT = 38;
 
 const Unknown = ({ label }: { label: string }) => (
-  <span className="hatch inline-block rounded-sm px-1.5 py-0.5 text-xs text-ink-3">{label}</span>
+  <span className="hatch inline-block rounded-sm px-1.5 py-0.5 text-xs text-ink-2">{label}</span>
 );
 
 const fact = <T,>(value: T | null, render: (value: T) => string, unknownLabel: string) =>

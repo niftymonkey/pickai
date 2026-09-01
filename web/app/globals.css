@@ -89,3 +89,27 @@ body {
 .quiet-scrollbar.scrolling {
   scrollbar-color: var(--line-2) transparent;
 }
+
+/* A rail row whose state just changed: a soft accent wash that fades. */
+@keyframes rule-fire {
+  from {
+    background-color: var(--accent-soft);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+.rule-fire {
+  animation: rule-fire 700ms var(--ease-out-quart);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

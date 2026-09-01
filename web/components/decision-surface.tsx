@@ -1,20 +1,20 @@
 "use client";
 
-// The one client driver: owns the rules and the query, runs the library, hands powers down.
+// The one client driver: owns the facet state and the query, runs the library, hands powers down.
 
 import { useMemo, useState } from "react";
 import { applyRules, ruleLabel } from "pickai";
-import type { ModelIdentity, Rule } from "pickai";
+import type { ModelIdentity } from "pickai";
 import { catalogCounts, catalogRows } from "@/core/catalog-view";
-import { addRule, biggestCut, removeRule, searchModels, updateRule } from "@/core/decision";
-import type { RuleEntry } from "@/core/decision";
+import { EMPTY_FACETS, biggestCut, deriveRules, searchModels } from "@/core/decision";
+import type { FacetState } from "@/core/decision";
 import { CatalogHeader } from "./catalog-header";
 import { CatalogSearch } from "./catalog-search";
 import { CatalogTable } from "./catalog-table";
 import { CountHinge } from "./count-hinge";
 import { RuleRail } from "./rule-rail";
-import type { EmptiedBy, RuleCard } from "./rule-rail";
-import type { RuleOptions } from "./rule-form";
+import type { EmptiedBy, RuleOptions } from "./rule-rail";
+import type { CutCount } from "./facet-row";
 
 interface DecisionSurfaceProps {
   identities: ModelIdentity[];
@@ -38,26 +38,32 @@ const catalogOptions = (identities: ModelIdentity[]): RuleOptions => ({
 });
 
 const DecisionSurface = ({ identities }: DecisionSurfaceProps) => {
-  const [entries, setEntries] = useState<RuleEntry[]>([]);
+  const [facets, setFacets] = useState<FacetState>(EMPTY_FACETS);
   const [query, setQuery] = useState("");
 
-  const rules = useMemo(() => entries.map(({ rule }) => rule), [entries]);
+  const derived = useMemo(() => deriveRules(facets), [facets]);
+  const rules = useMemo(() => derived.map(({ rule }) => rule), [derived]);
   const result = useMemo(() => applyRules(identities, rules), [identities, rules]);
   const totals = useMemo(() => catalogCounts(identities), [identities]);
   const remaining = useMemo(() => catalogCounts(result.survivors), [result]);
   const options = useMemo(() => catalogOptions(identities), [identities]);
 
-  const cards: RuleCard[] = entries.map(({ id, rule }, index) => ({
-    id,
-    rule,
-    label: ruleLabel(rule),
-    cutModels: result.steps[index].cutModels,
-    cutListings: result.steps[index].cut,
-  }));
+  const cuts: Record<string, CutCount> = Object.fromEntries(
+    derived.map(({ facet, selection }, index) => [
+      `${facet}:${selection}`,
+      { cutModels: result.steps[index].cutModels, cutListings: result.steps[index].cut },
+    ]),
+  );
 
   const heaviest = result.survivors.length === 0 ? biggestCut(result.steps) : undefined;
   const emptiedBy: EmptiedBy | undefined =
-    heaviest === undefined ? undefined : cards[result.steps.indexOf(heaviest)];
+    heaviest === undefined
+      ? undefined
+      : {
+          ...derived[result.steps.indexOf(heaviest)],
+          label: ruleLabel(heaviest.rule),
+          cutModels: heaviest.cutModels,
+        };
 
   const hits = useMemo(
     () => searchModels(identities, rules, query),
@@ -78,11 +84,6 @@ const DecisionSurface = ({ identities }: DecisionSurfaceProps) => {
   const rows = useMemo(() => catalogRows(result.survivors), [result]);
   const shownRows = searching ? rows.filter(({ key }) => survivingHitKeys.has(key)) : rows;
 
-  const add = (rule: Rule) => setEntries((current) => addRule(current, rule));
-  const update = (id: string, rule: Rule) => setEntries((current) => updateRule(current, id, rule));
-  const remove = (id: string) => setEntries((current) => removeRule(current, id));
-  const clearAll = () => setEntries([]);
-
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6">
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
@@ -90,16 +91,15 @@ const DecisionSurface = ({ identities }: DecisionSurfaceProps) => {
           <CountHinge
             survivors={remaining.models}
             total={totals.models}
-            ruleCount={entries.length}
+            ruleCount={derived.length}
           />
           <RuleRail
-            cards={cards}
+            state={facets}
+            cuts={cuts}
             options={options}
+            activeRuleCount={derived.length}
             emptiedBy={emptiedBy}
-            onAdd={add}
-            onUpdate={update}
-            onRemove={remove}
-            onClearAll={clearAll}
+            onChange={setFacets}
           />
         </aside>
         <main className="min-w-0">

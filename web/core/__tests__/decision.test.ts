@@ -1,35 +1,199 @@
 import { expect, test } from "vitest";
 import type { FilterStep, Model, ModelIdentity, Rule } from "pickai";
-import { addRule, biggestCut, removeRule, searchModels, updateRule } from "../decision";
+import {
+  EMPTY_FACETS,
+  biggestCut,
+  deriveRules,
+  facetSummary,
+  searchModels,
+  toggled,
+  withoutSelection,
+} from "../decision";
+import type { FacetState } from "../decision";
 
-const noDeprecated: Rule = { kind: "excludeDeprecated" };
-const bigContext: Rule = { kind: "minContext", tokens: 128_000 };
+test("the empty state derives no rules", () => {
+  expect(deriveRules(EMPTY_FACETS)).toEqual([]);
+});
 
-test("add appends with fresh id", () => {
-  const one = addRule([], noDeprecated);
-  const two = addRule(one, bigContext);
-  expect(two.map(({ rule }) => rule)).toEqual([noDeprecated, bigContext]);
-  expect(two[0].id.length).toBeGreaterThan(0);
-  expect(two[1].id.length).toBeGreaterThan(0);
-  expect(two[1].id).not.toBe(two[0].id);
-  expect(one).toHaveLength(1);
+test("each capability pick derives its own rule, in fixed order", () => {
+  const state: FacetState = { ...EMPTY_FACETS, capabilities: ["openWeights", "reasoning"] };
+  expect(deriveRules(state)).toEqual([
+    { facet: "capability", selection: "reasoning", rule: { kind: "capability", capability: "reasoning" } },
+    {
+      facet: "capability",
+      selection: "openWeights",
+      rule: { kind: "capability", capability: "openWeights" },
+    },
+  ]);
 });
-test("update replaces by id", () => {
-  const entries = addRule(addRule([], noDeprecated), bigContext);
-  const bigger: Rule = { kind: "minContext", tokens: 200_000 };
-  const next = updateRule(entries, entries[1].id, bigger);
-  expect(next).toEqual([entries[0], { id: entries[1].id, rule: bigger }]);
-  expect(entries[1].rule).toEqual(bigContext);
+
+test("modality picks derive per-name rules, input before output", () => {
+  const state: FacetState = {
+    ...EMPTY_FACETS,
+    modalities: { input: ["image", "audio"], output: ["text"] },
+  };
+  expect(deriveRules(state)).toEqual([
+    {
+      facet: "modality",
+      selection: "input:audio",
+      rule: { kind: "modality", side: "input", modality: "audio" },
+    },
+    {
+      facet: "modality",
+      selection: "input:image",
+      rule: { kind: "modality", side: "input", modality: "image" },
+    },
+    {
+      facet: "modality",
+      selection: "output:text",
+      rule: { kind: "modality", side: "output", modality: "text" },
+    },
+  ]);
 });
-test("remove drops by id", () => {
-  const entries = addRule(addRule([], noDeprecated), bigContext);
-  expect(removeRule(entries, entries[0].id)).toEqual([entries[1]]);
-  expect(entries).toHaveLength(2);
+
+test("floors, fences, knowledge, and deprecated each derive their rule", () => {
+  expect(deriveRules({ ...EMPTY_FACETS, minContext: 200_000 })).toEqual([
+    { facet: "minContext", selection: "value", rule: { kind: "minContext", tokens: 200_000 } },
+  ]);
+  expect(deriveRules({ ...EMPTY_FACETS, minOutput: 64_000 })).toEqual([
+    { facet: "minOutput", selection: "value", rule: { kind: "minOutput", tokens: 64_000 } },
+  ]);
+  expect(deriveRules({ ...EMPTY_FACETS, fences: { input: 15, output: 50 } })).toEqual([
+    { facet: "costFence", selection: "input", rule: { kind: "costFence", side: "input", ceiling: 15 } },
+    {
+      facet: "costFence",
+      selection: "output",
+      rule: { kind: "costFence", side: "output", ceiling: 50 },
+    },
+  ]);
+  expect(deriveRules({ ...EMPTY_FACETS, minKnowledge: "2025-06" })).toEqual([
+    { facet: "minKnowledge", selection: "value", rule: { kind: "minKnowledge", date: "2025-06" } },
+  ]);
+  expect(deriveRules({ ...EMPTY_FACETS, excludeDeprecated: true })).toEqual([
+    { facet: "excludeDeprecated", selection: "value", rule: { kind: "excludeDeprecated" } },
+  ]);
 });
-test("removing unknown id changes nothing", () => {
-  const entries = addRule([], noDeprecated);
-  expect(removeRule(entries, "no-such-id")).toEqual(entries);
+
+test("a roster derives one rule carrying mode and names; an empty roster derives nothing", () => {
+  const makers: FacetState = {
+    ...EMPTY_FACETS,
+    makers: { mode: "exclude", names: ["openai", "google"] },
+  };
+  expect(deriveRules(makers)).toEqual([
+    {
+      facet: "makers",
+      selection: "roster",
+      rule: { kind: "maker", mode: "exclude", makers: ["openai", "google"] },
+    },
+  ]);
+  const sellers: FacetState = { ...EMPTY_FACETS, sellers: { mode: "allow", names: ["anthropic"] } };
+  expect(deriveRules(sellers)).toEqual([
+    {
+      facet: "sellers",
+      selection: "roster",
+      rule: { kind: "provider", mode: "allow", providers: ["anthropic"] },
+    },
+  ]);
+  expect(deriveRules({ ...EMPTY_FACETS, makers: { mode: "exclude", names: [] } })).toEqual([]);
 });
+
+const fullState: FacetState = {
+  capabilities: ["toolCall", "reasoning"],
+  modalities: { input: ["image"], output: ["text"] },
+  minContext: 128_000,
+  minOutput: 16_000,
+  makers: { mode: "allow", names: ["anthropic"] },
+  sellers: { mode: "exclude", names: ["poe"] },
+  fences: { input: 5, output: 15 },
+  minKnowledge: "2025-01",
+  excludeDeprecated: true,
+};
+
+test("a full state derives in rail order", () => {
+  expect(deriveRules(fullState).map(({ facet, selection }) => `${facet}:${selection}`)).toEqual([
+    "capability:reasoning",
+    "capability:toolCall",
+    "modality:input:image",
+    "modality:output:text",
+    "minContext:value",
+    "minOutput:value",
+    "makers:roster",
+    "sellers:roster",
+    "costFence:input",
+    "costFence:output",
+    "minKnowledge:value",
+    "excludeDeprecated:value",
+  ]);
+});
+
+test("toggled adds a missing name and removes a present one", () => {
+  expect(toggled(["a"], "b")).toEqual(["a", "b"]);
+  expect(toggled(["a", "b"], "a")).toEqual(["b"]);
+});
+
+test("withoutSelection removes exactly the named selection, for every derived rule", () => {
+  for (const { facet, selection } of deriveRules(fullState)) {
+    const remaining = deriveRules(withoutSelection(fullState, facet, selection));
+    expect(remaining).toHaveLength(deriveRules(fullState).length - 1);
+    expect(
+      remaining.some((entry) => entry.facet === facet && entry.selection === selection),
+    ).toBe(false);
+  }
+});
+
+test("withoutSelection empties a roster whole", () => {
+  const next = withoutSelection(fullState, "makers", "roster");
+  expect(next.makers).toEqual({ mode: "allow", names: [] });
+  expect(next.sellers).toEqual(fullState.sellers);
+});
+
+test("an off facet summarizes to null", () => {
+  for (const facet of [
+    "capability",
+    "modality",
+    "minContext",
+    "minOutput",
+    "makers",
+    "sellers",
+    "costFence",
+    "minKnowledge",
+    "excludeDeprecated",
+  ] as const) {
+    expect(facetSummary(EMPTY_FACETS, facet)).toBeNull();
+  }
+});
+
+test("capabilities join with a plus", () => {
+  const state: FacetState = { ...EMPTY_FACETS, capabilities: ["toolCall", "reasoning"] };
+  expect(facetSummary(state, "capability")).toBe("Needs reasoning + tool calling");
+});
+
+test("modality joins picks and sides", () => {
+  const state: FacetState = {
+    ...EMPTY_FACETS,
+    modalities: { input: ["image", "audio"], output: ["text"] },
+  };
+  expect(facetSummary(state, "modality")).toBe("Takes audio + image input · Gives text output");
+});
+
+test("single-rule facets speak the rule's words", () => {
+  expect(facetSummary({ ...EMPTY_FACETS, minContext: 200_000 }, "minContext")).toBe(
+    "Context at least 200K",
+  );
+  expect(
+    facetSummary({ ...EMPTY_FACETS, makers: { mode: "allow", names: ["anthropic"] } }, "makers"),
+  ).toBe("Only made by anthropic");
+  expect(facetSummary({ ...EMPTY_FACETS, fences: { input: 5, output: 15 } }, "costFence")).toBe(
+    "Input price at most $5/M · Output price at most $15/M",
+  );
+  expect(facetSummary({ ...EMPTY_FACETS, minKnowledge: "2025-06" }, "minKnowledge")).toBe(
+    "Knows the world since 2025-06",
+  );
+  expect(facetSummary({ ...EMPTY_FACETS, excludeDeprecated: true }, "excludeDeprecated")).toBe(
+    "No deprecated models",
+  );
+});
+
 const step = (rule: Rule, cutModels: number, cut: number): FilterStep => ({
   rule,
   cut,
@@ -37,6 +201,9 @@ const step = (rule: Rule, cutModels: number, cut: number): FilterStep => ({
   cutModels,
   remainingModels: 0,
 });
+
+const noDeprecated: Rule = { kind: "excludeDeprecated" };
+const bigContext: Rule = { kind: "minContext", tokens: 128_000 };
 
 test("biggest cut names the heaviest step", () => {
   const heavy = step(bigContext, 7, 21);
