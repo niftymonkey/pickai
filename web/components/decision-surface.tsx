@@ -10,7 +10,7 @@ import { catalogCounts } from "@/core/catalog-view";
 import { EMPTY_FACETS, biggestCut, deriveRules, searchModels, withoutSelection } from "@/core/decision";
 import type { FacetState } from "@/core/decision";
 import { defaultWeights, metricList, rateIdentities, scoreBoard } from "@/core/score-view";
-import { INITIAL_SOURCE, confirmFetch, fetchFailed, fetchLanded, pickSource } from "@/core/source-switch";
+import { INITIAL_SOURCE, fetchFailed, fetchLanded, pickSource, retryFetch } from "@/core/source-switch";
 import type { ScoreSourceId, SourceState, SourceStep } from "@/core/source-switch";
 import type { BenchmarkSource } from "@/lib/benchmarks";
 import { BlendEditor } from "./blend-editor";
@@ -169,21 +169,22 @@ const DecisionSurface = ({ identities, arena, fetchedAt }: DecisionSurfaceProps)
             totalListings={totals.listings}
             fetchedAt={fetchedAt}
           />
-          {/* The toolbar splits 50/50 at a visible separator; narrow windows stack full width.
-              Top-aligned so the offer card grows downward without re-centering the row. */}
-          <div className="mb-4 flex flex-col gap-3 md:grid md:grid-cols-[1fr_2px_1fr] md:items-start md:gap-x-6">
-            <CatalogSearch
-              query={query}
-              cutMatches={cutMatches}
-              nothingFound={searching && hits.length === 0}
-              onQueryChange={setQuery}
-            />
-            <div aria-hidden className="mt-[5px] hidden h-7 bg-line-2 md:block" />
+          {/* Search takes every pixel the source switch does not need; narrow windows stack. */}
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:gap-x-6">
+            <div className="min-w-0 flex-1">
+              <CatalogSearch
+                query={query}
+                cutMatches={cutMatches}
+                nothingFound={searching && hits.length === 0}
+                onQueryChange={setQuery}
+              />
+            </div>
+            <div aria-hidden className="mt-[5px] hidden h-7 w-[2px] shrink-0 bg-line-2 md:block" />
             <ScoreSource
               state={sourceState}
               arena={arena}
               onPick={(next) => applyStep(pickSource(sourceState, next))}
-              onConfirmFetch={() => applyStep(confirmFetch(sourceState))}
+              onRetry={() => applyStep(retryFetch(sourceState))}
             />
           </div>
           <BlendEditor

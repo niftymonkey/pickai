@@ -2,10 +2,10 @@ import { expect, test } from "vitest";
 import type { BenchmarkSet } from "pickai";
 import {
   INITIAL_SOURCE,
-  confirmFetch,
   fetchFailed,
   fetchLanded,
   pickSource,
+  retryFetch,
 } from "../source-switch";
 import type { SourceState } from "../source-switch";
 
@@ -20,23 +20,9 @@ const aaSet: BenchmarkSet = {
   ],
 };
 
-test("the first pick of Artificial Analysis offers the terms decision instead of fetching", () => {
+test("the first pick of Artificial Analysis begins the fetch and keeps LMArena on the board meanwhile", () => {
+  // The consent gate is gone: the browser fetch itself is the protection, provenance is stated in the caption.
   const step = pickSource(INITIAL_SOURCE, "openrouter");
-  expect(step.state).toEqual({ source: "arena", openRouter: { phase: "offered" } });
-  expect(step.beginFetch).toBe(false);
-  expect(step.sourceChanged).toBe(false);
-});
-
-test("picking LMArena while the offer is open withdraws it", () => {
-  const offered: SourceState = { source: "arena", openRouter: { phase: "offered" } };
-  const step = pickSource(offered, "arena");
-  expect(step.state).toEqual(INITIAL_SOURCE);
-  expect(step.sourceChanged).toBe(false);
-});
-
-test("confirming the offer begins the fetch and keeps LMArena on the board meanwhile", () => {
-  const offered: SourceState = { source: "arena", openRouter: { phase: "offered" } };
-  const step = confirmFetch(offered);
   expect(step.state).toEqual({ source: "arena", openRouter: { phase: "loading" } });
   expect(step.beginFetch).toBe(true);
   expect(step.sourceChanged).toBe(false);
@@ -56,7 +42,7 @@ test("a failed fetch keeps LMArena active and preserves the reason", () => {
   expect(step.sourceChanged).toBe(false);
 });
 
-test("picking Artificial Analysis after a failure retries without re-asking consent", () => {
+test("picking Artificial Analysis after a failure retries the fetch", () => {
   const failed: SourceState = { source: "arena", openRouter: { phase: "failed", reason: "HTTP 500" } };
   const step = pickSource(failed, "openrouter");
   expect(step.state).toEqual({ source: "arena", openRouter: { phase: "loading" } });
@@ -65,7 +51,7 @@ test("picking Artificial Analysis after a failure retries without re-asking cons
 
 test("the retry button from a failure begins the fetch the same way", () => {
   const failed: SourceState = { source: "arena", openRouter: { phase: "failed", reason: "HTTP 500" } };
-  const step = confirmFetch(failed);
+  const step = retryFetch(failed);
   expect(step.state.openRouter).toEqual({ phase: "loading" });
   expect(step.beginFetch).toBe(true);
 });
@@ -90,10 +76,8 @@ test("picking the source already active changes nothing", () => {
   expect(step.sourceChanged).toBe(false);
 });
 
-test("picks during an open offer or a live fetch are inert", () => {
-  const offered: SourceState = { source: "arena", openRouter: { phase: "offered" } };
-  expect(pickSource(offered, "openrouter").state).toEqual(offered);
+test("picks during a live fetch are inert", () => {
   const loading: SourceState = { source: "arena", openRouter: { phase: "loading" } };
   expect(pickSource(loading, "openrouter").state).toEqual(loading);
-  expect(confirmFetch(loading).beginFetch).toBe(false);
+  expect(retryFetch(loading).beginFetch).toBe(false);
 });

@@ -113,3 +113,12 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Tailwind v4 gives buttons the default arrow; a clickable control says so with the hand. */
+@layer base {
+  button:not(:disabled),
+  summary,
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}

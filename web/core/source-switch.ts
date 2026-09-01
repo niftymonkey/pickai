@@ -5,10 +5,9 @@ import type { BenchmarkSet } from "pickai";
 
 type ScoreSourceId = "arena" | "openrouter";
 
-/** The browser-side OpenRouter fetch, phase by phase; "offered" is the terms decision (9.14). */
+/** The browser-side OpenRouter fetch, phase by phase. */
 type OpenRouterFetch =
   | { phase: "idle" }
-  | { phase: "offered" }
   | { phase: "loading" }
   | { phase: "ok"; set: BenchmarkSet }
   | { phase: "failed"; reason: string };
@@ -38,11 +37,7 @@ const still = (state: SourceState): SourceStep => ({
 const pickSource = (state: SourceState, next: ScoreSourceId): SourceStep => {
   if (next === "arena") {
     return {
-      state: {
-        source: "arena",
-        // Walking away from an open offer withdraws it.
-        openRouter: state.openRouter.phase === "offered" ? { phase: "idle" } : state.openRouter,
-      },
+      state: { source: "arena", openRouter: state.openRouter },
       beginFetch: false,
       sourceChanged: state.source !== "arena",
     };
@@ -52,18 +47,16 @@ const pickSource = (state: SourceState, next: ScoreSourceId): SourceStep => {
     case "ok":
       return { state: { source: "openrouter", openRouter: state.openRouter }, beginFetch: false, sourceChanged: true };
     case "idle":
-      return still({ source: "arena", openRouter: { phase: "offered" } });
     case "failed":
       return { state: { source: "arena", openRouter: { phase: "loading" } }, beginFetch: true, sourceChanged: false };
-    case "offered":
     case "loading":
       return still(state);
   }
 };
 
-// The consent button (from offered) and the retry button (from failed) both land here.
-const confirmFetch = (state: SourceState): SourceStep =>
-  state.openRouter.phase === "offered" || state.openRouter.phase === "failed"
+// The retry button after a failed fetch.
+const retryFetch = (state: SourceState): SourceStep =>
+  state.openRouter.phase === "failed"
     ? { state: { source: state.source, openRouter: { phase: "loading" } }, beginFetch: true, sourceChanged: false }
     : still(state);
 
@@ -76,5 +69,5 @@ const fetchLanded = (state: SourceState, set: BenchmarkSet): SourceStep => ({
 const fetchFailed = (state: SourceState, reason: string): SourceStep =>
   still({ source: state.source, openRouter: { phase: "failed", reason } });
 
-export { INITIAL_SOURCE, pickSource, confirmFetch, fetchLanded, fetchFailed };
+export { INITIAL_SOURCE, pickSource, retryFetch, fetchLanded, fetchFailed };
 export type { ScoreSourceId, OpenRouterFetch, SourceState, SourceStep };

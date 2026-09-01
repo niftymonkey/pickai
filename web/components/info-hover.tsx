@@ -39,7 +39,7 @@ const InfoHover = ({ label, tip, align = "left" }: InfoHoverProps) => {
         onClick={() => setOpen(!open)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
-        className="flex h-[15px] w-[15px] items-center justify-center rounded-full border border-line font-mono text-[0.65rem] text-ink-3"
+        className="flex h-[15px] w-[15px] items-center justify-center rounded-full border border-line font-mono text-[0.65rem] text-ink-3 transition-colors duration-150 hover:border-accent hover:bg-accent hover:text-card focus-visible:border-accent focus-visible:bg-accent focus-visible:text-card"
       >
         i
       </button>

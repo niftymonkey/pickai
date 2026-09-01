@@ -1,4 +1,4 @@
-// The score-source switch's face: segmented toggle, measurement caption, terms offer, retry.
+// The score-source switch's face: labelled segmented toggle, a hover per option, retry.
 
 import type { BenchmarkSource } from "@/lib/benchmarks";
 import type { ScoreSourceId, SourceState } from "@/core/source-switch";
@@ -8,59 +8,85 @@ interface ScoreSourceProps {
   state: SourceState;
   arena: BenchmarkSource;
   onPick: (source: ScoreSourceId) => void;
-  /** The consent button and the retry button both land here. */
-  onConfirmFetch: () => void;
+  onRetry: () => void;
 }
 
-const SOURCE_TIPS: Record<ScoreSourceId, string> = {
-  arena:
-    "LMArena ranks models by public votes between two anonymous answers. Each score is an Elo rating.",
-  openrouter:
-    "Artificial Analysis runs its own benchmark suites and publishes 0-100 index scores. The numbers come via OpenRouter.",
-};
+const ARENA_TIP =
+  "LMArena ranks models by public votes between two anonymous answers, scored as Elo ratings. Gaps of a few points sit inside the error bars, and a model with few votes moves around. The split publishes about 25 cuts; the six blendable ones are offered here.";
 
-const arenaCaption = (arena: BenchmarkSource): string => {
+const OPENROUTER_TIP =
+  "Artificial Analysis runs its own benchmark suites and publishes 0-100 index scores. Your browser fetches them via OpenRouter, so they never touch this app's server. AA's terms restrict model-selection uses by its customers, and OpenRouter grants no explicit reuse right. Twin configurations of one model carry identical scores.";
+
+// Each option's hover leads with when that source was measured, then how it works.
+const arenaTip = (arena: BenchmarkSource): string => {
   switch (arena.status) {
     case "ok":
-      return `measured ${arena.set.measuredAt}`;
+      return `Measured ${arena.set.measuredAt}. ${ARENA_TIP}`;
     case "stale":
-      return `measured ${arena.set.measuredAt} · live fetch failed, showing the last good data`;
+      return `Measured ${arena.set.measuredAt}. The live fetch failed (${arena.reason}), so this is the last good set. ${ARENA_TIP}`;
     case "unavailable":
-      return `LMArena unavailable (${arena.reason}, scores absent this load)`;
+      return `Not measured this load: the live fetch failed (${arena.reason}) with nothing cached to stand in. ${ARENA_TIP}`;
   }
 };
 
-const caption = (state: SourceState, arena: BenchmarkSource): string => {
-  const { source, openRouter } = state;
-  if (source === "openrouter" && openRouter.phase === "ok")
-    return `measured ${openRouter.set.measuredAt}`;
+const openRouterTip = (state: SourceState): string => {
+  const { openRouter } = state;
   switch (openRouter.phase) {
+    case "ok":
+      return `Measured ${openRouter.set.measuredAt}. ${OPENROUTER_TIP}`;
     case "loading":
-      return `still showing LMArena, ${arenaCaption(arena)} · fetching Artificial Analysis from your browser…`;
+      return `Fetching now. ${OPENROUTER_TIP}`;
     case "failed":
-      return `${arenaCaption(arena)} · Artificial Analysis unavailable (${openRouter.reason})`;
-    default:
-      return arenaCaption(arena);
+      return `Not fetched: the browser fetch failed (${openRouter.reason}). ${OPENROUTER_TIP}`;
+    case "idle":
+      return `Not fetched yet; picking this source fetches it. ${OPENROUTER_TIP}`;
   }
 };
 
+const TIPS: Record<ScoreSourceId, (state: SourceState, arena: BenchmarkSource) => string> = {
+  arena: (_state, arena) => arenaTip(arena),
+  openrouter: (state) => openRouterTip(state),
+};
+
+// The dates live in the hovers; a visible line is for trouble with the source on the board.
+const trouble = (state: SourceState, shown: ScoreSourceId, arena: BenchmarkSource): string | null => {
+  if (state.openRouter.phase === "loading") return "fetching from your browser…";
+  if (state.openRouter.phase === "failed" && shown === "openrouter")
+    return `unavailable (${state.openRouter.reason})`;
+  if (shown !== "arena") return null;
+  if (arena.status === "stale") return "live fetch failed, showing the last good data";
+  if (arena.status === "unavailable") return `unavailable (${arena.reason}, scores absent this load)`;
+  return null;
+};
+
+// The group cannot clip its corners: an option's tip is absolutely positioned inside it,
+// and overflow-hidden made the tip invisible. The end segments round themselves instead.
+const segment = (active: boolean, round: "left" | "right"): string =>
+  `flex items-center gap-1.5 pr-2 transition-colors duration-150 ${
+    round === "left" ? "rounded-l-md" : "rounded-r-md"
+  } ${active ? "bg-accent-soft" : ""}`;
+
+// The whole cell is the target, not the glyphs: the padding belongs to the button.
 const segButton = (active: boolean): string =>
-  `px-2.5 py-1 text-xs transition-colors duration-150 ${
-    active ? "bg-accent-soft font-medium text-accent-ink" : "text-ink-2 hover:text-ink"
+  `py-1 pl-2.5 text-xs transition-colors duration-150 ${
+    active ? "font-medium text-accent-ink" : "text-ink-2 hover:text-ink"
   }`;
 
-const ScoreSource = ({ state, arena, onPick, onConfirmFetch }: ScoreSourceProps) => {
+const ScoreSource = ({ state, arena, onPick, onRetry }: ScoreSourceProps) => {
   // A picked-but-unfetched source shows on the toggle; the board flips only when data lands.
-  const pending = state.openRouter.phase === "offered" || state.openRouter.phase === "loading";
-  const shown: ScoreSourceId = pending ? "openrouter" : state.source;
+  const shown: ScoreSourceId = state.openRouter.phase === "loading" ? "openrouter" : state.source;
+  const note = trouble(state, shown, arena);
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex min-h-[38px] flex-wrap items-center gap-2">
-        <div
-          role="group"
-          aria-label="Score source"
-          className="flex shrink-0 overflow-hidden rounded-md border border-line"
-        >
+    // The note is capped, not free: an uncapped block asks for its whole text width and
+    // the search box loses every pixel of it.
+    <div className="flex min-h-[38px] flex-wrap items-center gap-x-3 gap-y-1 md:max-w-[26rem]">
+      <h2 className="text-xs font-medium tracking-wider text-ink-2 uppercase">Score source</h2>
+      <div
+        role="group"
+        aria-label="Score source"
+        className="flex shrink-0 rounded-md border border-line"
+      >
+        <div className={segment(shown === "arena", "left")}>
           <button
             type="button"
             aria-pressed={shown === "arena"}
@@ -69,54 +95,37 @@ const ScoreSource = ({ state, arena, onPick, onConfirmFetch }: ScoreSourceProps)
           >
             LMArena
           </button>
+          <InfoHover label="About LMArena" tip={TIPS.arena(state, arena)} align="right" />
+        </div>
+        <div className={`border-l border-line ${segment(shown === "openrouter", "right")}`}>
           <button
             type="button"
             aria-pressed={shown === "openrouter"}
             onClick={() => onPick("openrouter")}
-            className={`border-l border-line ${segButton(shown === "openrouter")}`}
+            className={segButton(shown === "openrouter")}
           >
             Artificial Analysis
           </button>
+          <InfoHover
+            label="About Artificial Analysis"
+            tip={TIPS.openrouter(state, arena)}
+            align="right"
+          />
         </div>
-        <p aria-live="polite" className="tnum text-xs text-ink-3">
-          {caption(state, arena)}
-        </p>
-        <InfoHover label="About this score source" tip={SOURCE_TIPS[shown]} align="right" />
-        {state.openRouter.phase === "failed" && (
-          <button
-            type="button"
-            onClick={onConfirmFetch}
-            className="rounded-md border border-line bg-card px-2.5 py-1 text-xs text-ink-2 transition-colors duration-150 hover:border-accent"
-          >
-            Retry
-          </button>
-        )}
       </div>
-      {/* The terms show at the moment of choice, once; the fetch waits for the go button (9.14). */}
-      {state.openRouter.phase === "offered" && (
-        <div className="max-w-[62ch] rounded-lg border border-line bg-card px-3 py-2.5">
-          <p className="text-xs text-ink-3">
-            Artificial Analysis numbers come via OpenRouter, fetched by your own browser. AA&apos;s
-            terms restrict model-selection uses by its customers, and OpenRouter grants no explicit
-            reuse right, so the choice is yours.
-          </p>
-          <div className="mt-2 flex gap-2">
-            <button
-              type="button"
-              onClick={onConfirmFetch}
-              className="rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-card transition-colors duration-150 hover:bg-accent-deep"
-            >
-              Fetch from my browser
-            </button>
-            <button
-              type="button"
-              onClick={() => onPick("arena")}
-              className="rounded-md border border-line bg-card px-2.5 py-1 text-xs text-ink-2 transition-colors duration-150 hover:border-accent"
-            >
-              Keep LMArena
-            </button>
-          </div>
-        </div>
+      {/* The live region always exists so a state change is announced; only a real note
+          takes a line of its own, so the search keeps its width in the healthy case. */}
+      <p aria-live="polite" className={`tnum text-xs text-ink-3 ${note === null ? "" : "basis-full"}`}>
+        {note}
+      </p>
+      {state.openRouter.phase === "failed" && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="rounded-md border border-line bg-card px-2.5 py-1 text-xs text-ink-2 transition-colors duration-150 hover:border-accent"
+        >
+          Retry
+        </button>
       )}
     </div>
   );
