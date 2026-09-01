@@ -448,8 +448,12 @@ Two licensing notes that matter for an MIT-licensed npm package:
 2. **AA's terms require attribution and reserve redistribution.** From the
    [docs](https://artificialanalysis.ai/data-api/docs): "Use of the API requires attribution
    across all tiers. ... For redistribution rights or bespoke contract terms, contact the
-   team." pickai **vendoring** AA scores into the package would need their sign-off. pickai
-   *fetching* them at runtime with an attribution notice would not.
+   team." Neither vendoring nor runtime fetching is available to pickai: the deeper terms
+   read in `design/research/aa-access.md` found sections 2.4(c), 2.4(d), and 2.5 prohibit
+   embedding AA data in a customer-facing product and prohibit model-selection-guidance
+   products without prior written consent, attribution or not. Decision 9.8 in
+   `design/v3-decisions.md` rejected AA as a source on those grounds, superseding this
+   note's earlier conclusion.
 3. **Epoch and Arena are both CC-BY-4.0, which permits vendoring with credit.** Epoch's
    [licensing page](https://epoch.ai/benchmarks/use-this-data) also flags that Aider Polyglot
    and Terminal-Bench derived rows carry Apache 2.0 and need separate credit.

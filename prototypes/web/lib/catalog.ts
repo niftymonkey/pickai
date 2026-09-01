@@ -32,7 +32,10 @@ let cached: Promise<UiModel[]> | undefined;
 
 /** Fetch the models.dev catalog once per server process. */
 export function loadCatalog(): Promise<UiModel[]> {
-  cached ??= load();
+  cached ??= load().catch((error) => {
+    cached = undefined;
+    throw error;
+  });
   return cached;
 }
 
