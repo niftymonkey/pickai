@@ -2,10 +2,13 @@
 
 import { blendSummary, stepWeight } from "@/core/score-view";
 import type { Metric } from "@/core/score-view";
+import { InfoHover } from "./info-hover";
 
 interface BlendEditorProps {
   metrics: Metric[];
   weights: Record<string, number>;
+  /** One sentence on where this source's category scores come from. */
+  tip: string;
   onChange: (weights: Record<string, number>) => void;
 }
 
@@ -55,12 +58,15 @@ const BlendChip = ({
   );
 };
 
-const BlendEditor = ({ metrics, weights, onChange }: BlendEditorProps) => {
+const BlendEditor = ({ metrics, weights, tip, onChange }: BlendEditorProps) => {
   if (metrics.length < 2) return null;
   const summary = blendSummary(weights);
   return (
     <section aria-label="Score blend" className="mb-3 flex flex-wrap items-center gap-1.5">
-      <h2 className="mr-1 text-xs font-medium tracking-wider text-ink-2 uppercase">Score blend</h2>
+      <h2 className="text-xs font-medium tracking-wider text-ink-2 uppercase">Score blend</h2>
+      <span className="mr-1 inline-flex">
+        <InfoHover label="About these categories" tip={tip} />
+      </span>
       {metrics.map((metric) => (
         <BlendChip
           key={metric.name}

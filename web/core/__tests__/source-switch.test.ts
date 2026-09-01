@@ -1,0 +1,99 @@
+import { expect, test } from "vitest";
+import type { BenchmarkSet } from "pickai";
+import {
+  INITIAL_SOURCE,
+  confirmFetch,
+  fetchFailed,
+  fetchLanded,
+  pickSource,
+} from "../source-switch";
+import type { SourceState } from "../source-switch";
+
+const aaSet: BenchmarkSet = {
+  source: "Artificial Analysis via OpenRouter",
+  measuredAt: "2026-09-01",
+  scores: [
+    {
+      modelId: "gpt-4o",
+      metrics: { intelligence_index: { value: 60, low: 60, high: 60, votes: undefined } },
+    },
+  ],
+};
+
+test("the first pick of Artificial Analysis offers the terms decision instead of fetching", () => {
+  const step = pickSource(INITIAL_SOURCE, "openrouter");
+  expect(step.state).toEqual({ source: "arena", openRouter: { phase: "offered" } });
+  expect(step.beginFetch).toBe(false);
+  expect(step.sourceChanged).toBe(false);
+});
+
+test("picking LMArena while the offer is open withdraws it", () => {
+  const offered: SourceState = { source: "arena", openRouter: { phase: "offered" } };
+  const step = pickSource(offered, "arena");
+  expect(step.state).toEqual(INITIAL_SOURCE);
+  expect(step.sourceChanged).toBe(false);
+});
+
+test("confirming the offer begins the fetch and keeps LMArena on the board meanwhile", () => {
+  const offered: SourceState = { source: "arena", openRouter: { phase: "offered" } };
+  const step = confirmFetch(offered);
+  expect(step.state).toEqual({ source: "arena", openRouter: { phase: "loading" } });
+  expect(step.beginFetch).toBe(true);
+  expect(step.sourceChanged).toBe(false);
+});
+
+test("a landed fetch flips the source and reports the vocabulary change", () => {
+  const loading: SourceState = { source: "arena", openRouter: { phase: "loading" } };
+  const step = fetchLanded(loading, aaSet);
+  expect(step.state).toEqual({ source: "openrouter", openRouter: { phase: "ok", set: aaSet } });
+  expect(step.sourceChanged).toBe(true);
+});
+
+test("a failed fetch keeps LMArena active and preserves the reason", () => {
+  const loading: SourceState = { source: "arena", openRouter: { phase: "loading" } };
+  const step = fetchFailed(loading, "HTTP 500");
+  expect(step.state).toEqual({ source: "arena", openRouter: { phase: "failed", reason: "HTTP 500" } });
+  expect(step.sourceChanged).toBe(false);
+});
+
+test("picking Artificial Analysis after a failure retries without re-asking consent", () => {
+  const failed: SourceState = { source: "arena", openRouter: { phase: "failed", reason: "HTTP 500" } };
+  const step = pickSource(failed, "openrouter");
+  expect(step.state).toEqual({ source: "arena", openRouter: { phase: "loading" } });
+  expect(step.beginFetch).toBe(true);
+});
+
+test("the retry button from a failure begins the fetch the same way", () => {
+  const failed: SourceState = { source: "arena", openRouter: { phase: "failed", reason: "HTTP 500" } };
+  const step = confirmFetch(failed);
+  expect(step.state.openRouter).toEqual({ phase: "loading" });
+  expect(step.beginFetch).toBe(true);
+});
+
+test("with data already in hand the switch flips instantly, both ways, and reports the change", () => {
+  const cached: SourceState = { source: "arena", openRouter: { phase: "ok", set: aaSet } };
+  const toAA = pickSource(cached, "openrouter");
+  expect(toAA.state.source).toBe("openrouter");
+  expect(toAA.beginFetch).toBe(false);
+  expect(toAA.sourceChanged).toBe(true);
+  const back = pickSource(toAA.state, "arena");
+  expect(back.state.source).toBe("arena");
+  expect(back.state.openRouter).toEqual({ phase: "ok", set: aaSet });
+  expect(back.sourceChanged).toBe(true);
+});
+
+test("picking the source already active changes nothing", () => {
+  const active: SourceState = { source: "openrouter", openRouter: { phase: "ok", set: aaSet } };
+  const step = pickSource(active, "openrouter");
+  expect(step.state).toEqual(active);
+  expect(step.beginFetch).toBe(false);
+  expect(step.sourceChanged).toBe(false);
+});
+
+test("picks during an open offer or a live fetch are inert", () => {
+  const offered: SourceState = { source: "arena", openRouter: { phase: "offered" } };
+  expect(pickSource(offered, "openrouter").state).toEqual(offered);
+  const loading: SourceState = { source: "arena", openRouter: { phase: "loading" } };
+  expect(pickSource(loading, "openrouter").state).toEqual(loading);
+  expect(confirmFetch(loading).beginFetch).toBe(false);
+});

@@ -16,7 +16,13 @@ const CatalogPage = async () => {
       </main>
     );
   }
-  return <DecisionSurface identities={catalog.identities} arena={arena} />;
+  return (
+    <DecisionSurface
+      identities={catalog.identities}
+      arena={arena}
+      fetchedAt={catalog.fetchedAt}
+    />
+  );
 };
 
 export const revalidate = 3600;

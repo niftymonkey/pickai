@@ -37,10 +37,14 @@ const AnimatedNumber = ({ value }: { value: number }) => {
 interface CountHingeProps {
   survivors: number;
   total: number;
+  listings: number;
+  totalListings: number;
   ruleCount: number;
 }
 
-const CountHinge = ({ survivors, total, ruleCount }: CountHingeProps) => (
+const n = (value: number): string => value.toLocaleString("en-US");
+
+const CountHinge = ({ survivors, total, listings, totalListings, ruleCount }: CountHingeProps) => (
   <div>
     {/* The tween repaints every frame, so the visible number hides from the accessibility
         tree and a quiet live region announces only the settled value. */}
@@ -53,18 +57,30 @@ const CountHinge = ({ survivors, total, ruleCount }: CountHingeProps) => (
           <>models in the catalog, before any rules</>
         ) : (
           <>
-            of <span className="tnum">{total.toLocaleString("en-US")}</span> models pass your{" "}
+            of <span className="tnum">{n(total)}</span> models pass your{" "}
             {ruleCount === 1 ? "rule" : "rules"}
+          </>
+        )}
+      </p>
+      <p className="mt-1 text-xs text-rail-ink-3">
+        {ruleCount === 0 ? (
+          <>
+            across <span className="tnum">{n(totalListings)}</span> listings
+          </>
+        ) : (
+          <>
+            <span className="tnum">{n(listings)}</span> of{" "}
+            <span className="tnum">{n(totalListings)}</span> listings
           </>
         )}
       </p>
     </div>
     <p className="sr-only" aria-live="polite">
       {ruleCount === 0
-        ? `${survivors.toLocaleString("en-US")} models in the catalog, before any rules`
-        : `${survivors.toLocaleString("en-US")} of ${total.toLocaleString("en-US")} models pass your ${
+        ? `${n(survivors)} models in the catalog across ${n(totalListings)} listings, before any rules`
+        : `${n(survivors)} of ${n(total)} models pass your ${
             ruleCount === 1 ? "rule" : "rules"
-          }`}
+          }, ${n(listings)} of ${n(totalListings)} listings`}
     </p>
   </div>
 );

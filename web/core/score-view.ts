@@ -133,9 +133,10 @@ const positiveInDisplayOrder = (
   return positive.sort((a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name));
 };
 
+// The blend always says what the score is, even when one metric carries it all.
 const blendSummary = (weights: Record<string, number>): string | null => {
   const positive = positiveInDisplayOrder(weights);
-  if (positive.length < 2) return null;
+  if (positive.length === 0) return null;
   const total = positive.reduce((sum, { weight }) => sum + weight, 0);
   const parts = positive.map(
     ({ name, weight }) => `${Math.round((weight / total) * 100)}% ${metricLabel(name)}`,

@@ -120,12 +120,12 @@ test("stepWeight refuses to zero the last positive weight", () => {
   expect(stepWeight({ overall: 2, coding: 0 }, "overall", -1)).toEqual({ overall: 1, coding: 0 });
 });
 
-test("blendSummary speaks percentages for two or more positive weights and is silent otherwise", () => {
+test("blendSummary always speaks the mix, a lone positive metric included", () => {
   expect(blendSummary({ overall: 1, coding: 1, math: 0 })).toBe("= 50% Overall + 50% Coding");
   expect(blendSummary({ overall: 2, coding: 1, math: 1 })).toBe(
     "= 50% Overall + 25% Coding + 25% Math",
   );
-  expect(blendSummary({ overall: 1, coding: 0 })).toBeNull();
+  expect(blendSummary({ overall: 1, coding: 0 })).toBe("= 100% Overall");
   expect(blendSummary({})).toBeNull();
 });
 const rated = rateIdentities([grok, sonnet, gpt], arenaSet);

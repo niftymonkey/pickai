@@ -1,84 +1,119 @@
-// The score provenance line and the source switch: which benchmark feeds the score column.
+// The score-source switch's face: segmented toggle, measurement caption, terms offer, retry.
 
 import type { ArenaSource } from "@/lib/benchmarks";
-
-type ScoreSourceId = "arena" | "openrouter";
-
-/** The browser-side OpenRouter fetch, phase by phase; the driver owns the fetch itself. */
-type OpenRouterSource =
-  | { phase: "idle" }
-  | { phase: "loading" }
-  | { phase: "ok"; measuredAt: string }
-  | { phase: "failed"; reason: string };
+import type { ScoreSourceId, SourceState } from "@/core/source-switch";
+import { InfoHover } from "./info-hover";
 
 interface ScoreSourceProps {
-  source: ScoreSourceId;
+  state: SourceState;
   arena: ArenaSource;
-  openRouter: OpenRouterSource;
-  onSwitch: (source: ScoreSourceId) => void;
+  onPick: (source: ScoreSourceId) => void;
+  /** The consent button and the retry button both land here. */
+  onConfirmFetch: () => void;
 }
 
-const AA = "Artificial Analysis via OpenRouter";
+const SOURCE_TIPS: Record<ScoreSourceId, string> = {
+  arena:
+    "LMArena ranks models by public votes between two anonymous answers. Each score is an Elo rating.",
+  openrouter:
+    "Artificial Analysis runs its own benchmark suites and publishes 0-100 index scores. The numbers come via OpenRouter.",
+};
 
-const provenance = (
-  source: ScoreSourceId,
-  arena: ArenaSource,
-  openRouter: OpenRouterSource,
-): string => {
-  if (source === "arena") {
-    return arena.status === "ok"
-      ? `Score: LMArena, ${arena.set.measuredAt}`
-      : `Score: LMArena unavailable (${arena.reason}, scores absent this load)`;
-  }
+const arenaCaption = (arena: ArenaSource): string =>
+  arena.status === "ok"
+    ? `measured ${arena.set.measuredAt}`
+    : `LMArena unavailable (${arena.reason}, scores absent this load)`;
+
+const caption = (state: SourceState, arena: ArenaSource): string => {
+  const { source, openRouter } = state;
+  if (source === "openrouter" && openRouter.phase === "ok")
+    return `measured ${openRouter.set.measuredAt}`;
   switch (openRouter.phase) {
-    case "idle":
     case "loading":
-      return `Score: fetching ${AA} from your browser…`;
-    case "ok":
-      return `Score: ${AA}, ${openRouter.measuredAt}`;
+      return `still showing LMArena, ${arenaCaption(arena)} · fetching Artificial Analysis from your browser…`;
     case "failed":
-      return `Score: ${AA} unavailable (${openRouter.reason}, scores absent this load)`;
+      return `${arenaCaption(arena)} · Artificial Analysis unavailable (${openRouter.reason})`;
+    default:
+      return arenaCaption(arena);
   }
 };
 
-const sourceChip = (active: boolean): string =>
-  `rounded-md border px-2 py-0.5 text-xs transition-colors duration-150 ${
-    active ? "border-accent bg-accent-soft text-accent-ink" : "border-line text-ink-2 hover:border-accent"
+const segButton = (active: boolean): string =>
+  `px-2.5 py-1 text-xs transition-colors duration-150 ${
+    active ? "bg-accent-soft font-medium text-accent-ink" : "text-ink-2 hover:text-ink"
   }`;
 
-const ScoreSource = ({ source, arena, openRouter, onSwitch }: ScoreSourceProps) => (
-  <div className="mb-3 flex flex-col gap-1">
-    <div className="flex flex-wrap items-center gap-2">
-      <p className="text-xs text-ink-2" aria-live="polite">
-        {provenance(source, arena, openRouter)}
-      </p>
-      <div role="group" aria-label="Score source" className="flex gap-1">
-        <button
-          type="button"
-          aria-pressed={source === "arena"}
-          onClick={() => onSwitch("arena")}
-          className={sourceChip(source === "arena")}
+const ScoreSource = ({ state, arena, onPick, onConfirmFetch }: ScoreSourceProps) => {
+  // A picked-but-unfetched source shows on the toggle; the board flips only when data lands.
+  const pending = state.openRouter.phase === "offered" || state.openRouter.phase === "loading";
+  const shown: ScoreSourceId = pending ? "openrouter" : state.source;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex min-h-[38px] flex-wrap items-center gap-2">
+        <div
+          role="group"
+          aria-label="Score source"
+          className="flex shrink-0 overflow-hidden rounded-md border border-line"
         >
-          LMArena
-        </button>
-        <button
-          type="button"
-          aria-pressed={source === "openrouter"}
-          onClick={() => onSwitch("openrouter")}
-          className={sourceChip(source === "openrouter")}
-        >
-          Artificial Analysis
-        </button>
+          <button
+            type="button"
+            aria-pressed={shown === "arena"}
+            onClick={() => onPick("arena")}
+            className={segButton(shown === "arena")}
+          >
+            LMArena
+          </button>
+          <button
+            type="button"
+            aria-pressed={shown === "openrouter"}
+            onClick={() => onPick("openrouter")}
+            className={`border-l border-line ${segButton(shown === "openrouter")}`}
+          >
+            Artificial Analysis
+          </button>
+        </div>
+        <p aria-live="polite" className="tnum text-xs text-ink-3">
+          {caption(state, arena)}
+        </p>
+        <InfoHover label="About this score source" tip={SOURCE_TIPS[shown]} align="right" />
+        {state.openRouter.phase === "failed" && (
+          <button
+            type="button"
+            onClick={onConfirmFetch}
+            className="rounded-md border border-line bg-card px-2.5 py-1 text-xs text-ink-2 transition-colors duration-150 hover:border-accent"
+          >
+            Retry
+          </button>
+        )}
       </div>
+      {/* The terms show at the moment of choice, once; the fetch waits for the go button (9.14). */}
+      {state.openRouter.phase === "offered" && (
+        <div className="max-w-[62ch] rounded-lg border border-line bg-card px-3 py-2.5">
+          <p className="text-xs text-ink-3">
+            Artificial Analysis numbers come via OpenRouter, fetched by your own browser. AA&apos;s
+            terms restrict model-selection uses by its customers, and OpenRouter grants no explicit
+            reuse right, so the choice is yours.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={onConfirmFetch}
+              className="rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-card transition-colors duration-150 hover:bg-accent-deep"
+            >
+              Fetch from my browser
+            </button>
+            <button
+              type="button"
+              onClick={() => onPick("arena")}
+              className="rounded-md border border-line bg-card px-2.5 py-1 text-xs text-ink-2 transition-colors duration-150 hover:border-accent"
+            >
+              Keep LMArena
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-    {/* The opt-in states why, so the terms decision is made knowingly (decision 9.14). */}
-    <p className="text-xs text-ink-3">
-      Artificial Analysis numbers come via OpenRouter, fetched by your own browser. AA&apos;s terms
-      restrict model-selection uses by its customers, and OpenRouter grants no explicit reuse
-      right, so the choice is yours.
-    </p>
-  </div>
-);
+  );
+};
 
 export { ScoreSource };
-export type { ScoreSourceId, OpenRouterSource };

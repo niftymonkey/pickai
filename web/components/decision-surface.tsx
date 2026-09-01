@@ -5,11 +5,13 @@
 
 import { useMemo, useState } from "react";
 import { applyRules, fromOpenRouter, ruleLabel } from "pickai";
-import type { BenchmarkSet, ModelIdentity } from "pickai";
+import type { ModelIdentity } from "pickai";
 import { catalogCounts } from "@/core/catalog-view";
 import { EMPTY_FACETS, biggestCut, deriveRules, searchModels, withoutSelection } from "@/core/decision";
 import type { FacetState } from "@/core/decision";
 import { defaultWeights, metricList, rateIdentities, scoreBoard } from "@/core/score-view";
+import { INITIAL_SOURCE, confirmFetch, fetchFailed, fetchLanded, pickSource } from "@/core/source-switch";
+import type { ScoreSourceId, SourceState, SourceStep } from "@/core/source-switch";
 import type { ArenaSource } from "@/lib/benchmarks";
 import { BlendEditor } from "./blend-editor";
 import { CatalogHeader } from "./catalog-header";
@@ -20,19 +22,20 @@ import { RuleRail } from "./rule-rail";
 import type { EmptiedBy, RuleOptions } from "./rule-rail";
 import type { CutCount } from "./facet-row";
 import { ScoreSource } from "./score-source";
-import type { OpenRouterSource, ScoreSourceId } from "./score-source";
 
 interface DecisionSurfaceProps {
   identities: ModelIdentity[];
   arena: ArenaSource;
+  /** The date the catalog came down from models.dev. */
+  fetchedAt: string;
 }
 
-/** The browser-side OpenRouter fetch: the set stays here, the display gets its phase. */
-type OpenRouterFetch =
-  | { phase: "idle" }
-  | { phase: "loading" }
-  | { phase: "ok"; set: BenchmarkSet }
-  | { phase: "failed"; reason: string };
+const BLEND_TIPS: Record<ScoreSourceId, string> = {
+  arena:
+    "People vote between two models' answers on LMArena. Each category here is its own Elo rating, computed only from the votes on that kind of prompt.",
+  openrouter:
+    "Each Artificial Analysis category is its own 0-100 index, computed from that suite's benchmark runs.",
+};
 
 const distinctSorted = (values: string[]): string[] => [...new Set(values)].sort();
 
@@ -51,18 +54,15 @@ const catalogOptions = (identities: ModelIdentity[]): Omit<RuleOptions, "metrics
   ),
 });
 
-const displayedOpenRouter = (fetch: OpenRouterFetch): OpenRouterSource =>
-  fetch.phase === "ok" ? { phase: "ok", measuredAt: fetch.set.measuredAt } : fetch;
-
-const DecisionSurface = ({ identities, arena }: DecisionSurfaceProps) => {
+const DecisionSurface = ({ identities, arena, fetchedAt }: DecisionSurfaceProps) => {
   const [facets, setFacets] = useState<FacetState>(EMPTY_FACETS);
   const [query, setQuery] = useState("");
-  const [source, setSource] = useState<ScoreSourceId>("arena");
-  const [openRouter, setOpenRouter] = useState<OpenRouterFetch>({ phase: "idle" });
+  const [sourceState, setSourceState] = useState<SourceState>(INITIAL_SOURCE);
   const [weightsBySource, setWeightsBySource] = useState<
     Partial<Record<ScoreSourceId, Record<string, number>>>
   >({});
 
+  const { source, openRouter } = sourceState;
   const activeSet =
     source === "arena"
       ? arena.status === "ok"
@@ -121,22 +121,30 @@ const DecisionSurface = ({ identities, arena }: DecisionSurfaceProps) => {
     ? board.rows.filter(({ key }) => survivingHitKeys.has(key))
     : board.rows;
 
-  const switchSource = (next: ScoreSourceId) => {
-    if (next === source) return;
-    setSource(next);
-    // The metric vocabulary changes with the source, so an active floor cannot carry over.
-    if (facets.metricFloor !== null) setFacets(withoutSelection(facets, "metricFloor", "value"));
-    if (next === "openrouter" && openRouter.phase !== "ok" && openRouter.phase !== "loading") {
-      setOpenRouter({ phase: "loading" });
-      fromOpenRouter()
-        .then((set) => setOpenRouter({ phase: "ok", set }))
-        .catch((error: unknown) =>
-          setOpenRouter({
-            phase: "failed",
-            reason: error instanceof Error ? error.message : String(error),
-          }),
-        );
-    }
+  // The metric vocabulary changes with the source, so an active floor cannot carry over.
+  const clearFloor = () =>
+    setFacets((prev) =>
+      prev.metricFloor === null ? prev : withoutSelection(prev, "metricFloor", "value"),
+    );
+
+  // The async callbacks step the machine through functional updates: the captured
+  // sourceState is stale by the time the fetch settles.
+  const beginBrowserFetch = () => {
+    fromOpenRouter()
+      .then((set) => {
+        setSourceState((prev) => fetchLanded(prev, set).state);
+        clearFloor();
+      })
+      .catch((error: unknown) => {
+        const reason = error instanceof Error ? error.message : String(error);
+        setSourceState((prev) => fetchFailed(prev, reason).state);
+      });
+  };
+
+  const applyStep = (step: SourceStep) => {
+    setSourceState(step.state);
+    if (step.sourceChanged) clearFloor();
+    if (step.beginFetch) beginBrowserFetch();
   };
 
   return (
@@ -146,6 +154,8 @@ const DecisionSurface = ({ identities, arena }: DecisionSurfaceProps) => {
           <CountHinge
             survivors={remaining.models}
             total={totals.models}
+            listings={remaining.listings}
+            totalListings={totals.listings}
             ruleCount={derived.length}
           />
           <RuleRail
@@ -159,26 +169,31 @@ const DecisionSurface = ({ identities, arena }: DecisionSurfaceProps) => {
         </aside>
         <main className="min-w-0">
           <CatalogHeader
-            models={remaining.models}
-            listings={remaining.listings}
             totalModels={totals.models}
             totalListings={totals.listings}
+            fetchedAt={fetchedAt}
           />
-          <CatalogSearch
-            query={query}
-            cutMatches={cutMatches}
-            nothingFound={searching && hits.length === 0}
-            onQueryChange={setQuery}
-          />
-          <ScoreSource
-            source={source}
-            arena={arena}
-            openRouter={displayedOpenRouter(openRouter)}
-            onSwitch={switchSource}
-          />
+          {/* The toolbar splits 50/50 at a visible separator; narrow windows stack full width.
+              Top-aligned so the offer card grows downward without re-centering the row. */}
+          <div className="mb-4 flex flex-col gap-3 md:grid md:grid-cols-[1fr_2px_1fr] md:items-start md:gap-x-6">
+            <CatalogSearch
+              query={query}
+              cutMatches={cutMatches}
+              nothingFound={searching && hits.length === 0}
+              onQueryChange={setQuery}
+            />
+            <div aria-hidden className="mt-[5px] hidden h-7 bg-line-2 md:block" />
+            <ScoreSource
+              state={sourceState}
+              arena={arena}
+              onPick={(next) => applyStep(pickSource(sourceState, next))}
+              onConfirmFetch={() => applyStep(confirmFetch(sourceState))}
+            />
+          </div>
           <BlendEditor
             metrics={metrics}
             weights={weights}
+            tip={BLEND_TIPS[source]}
             onChange={(next) => setWeightsBySource({ ...weightsBySource, [source]: next })}
           />
           <CatalogTable rows={shownRows} scale={board.scale} />

@@ -23,10 +23,10 @@ const CatalogSearch = ({ query, cutMatches, nothingFound, onQueryChange }: Catal
       onChange={(event) => onQueryChange(event.target.value)}
       placeholder="Find a model in the whole catalog"
       aria-label="Find a model in the whole catalog"
-      className="w-full max-w-sm rounded-lg border border-line bg-card px-3 py-1.5 text-sm text-ink placeholder:text-ink-3"
+      className="w-full rounded-lg border border-line bg-card px-3 py-1.5 text-sm text-ink placeholder:text-ink-3"
     />
     {cutMatches.length > 0 && (
-      <div className="mt-2 rounded-lg border border-line bg-card px-3 py-2">
+      <div className="mt-2 max-w-xl rounded-lg border border-line bg-card px-3 py-2">
         <p className="text-xs font-medium text-ink-2">In the catalog, but cut by your rules:</p>
         <ul className="mt-1 flex flex-col gap-0.5">
           {cutMatches.map(({ key, name, ruleWords }) => (
