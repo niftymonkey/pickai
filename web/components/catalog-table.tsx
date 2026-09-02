@@ -5,6 +5,7 @@
 import { useEffect, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { formatCutoff, formatPrice, formatReleased, formatTokens } from "@/core/format";
+import { bandSpan } from "@/core/score-view";
 import type { ScoreCell, ScoredRow } from "@/core/score-view";
 
 interface CatalogTableProps {
@@ -32,19 +33,13 @@ const Unknown = ({ label }: { label: string }) => (
 const fact = <T,>(value: T | null, render: (value: T) => string, unknownLabel: string) =>
   value === null ? <Unknown label={unknownLabel} /> : render(value);
 
-// The filled span sits on the shared scale; a hair of minimum width keeps a tight interval visible.
-const BAND_MIN_WIDTH_PCT = 3;
-
 const Band = ({ score, scale }: { score: { low: number; high: number }; scale: { min: number; max: number } }) => {
-  const span = scale.max - scale.min;
-  const left = span <= 0 ? 0 : ((score.low - scale.min) / span) * 100;
-  const width =
-    span <= 0 ? 100 : Math.max(BAND_MIN_WIDTH_PCT, ((score.high - score.low) / span) * 100);
+  const { left, width } = bandSpan(score, scale);
   return (
     <span aria-hidden className="relative inline-block h-1.5 w-16 shrink-0 rounded-full bg-bench-2">
       <span
         className="absolute inset-y-0 rounded-full bg-accent"
-        style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }}
+        style={{ left: `${left}%`, width: `${width}%` }}
       />
     </span>
   );

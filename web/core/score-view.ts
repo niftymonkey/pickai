@@ -144,6 +144,25 @@ const blendSummary = (weights: Record<string, number>): string | null => {
   return `= ${parts.join(" + ")}`;
 };
 
+/** A hair of minimum width keeps a tight interval visible on the band. */
+const BAND_MIN_WIDTH_PCT = 3;
+
+/**
+ * Where a score's interval sits on the shared band scale, as percentages.
+ * The span is clamped to stay inside the track: a top score whose interval is a
+ * point starts at the scale's max, and an unclamped left would leave no width.
+ */
+const bandSpan = (
+  score: { low: number; high: number },
+  scale: { min: number; max: number },
+): { left: number; width: number } => {
+  const span = scale.max - scale.min;
+  if (span <= 0) return { left: 0, width: 100 };
+  const width = Math.min(100, Math.max(BAND_MIN_WIDTH_PCT, ((score.high - score.low) / span) * 100));
+  const left = Math.min(100 - width, Math.max(0, ((score.low - scale.min) / span) * 100));
+  return { left, width };
+};
+
 const votesNote = (votes: number | undefined): string | null =>
   votes === undefined ? null : `${votes.toLocaleString("en-US")} votes`;
 
@@ -223,6 +242,7 @@ export {
   keepMetrics,
   stepWeight,
   blendSummary,
+  bandSpan,
   scoreBoard,
 };
 export type { ScorableIdentity, Metric, ScoreCell, ScoredRow, ScoreBoard };

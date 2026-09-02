@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import type { BenchmarkSet, Model, ModelIdentity } from "pickai";
 import {
+  bandSpan,
   blendSummary,
   defaultWeights,
   keepMetrics,
@@ -216,5 +217,25 @@ test("a complete blend carries no note and rounds its value", () => {
     high: 1479.3333333333333,
     note: null,
     configNote: null,
+  });
+});
+
+test("the top score's band stays inside the track when its interval is a point", () => {
+  // Artificial Analysis publishes point scores, so the best model's low equals the
+  // scale's max. An unclamped left of 100% left the winner with a zero-width band.
+  const span = bandSpan({ low: 63, high: 63 }, { min: 20, max: 63 });
+  expect(span).toEqual({ left: 97, width: 3 });
+});
+
+test("a band sits where its interval sits on the shared scale", () => {
+  // Half way up a 0-100 scale, spanning a tenth of it.
+  expect(bandSpan({ low: 45, high: 55 }, { min: 0, max: 100 })).toEqual({ left: 45, width: 10 });
+});
+
+test("a scale with no span fills the track", () => {
+  // One rated survivor: there is no spread to place it against.
+  expect(bandSpan({ low: 1400, high: 1400 }, { min: 1400, max: 1400 })).toEqual({
+    left: 0,
+    width: 100,
   });
 });
