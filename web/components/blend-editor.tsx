@@ -12,8 +12,10 @@ interface BlendEditorProps {
   onChange: (weights: Record<string, number>) => void;
 }
 
+// The negative margin lets a 24px target sit inside the chip's padding without growing the chip.
+// The hover is a full accent fill: an active chip's own bg is accent-soft, so a soft wash vanished.
 const stepperClass =
-  "rounded px-1.5 text-xs transition-colors duration-150 hover:bg-accent-soft disabled:opacity-30 disabled:hover:bg-transparent";
+  "-my-0.5 inline-flex min-h-6 min-w-6 items-center justify-center rounded px-1 text-xs transition-colors duration-150 hover:bg-accent hover:text-card disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-inherit";
 
 const BlendChip = ({
   metric,

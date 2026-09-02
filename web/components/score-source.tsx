@@ -61,16 +61,19 @@ const trouble = (state: SourceState, shown: ScoreSourceId, arena: BenchmarkSourc
 
 // The group cannot clip its corners: an option's tip is absolutely positioned inside it,
 // and overflow-hidden made the tip invisible. The end segments round themselves instead.
-const segment = (active: boolean, round: "left" | "right"): string =>
-  `flex items-center gap-1.5 pr-2 transition-colors duration-150 ${
-    round === "left" ? "rounded-l-md" : "rounded-r-md"
-  } ${active ? "bg-accent-soft" : ""}`;
+const segment = (round: "left" | "right"): string =>
+  `relative flex ${round === "left" ? "rounded-l-md" : "rounded-r-md"}`;
 
-// The whole cell is the target, not the glyphs: the padding belongs to the button.
-const segButton = (active: boolean): string =>
-  `py-1 pl-2.5 text-xs transition-colors duration-150 ${
-    active ? "font-medium text-accent-ink" : "text-ink-2 hover:text-ink"
-  }`;
+// The button is the whole cell: its right padding is where the info hover floats, as a
+// sibling rather than a child, because a button cannot nest a button.
+const segButton = (active: boolean, round: "left" | "right"): string =>
+  `w-full py-1 pr-8 pl-2.5 text-left text-xs whitespace-nowrap transition-colors duration-150 ${
+    round === "left" ? "rounded-l-md" : "rounded-r-md"
+  } ${active ? "bg-accent-soft font-medium text-accent-ink" : "text-ink-2 hover:bg-bench-2 hover:text-ink"}`;
+
+// Centered by flex, never by a transform: a transform starts a stacking context, and the
+// tip's z-40 would then lose to the table's sticky header.
+const segHover = "absolute inset-y-0 right-2 flex items-center";
 
 const ScoreSource = ({ state, arena, onPick, onRetry }: ScoreSourceProps) => {
   // A picked-but-unfetched source shows on the toggle; the board flips only when data lands.
@@ -86,31 +89,35 @@ const ScoreSource = ({ state, arena, onPick, onRetry }: ScoreSourceProps) => {
         aria-label="Score source"
         className="flex shrink-0 rounded-md border border-line"
       >
-        <div className={segment(shown === "arena", "left")}>
+        <div className={segment("left")}>
           <button
             type="button"
             aria-pressed={shown === "arena"}
             onClick={() => onPick("arena")}
-            className={segButton(shown === "arena")}
+            className={segButton(shown === "arena", "left")}
           >
             LMArena
           </button>
-          <InfoHover label="About LMArena" tip={TIPS.arena(state, arena)} align="right" />
+          <span className={segHover}>
+            <InfoHover label="About LMArena" tip={TIPS.arena(state, arena)} align="right" />
+          </span>
         </div>
-        <div className={`border-l border-line ${segment(shown === "openrouter", "right")}`}>
+        <div className={`border-l border-line ${segment("right")}`}>
           <button
             type="button"
             aria-pressed={shown === "openrouter"}
             onClick={() => onPick("openrouter")}
-            className={segButton(shown === "openrouter")}
+            className={segButton(shown === "openrouter", "right")}
           >
             Artificial Analysis
           </button>
-          <InfoHover
-            label="About Artificial Analysis"
-            tip={TIPS.openrouter(state, arena)}
-            align="right"
-          />
+          <span className={segHover}>
+            <InfoHover
+              label="About Artificial Analysis"
+              tip={TIPS.openrouter(state, arena)}
+              align="right"
+            />
+          </span>
         </div>
       </div>
       {/* The live region always exists so a state change is announced; only a real note

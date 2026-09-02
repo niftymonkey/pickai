@@ -136,12 +136,16 @@ const ToggleRow = ({
   </li>
 );
 
+// An active chip is still a control (it turns off); its hover thickens the border via a ring.
 const chipClass = (active: boolean): string =>
-  `rounded-md border px-2 py-1 text-left text-sm transition-colors duration-150 ${
+  `rounded-md border px-2 py-1 text-left text-sm transition-[color,background-color,border-color,box-shadow] duration-150 ${
     active
-      ? "border-accent bg-accent-soft text-accent-ink"
+      ? "border-accent bg-accent-soft text-accent-ink hover:ring-1 hover:ring-accent"
       : "border-rail-line text-rail-ink hover:border-accent"
   }`;
+
+const railInputClass =
+  "rounded-md border border-rail-line bg-rail-hover text-rail-ink transition-colors duration-150 placeholder:text-rail-ink-3 hover:border-rail-ink-3";
 
 const ChipCut = ({ cut }: { cut: CutCount | undefined }) =>
   cut === undefined ? null : (
@@ -325,7 +329,7 @@ const FenceSide = ({
           onKeyDown={(event) => {
             if (event.key === "Enter") commit();
           }}
-          className="w-16 rounded-md border border-rail-line bg-rail-hover px-2 py-1 font-mono text-xs text-rail-ink placeholder:text-rail-ink-3"
+          className={`${railInputClass} w-16 px-2 py-1 font-mono text-xs`}
         />
       </div>
     </div>
@@ -370,7 +374,7 @@ const KnowledgeBody = ({
         if (next === "") onSet(null);
         else if (/^\d{4}-\d{2}$/.test(next)) onSet(next);
       }}
-      className="w-40 rounded-md border border-rail-line bg-rail-hover px-2 py-1 text-sm text-rail-ink"
+      className={`${railInputClass} w-40 px-2 py-1 text-sm`}
     />
   </div>
 );
@@ -432,7 +436,7 @@ const MetricFloorBody = ({
           value={chosen}
           aria-label="Metric to rule on"
           onChange={(event) => chooseMetric(event.target.value)}
-          className="rounded-md border border-rail-line bg-rail-hover px-2 py-1 text-xs text-rail-ink"
+          className={`${railInputClass} px-2 py-1 text-xs`}
         >
           {metrics.map(({ name, label }) => (
             <option key={name} value={name}>
@@ -450,7 +454,7 @@ const MetricFloorBody = ({
           onKeyDown={(event) => {
             if (event.key === "Enter") commit();
           }}
-          className="w-20 rounded-md border border-rail-line bg-rail-hover px-2 py-1 font-mono text-xs text-rail-ink placeholder:text-rail-ink-3"
+          className={`${railInputClass} w-20 px-2 py-1 font-mono text-xs`}
         />
       </div>
     </div>
@@ -458,6 +462,8 @@ const MetricFloorBody = ({
 };
 
 export {
+  chipClass,
+  railInputClass,
   FacetRow,
   ToggleRow,
   CapabilityBody,

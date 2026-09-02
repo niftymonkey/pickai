@@ -23,7 +23,7 @@ const CatalogSearch = ({ query, cutMatches, nothingFound, onQueryChange }: Catal
       onChange={(event) => onQueryChange(event.target.value)}
       placeholder="Find a model in the whole catalog"
       aria-label="Find a model in the whole catalog"
-      className="w-full rounded-lg border border-line bg-card px-3 py-1.5 text-sm text-ink placeholder:text-ink-3"
+      className="w-full rounded-lg border border-line bg-card px-3 py-1.5 text-sm text-ink transition-colors duration-150 placeholder:text-ink-3 hover:border-line-2"
     />
     {cutMatches.length > 0 && (
       <div className="mt-2 max-w-xl rounded-lg border border-line bg-card px-3 py-2">

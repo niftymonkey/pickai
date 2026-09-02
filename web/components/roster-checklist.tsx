@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { toggled } from "@/core/decision";
 import type { Roster, RosterMode } from "@/core/decision";
+import { chipClass, railInputClass } from "./facet-row";
 
 interface RosterChecklistProps {
   noun: "makers" | "sellers";
@@ -15,13 +16,6 @@ const MODES: { mode: RosterMode; label: string }[] = [
   { mode: "allow", label: "Only these" },
   { mode: "exclude", label: "Never these" },
 ];
-
-const modeChipClass = (active: boolean): string =>
-  `rounded-md border px-2 py-1 text-sm transition-colors duration-150 ${
-    active
-      ? "border-accent bg-accent-soft text-accent-ink"
-      : "border-rail-line text-rail-ink hover:border-accent"
-  }`;
 
 const RosterChecklist = ({ noun, roster, names, onChange }: RosterChecklistProps) => {
   const [query, setQuery] = useState("");
@@ -38,7 +32,7 @@ const RosterChecklist = ({ noun, roster, names, onChange }: RosterChecklistProps
             type="button"
             aria-pressed={roster.mode === mode}
             onClick={() => onChange({ ...roster, mode })}
-            className={modeChipClass(roster.mode === mode)}
+            className={chipClass(roster.mode === mode)}
           >
             {label}
           </button>
@@ -53,7 +47,7 @@ const RosterChecklist = ({ noun, roster, names, onChange }: RosterChecklistProps
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder={`Find a ${noun.slice(0, -1)}`}
-        className="rounded-md border border-rail-line bg-rail-hover px-2 py-1 text-sm text-rail-ink placeholder:text-rail-ink-3"
+        className={`${railInputClass} px-2 py-1 text-sm`}
       />
       {shown.length === 0 ? (
         <p className="text-xs text-rail-ink-3">No {noun} match.</p>

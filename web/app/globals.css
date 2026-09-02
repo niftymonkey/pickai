@@ -117,6 +117,8 @@ body {
 /* Tailwind v4 gives buttons the default arrow; a clickable control says so with the hand. */
 @layer base {
   button:not(:disabled),
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
   summary,
   [role="button"]:not([aria-disabled="true"]) {
     cursor: pointer;
