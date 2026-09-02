@@ -32,8 +32,9 @@ const BlendChip = ({
   const up = stepWeight(weights, metric.name, 1);
   const on = weight > 0;
   return (
+    // A floor under the short labels, so "Math" is not a stub beside "Creative writing".
     <span
-      className={`inline-flex items-stretch overflow-hidden rounded-md border text-sm ${
+      className={`inline-flex min-w-[7.5rem] items-stretch overflow-hidden rounded-md border text-sm ${
         on ? "border-accent text-accent-ink" : "border-line text-ink-2"
       }`}
     >
@@ -50,7 +51,9 @@ const BlendChip = ({
           present, dimmed at zero, and the active chip gains no bold, because a wider
           chip slides the stepper out from under the pointer that just clicked it and
           takes every chip after it along. Border, fill, and ink carry the state. */}
-      <span className={`flex items-center gap-2 px-2 py-0.5 ${on ? "bg-accent-soft" : ""}`}>
+      <span
+        className={`flex flex-1 items-center justify-between gap-3 px-2 py-0.5 ${on ? "bg-accent-soft" : ""}`}
+      >
         {metric.label}
         <span className={`tnum w-[1ch] text-right text-xs ${on ? "" : "text-ink-3"}`}>{weight}</span>
       </span>
@@ -72,11 +75,14 @@ const BlendEditor = ({ metrics, weights, tip, onChange }: BlendEditorProps) => {
   const sentence = blendSentence(weights);
   return (
     <section aria-label="Score blend" className="mb-3">
-      <div className="flex flex-wrap items-center gap-1.5">
+      {/* The heading takes its own line: sharing the chips' row cost them the width
+          that decides whether all six fit on one, and a wrapped orphan chip reads
+          as an accident rather than as a row. */}
+      <div className="mb-1.5 flex items-center gap-1.5">
         <h2 className="text-xs font-medium tracking-wider text-ink-2 uppercase">Score blend</h2>
-        <span className="mr-1 inline-flex">
-          <InfoHover label="About these categories" tip={tip} />
-        </span>
+        <InfoHover label="About these categories" tip={tip} />
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
         {metrics.map((metric) => (
           <BlendChip
             key={metric.name}
