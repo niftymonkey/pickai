@@ -69,7 +69,7 @@ const segment = (round: "left" | "right"): string =>
 const segButton = (active: boolean, round: "left" | "right"): string =>
   `w-full py-1 pr-8 pl-2.5 text-left text-xs whitespace-nowrap transition-colors duration-150 ${
     round === "left" ? "rounded-l-md" : "rounded-r-md"
-  } ${active ? "bg-accent-soft font-medium text-accent-ink" : "text-ink-2 hover:bg-bench-2 hover:text-ink"}`;
+  } ${active ? "bg-accent-soft text-accent-ink" : "text-ink-2 hover:bg-bench-2 hover:text-ink"}`;
 
 // Centered by flex, never by a transform: a transform starts a stacking context, and the
 // tip's z-40 would then lose to the table's sticky header.
@@ -80,9 +80,10 @@ const ScoreSource = ({ state, arena, onPick, onRetry }: ScoreSourceProps) => {
   const shown: ScoreSourceId = state.openRouter.phase === "loading" ? "openrouter" : state.source;
   const note = trouble(state, shown, arena);
   return (
-    // The note is capped, not free: an uncapped block asks for its whole text width and
-    // the search box loses every pixel of it.
-    <div className="flex min-h-[38px] flex-wrap items-center gap-x-3 gap-y-1 md:max-w-[26rem]">
+    // The block's width is fixed, not capped: a note that comes and goes changes what
+    // the block asks for, and the whole switch then slides under the pointer that
+    // caused it. An uncapped block also eats every pixel of the search box.
+    <div className="flex min-h-[38px] flex-wrap items-center gap-x-3 gap-y-1 md:w-[26rem] md:shrink-0">
       <h2 className="text-xs font-medium tracking-wider text-ink-2 uppercase">Score source</h2>
       <div
         role="group"
