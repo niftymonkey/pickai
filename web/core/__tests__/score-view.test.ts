@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import type { BenchmarkSet, Model, ModelIdentity } from "pickai";
 import {
   bandSpan,
-  blendSummary,
+  blendSentence,
   defaultWeights,
   keepMetrics,
   metricList,
@@ -121,14 +121,19 @@ test("stepWeight refuses to zero the last positive weight", () => {
   expect(stepWeight({ overall: 2, coding: 0 }, "overall", -1)).toEqual({ overall: 1, coding: 0 });
 });
 
-test("blendSummary always speaks the mix, a lone positive metric included", () => {
-  expect(blendSummary({ overall: 1, coding: 1, math: 0 })).toBe("= 50% Overall + 50% Coding");
-  expect(blendSummary({ overall: 2, coding: 1, math: 1 })).toBe(
-    "= 50% Overall + 25% Coding + 25% Math",
+test("the blend speaks its mix as a sentence, and the shares total 100", () => {
+  // A percentage of one thing reads as a score, so a lone metric is named, not measured.
+  expect(blendSentence({ overall: 1, coding: 0 })).toBe("Every score is the Overall rating.");
+  expect(blendSentence({ overall: 1, coding: 1, math: 0 })).toBe(
+    "Every score is 50% Overall and 50% Coding.",
   );
-  expect(blendSummary({ overall: 1, coding: 0 })).toBe("= 100% Overall");
-  expect(blendSummary({})).toBeNull();
+  // Thirds round to 33 each; the last share absorbs the remainder so they still make 100.
+  expect(blendSentence({ overall: 1, coding: 1, math: 1 })).toBe(
+    "Every score is 33% Overall, 33% Coding and 34% Math.",
+  );
+  expect(blendSentence({})).toBeNull();
 });
+
 const rated = rateIdentities([grok, sonnet, gpt], arenaSet);
 
 test("scoreBoard orders rated rows by blended value descending, unrated after by name", () => {

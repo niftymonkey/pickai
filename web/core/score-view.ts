@@ -133,15 +133,26 @@ const positiveInDisplayOrder = (
   return positive.sort((a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name));
 };
 
-// The blend always says what the score is, even when one metric carries it all.
-const blendSummary = (weights: Record<string, number>): string | null => {
+/** "A, B and C" from a list of already-worded parts. */
+const listed = (parts: string[]): string =>
+  parts.length <= 1
+    ? (parts[0] ?? "")
+    : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+
+/**
+ * The blend spoken as a sentence. One weighted metric is that metric's rating,
+ * not "100% of it": a percentage of a single thing reads as a score, not a mix.
+ * The last share absorbs the rounding, so the shares always total 100.
+ */
+const blendSentence = (weights: Record<string, number>): string | null => {
   const positive = positiveInDisplayOrder(weights);
   if (positive.length === 0) return null;
+  if (positive.length === 1) return `Every score is the ${metricLabel(positive[0].name)} rating.`;
   const total = positive.reduce((sum, { weight }) => sum + weight, 0);
-  const parts = positive.map(
-    ({ name, weight }) => `${Math.round((weight / total) * 100)}% ${metricLabel(name)}`,
-  );
-  return `= ${parts.join(" + ")}`;
+  const shares = positive.map(({ weight }) => Math.round((weight / total) * 100));
+  shares[shares.length - 1] = 100 - shares.slice(0, -1).reduce((sum, share) => sum + share, 0);
+  const parts = positive.map(({ name }, index) => `${shares[index]}% ${metricLabel(name)}`);
+  return `Every score is ${listed(parts)}.`;
 };
 
 /** A hair of minimum width keeps a tight interval visible on the band. */
@@ -241,7 +252,7 @@ export {
   defaultWeights,
   keepMetrics,
   stepWeight,
-  blendSummary,
+  blendSentence,
   bandSpan,
   scoreBoard,
 };
