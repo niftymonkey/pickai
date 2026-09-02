@@ -78,15 +78,18 @@ body {
   background: repeating-linear-gradient(-45deg, transparent 0 4px, var(--hatch-line) 4px 6px);
 }
 
-/* Scrollbars in a quiet-scrollbar region are invisible until the region
-   scrolls; a script toggles .scrolling because CSS cannot see scroll motion. */
+/* Scrollbars in a quiet-scrollbar region are invisible until the region scrolls,
+   or until it has content out of view: a hidden scrollbar is then the only thing
+   that could say the content exists. A script toggles both classes because CSS
+   can see neither scroll motion nor its own overflow. */
 .quiet-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
   transition: scrollbar-color 0.3s ease;
 }
 
-.quiet-scrollbar.scrolling {
+.quiet-scrollbar.scrolling,
+.quiet-scrollbar.overflowing {
   scrollbar-color: var(--line-2) transparent;
 }
 

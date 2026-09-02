@@ -5,22 +5,34 @@
 import { useEffect, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { formatCutoff, formatPrice, formatReleased, formatTokens } from "@/core/format";
-import { bandSpan } from "@/core/score-view";
-import type { ScoreCell, ScoredRow } from "@/core/score-view";
+import { bandSpan, resultsSummary } from "@/core/score-view";
+import type { EmptiedBy, ScoreCell, ScoredRow } from "@/core/score-view";
 
 interface CatalogTableProps {
   rows: ScoredRow[];
   /** The band scale across every rated survivor; null when none are rated. */
   scale: { min: number; max: number } | null;
+  /** The rule that cut the most, when the rules left nothing standing. */
+  emptiedBy?: EmptiedBy;
+  /** True while a search narrows the rows; an empty result is then the search's doing. */
+  searching: boolean;
 }
 
 // The table layout is fixed, because with only visible rows in the DOM an
 // automatic layout would resize columns as rows scroll in and out. The numeric
-// columns are pinned at the full catalog's natural max-content widths; Model
-// and Maker take the leftover width and truncate, so any name fits any window.
+// columns are pinned at the full catalog's natural max-content widths, and the
+// Model column has a floor of its own: the name is what the reader came for, so
+// it never yields its width to a column of digits. The table is then wider than
+// most windows, which is why the name column is also sticky.
+const MODEL_COLUMN_WIDTH = 260;
 const COLUMN_WIDTHS: (number | undefined)[] = [undefined, 150, 168, 78, 117, 117, 87, 104, 89, 89];
 const COLUMN_COUNT = COLUMN_WIDTHS.length;
-const TABLE_MIN_WIDTH = 1120;
+const TABLE_MIN_WIDTH =
+  MODEL_COLUMN_WIDTH + COLUMN_WIDTHS.reduce((sum: number, width) => sum + (width ?? 0), 0);
+
+// The name column pins itself to the left edge so scrolling to the far columns never
+// leaves a row unidentified. It needs its own background or the cells slide under it.
+const stickyName = "sticky left-0 border-r border-line bg-card";
 
 // Rows measure 37px, or 38px when a hatched unknown chip stretches the line
 // box; this seeds the virtualizer and measureElement refines per row.
@@ -93,12 +105,14 @@ const tableEntries = (rows: ScoredRow[]): TableEntry[] => {
   ];
 };
 
-const CatalogTable = ({ rows, scale }: CatalogTableProps) => {
+const CatalogTable = ({ rows, scale, emptiedBy, searching }: CatalogTableProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const entries = tableEntries(rows);
 
-  // Syncs with the DOM scroll state: the class rides the element directly so
-  // scrolling never re-renders the table.
+  // Syncs with the DOM scroll state: the classes ride the element directly so
+  // neither scrolling nor resizing re-renders the table. A region with columns off
+  // to the right keeps its scrollbar showing, because a hidden scrollbar is the
+  // only thing saying those columns exist.
   useEffect(() => {
     const region = scrollRef.current;
     if (region === null) return;
@@ -108,9 +122,16 @@ const CatalogTable = ({ rows, scale }: CatalogTableProps) => {
       window.clearTimeout(linger);
       linger = window.setTimeout(() => region.classList.remove("scrolling"), SCROLLBAR_LINGER_MS);
     };
+    const markOverflow = () => {
+      region.classList.toggle("overflowing", region.scrollWidth > region.clientWidth);
+    };
+    markOverflow();
+    const sizes = new ResizeObserver(markOverflow);
+    sizes.observe(region);
     region.addEventListener("scroll", showScrollbarWhileScrolling, { passive: true });
     return () => {
       region.removeEventListener("scroll", showScrollbarWhileScrolling);
+      sizes.disconnect();
       window.clearTimeout(linger);
     };
   }, []);
@@ -130,13 +151,22 @@ const CatalogTable = ({ rows, scale }: CatalogTableProps) => {
     items.length === 0 ? 0 : virtualizer.getTotalSize() - items[items.length - 1].end;
 
   return (
-    <div
-      ref={scrollRef}
-      className="quiet-scrollbar max-h-[max(20rem,calc(100dvh-11.25rem))] overflow-auto rounded-lg border border-line bg-card"
-    >
+    <>
+      {/* The results say how many rows they hold, in the results, not only on the rail. */}
+      <p aria-live="polite" className="tnum mb-1.5 text-xs text-ink-2">
+        {resultsSummary(rows, { emptiedBy: emptiedBy ?? null, searching })}
+      </p>
+      <div
+        ref={scrollRef}
+        tabIndex={0}
+        role="region"
+        aria-label="Model catalog"
+        className="quiet-scrollbar max-h-[max(20rem,calc(100dvh-11.25rem))] overflow-auto rounded-lg border border-line bg-card"
+      >
       <table
         className="w-full border-separate border-spacing-0 text-sm"
         style={{ tableLayout: "fixed", minWidth: TABLE_MIN_WIDTH }}
+        aria-rowcount={entries.length + 1}
       >
         <colgroup>
           {COLUMN_WIDTHS.map((width, column) => (
@@ -145,7 +175,11 @@ const CatalogTable = ({ rows, scale }: CatalogTableProps) => {
         </colgroup>
         <thead className="sticky top-0 z-10 bg-card">
           <tr className="text-xs tracking-wide text-ink-2 uppercase">
-            <th className="border-b border-line-2 px-3 py-2 text-left font-medium">Model</th>
+            {/* z-20: the corner cell is sticky in both axes and must outrank the
+                sticky thead as well as the sticky name cells below it. */}
+            <th className={`${stickyName} z-20 border-b border-line-2 px-3 py-2 text-left font-medium`}>
+              Model
+            </th>
             <th className="border-b border-line-2 px-3 py-2 text-left font-medium">Maker</th>
             <th className="border-b border-line-2 px-3 py-2 text-left font-medium">Score</th>
             <th className={numericHead}>Sellers</th>
@@ -158,6 +192,15 @@ const CatalogTable = ({ rows, scale }: CatalogTableProps) => {
           </tr>
         </thead>
         <tbody>
+          {entries.length === 0 && (
+            <tr>
+              <td colSpan={COLUMN_COUNT} className="px-3 py-6 text-sm text-ink-2">
+                {searching
+                  ? "Nothing here matches that name. Clear the search, or loosen a rule."
+                  : "Nothing to show. Loosen or remove a rule to bring models back."}
+              </td>
+            </tr>
+          )}
           {padTop > 0 && (
             <tr aria-hidden style={{ height: padTop }}>
               <td colSpan={COLUMN_COUNT} className="p-0" />
@@ -168,7 +211,12 @@ const CatalogTable = ({ rows, scale }: CatalogTableProps) => {
             const last = item.index === entries.length - 1;
             if (entry.kind === "divider") {
               return (
-                <tr key="unrated-divider" ref={virtualizer.measureElement} data-index={item.index}>
+                <tr
+                  key="unrated-divider"
+                  ref={virtualizer.measureElement}
+                  data-index={item.index}
+                  aria-rowindex={item.index + 2}
+                >
                   <UnratedDivider count={entry.count} last={last} />
                 </tr>
               );
@@ -179,8 +227,12 @@ const CatalogTable = ({ rows, scale }: CatalogTableProps) => {
                 key={row.key}
                 ref={virtualizer.measureElement}
                 data-index={item.index}
+                aria-rowindex={item.index + 2}
               >
-                <td className={`${rowBorder(last)}truncate px-3 py-2 font-medium`} title={row.name}>
+                <td
+                  className={`${stickyName} ${rowBorder(last)}truncate px-3 py-2 font-medium`}
+                  title={row.name}
+                >
                   {row.name}
                 </td>
                 <td
@@ -209,7 +261,8 @@ const CatalogTable = ({ rows, scale }: CatalogTableProps) => {
           )}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 };
 

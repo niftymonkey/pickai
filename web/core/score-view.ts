@@ -214,6 +214,41 @@ const scoreCell = (blend: BlendedRating): ScoreCell => {
   }
 };
 
+/** The rule that emptied the board, as the results line needs it. */
+interface EmptiedBy {
+  /** The rule's own words, from ruleLabel. */
+  label: string;
+  cutModels: number;
+}
+
+const counted = (count: number, noun: string): string =>
+  `${count.toLocaleString("en-US")} ${noun}${count === 1 ? "" : "s"}`;
+
+/** What the results region is currently showing the rows of. */
+interface ResultsContext {
+  /** The rule that cut the most, when the rules left nothing standing. */
+  emptiedBy: EmptiedBy | null;
+  /** True while a search narrows the rows to the ones matching a query. */
+  searching: boolean;
+}
+
+/**
+ * What the results region says about itself: how many rows it holds, how many of
+ * them rank nowhere, and, when it holds none, why. An empty result under a search
+ * is the search's doing, not the rules', and must not blame a rule for it.
+ */
+const resultsSummary = (rows: ScoredRow[], { emptiedBy, searching }: ResultsContext): string => {
+  if (rows.length === 0) {
+    if (searching) return "No match among the models that pass your rules.";
+    return emptiedBy === null
+      ? "No models pass your rules."
+      : `No models pass your rules. ${emptiedBy.label} cut the most, ${counted(emptiedBy.cutModels, "model")}.`;
+  }
+  const unrated = rows.filter(({ score }) => score.kind === "unrated").length;
+  const held = counted(rows.length, searching ? "match" : "model");
+  return unrated === 0 ? held : `${held}, ${unrated.toLocaleString("en-US")} unrated`;
+};
+
 const byName = (a: ScoredRow, b: ScoredRow): number => a.name.localeCompare(b.name);
 
 const scoreBoard = (
@@ -254,6 +289,7 @@ export {
   stepWeight,
   blendSentence,
   bandSpan,
+  resultsSummary,
   scoreBoard,
 };
-export type { ScorableIdentity, Metric, ScoreCell, ScoredRow, ScoreBoard };
+export type { ScorableIdentity, Metric, ScoreCell, ScoredRow, ScoreBoard, EmptiedBy, ResultsContext };

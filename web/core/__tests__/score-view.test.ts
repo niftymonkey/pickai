@@ -3,6 +3,7 @@ import type { BenchmarkSet, Model, ModelIdentity } from "pickai";
 import {
   bandSpan,
   blendSentence,
+  resultsSummary,
   defaultWeights,
   keepMetrics,
   metricList,
@@ -243,4 +244,39 @@ test("a scale with no span fills the track", () => {
     left: 0,
     width: 100,
   });
+});
+
+const plain = { emptiedBy: null, searching: false };
+
+test("the results line counts the rows it holds", () => {
+  const board = scoreBoard(rated, { overall: 1 });
+  expect(resultsSummary(board.rows.slice(0, 2), plain)).toBe("2 models");
+  expect(resultsSummary(board.rows.slice(0, 1), plain)).toBe("1 model");
+});
+
+test("the results line names the unrated bucket when there is one", () => {
+  // The fixture set rates two of the three, so one row lands in the unrated bucket.
+  const board = scoreBoard(rated, { overall: 1 });
+  expect(resultsSummary(board.rows, plain)).toBe("3 models, 1 unrated");
+});
+
+test("the results line speaks the rule that emptied the board", () => {
+  expect(
+    resultsSummary([], { emptiedBy: { label: "Input price at most $5/M", cutModels: 1276 }, searching: false }),
+  ).toBe("No models pass your rules. Input price at most $5/M cut the most, 1,276 models.");
+});
+
+test("the results line stays plain when nothing is left and no rule stands out", () => {
+  expect(resultsSummary([], plain)).toBe("No models pass your rules.");
+});
+
+test("a search that matches nothing blames the search, not the rules", () => {
+  // The rules are fine; this query simply matches none of the rows they left.
+  expect(resultsSummary([], { emptiedBy: null, searching: true })).toBe(
+    "No match among the models that pass your rules.",
+  );
+  const board = scoreBoard(rated, { overall: 1 });
+  expect(resultsSummary(board.rows.slice(0, 1), { emptiedBy: null, searching: true })).toBe(
+    "1 match",
+  );
 });

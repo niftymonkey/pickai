@@ -193,7 +193,12 @@ const DecisionSurface = ({ identities, arena, fetchedAt }: DecisionSurfaceProps)
             tip={BLEND_TIPS[source]}
             onChange={(next) => setWeightsBySource({ ...weightsBySource, [source]: next })}
           />
-          <CatalogTable rows={shownRows} scale={board.scale} />
+          <CatalogTable
+            rows={shownRows}
+            scale={board.scale}
+            emptiedBy={emptiedBy}
+            searching={searching}
+          />
         </main>
       </div>
     </div>
