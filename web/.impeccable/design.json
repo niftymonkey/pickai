@@ -1,0 +1,563 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-02T07:49:54Z",
+  "title": "Design System: pickai",
+  "extensions": {
+    "colorMeta": {
+      "bench": {
+        "role": "neutral",
+        "displayName": "Drafting Paper",
+        "canonical": "oklch(94% 0.01 250)",
+        "dark": "oklch(18.5% 0.006 255)",
+        "tonalRamp": [
+          "oklch(15% 0.01 250)",
+          "oklch(26% 0.01 250)",
+          "oklch(37% 0.01 250)",
+          "oklch(48% 0.01 250)",
+          "oklch(60% 0.01 250)",
+          "oklch(72% 0.01 250)",
+          "oklch(84% 0.01 250)",
+          "oklch(95% 0.01 250)"
+        ]
+      },
+      "bench-2": {
+        "role": "neutral",
+        "displayName": "Drafting Paper Shade",
+        "canonical": "oklch(91% 0.014 250)",
+        "dark": "oklch(22.5% 0.007 255)",
+        "tonalRamp": [
+          "oklch(15% 0.014 250)",
+          "oklch(26% 0.014 250)",
+          "oklch(37% 0.014 250)",
+          "oklch(48% 0.014 250)",
+          "oklch(60% 0.014 250)",
+          "oklch(72% 0.014 250)",
+          "oklch(84% 0.014 250)",
+          "oklch(95% 0.014 250)"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Sheet White",
+        "canonical": "oklch(97% 0.005 250)",
+        "dark": "oklch(24% 0.008 255)",
+        "tonalRamp": [
+          "oklch(15% 0.005 250)",
+          "oklch(26% 0.005 250)",
+          "oklch(37% 0.005 250)",
+          "oklch(48% 0.005 250)",
+          "oklch(60% 0.005 250)",
+          "oklch(72% 0.005 250)",
+          "oklch(84% 0.005 250)",
+          "oklch(95% 0.005 250)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Iron Ink",
+        "canonical": "oklch(22% 0.03 265)",
+        "dark": "oklch(93% 0.005 255)",
+        "tonalRamp": [
+          "oklch(15% 0.03 265)",
+          "oklch(26% 0.03 265)",
+          "oklch(37% 0.03 265)",
+          "oklch(48% 0.03 265)",
+          "oklch(60% 0.03 265)",
+          "oklch(72% 0.03 265)",
+          "oklch(84% 0.03 265)",
+          "oklch(95% 0.03 265)"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Iron Ink Two",
+        "canonical": "oklch(42% 0.04 262)",
+        "dark": "oklch(76% 0.008 255)",
+        "tonalRamp": [
+          "oklch(15% 0.04 262)",
+          "oklch(26% 0.04 262)",
+          "oklch(37% 0.04 262)",
+          "oklch(48% 0.04 262)",
+          "oklch(60% 0.04 262)",
+          "oklch(72% 0.04 262)",
+          "oklch(84% 0.04 262)",
+          "oklch(95% 0.04 262)"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Iron Ink Three",
+        "canonical": "oklch(57% 0.035 260)",
+        "dark": "oklch(60% 0.01 255)",
+        "tonalRamp": [
+          "oklch(15% 0.035 260)",
+          "oklch(26% 0.035 260)",
+          "oklch(37% 0.035 260)",
+          "oklch(48% 0.035 260)",
+          "oklch(60% 0.035 260)",
+          "oklch(72% 0.035 260)",
+          "oklch(84% 0.035 260)",
+          "oklch(95% 0.035 260)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Rule Line",
+        "canonical": "oklch(86% 0.02 255)",
+        "dark": "oklch(31% 0.01 255)",
+        "tonalRamp": [
+          "oklch(15% 0.02 255)",
+          "oklch(26% 0.02 255)",
+          "oklch(37% 0.02 255)",
+          "oklch(48% 0.02 255)",
+          "oklch(60% 0.02 255)",
+          "oklch(72% 0.02 255)",
+          "oklch(84% 0.02 255)",
+          "oklch(95% 0.02 255)"
+        ]
+      },
+      "line-2": {
+        "role": "neutral",
+        "displayName": "Heavy Rule Line",
+        "canonical": "oklch(78% 0.028 255)",
+        "dark": "oklch(39% 0.012 255)",
+        "tonalRamp": [
+          "oklch(15% 0.028 255)",
+          "oklch(26% 0.028 255)",
+          "oklch(37% 0.028 255)",
+          "oklch(48% 0.028 255)",
+          "oklch(60% 0.028 255)",
+          "oklch(72% 0.028 255)",
+          "oklch(84% 0.028 255)",
+          "oklch(95% 0.028 255)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Structural Cobalt",
+        "canonical": "oklch(52% 0.2 262)",
+        "dark": "oklch(72% 0.12 250)",
+        "tonalRamp": [
+          "oklch(15% 0.2 262)",
+          "oklch(26% 0.2 262)",
+          "oklch(37% 0.2 262)",
+          "oklch(48% 0.2 262)",
+          "oklch(60% 0.2 262)",
+          "oklch(72% 0.2 262)",
+          "oklch(84% 0.2 262)",
+          "oklch(95% 0.2 262)"
+        ]
+      },
+      "accent-deep": {
+        "role": "primary",
+        "displayName": "Deep Cobalt",
+        "canonical": "oklch(44% 0.19 262)",
+        "dark": "oklch(64% 0.12 252)",
+        "tonalRamp": [
+          "oklch(15% 0.19 262)",
+          "oklch(26% 0.19 262)",
+          "oklch(37% 0.19 262)",
+          "oklch(48% 0.19 262)",
+          "oklch(60% 0.19 262)",
+          "oklch(72% 0.19 262)",
+          "oklch(84% 0.19 262)",
+          "oklch(95% 0.19 262)"
+        ]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "Cobalt Wash",
+        "canonical": "oklch(92.5% 0.05 258)",
+        "dark": "oklch(30% 0.05 250)",
+        "tonalRamp": [
+          "oklch(15% 0.05 258)",
+          "oklch(26% 0.05 258)",
+          "oklch(37% 0.05 258)",
+          "oklch(48% 0.05 258)",
+          "oklch(60% 0.05 258)",
+          "oklch(72% 0.05 258)",
+          "oklch(84% 0.05 258)",
+          "oklch(95% 0.05 258)"
+        ]
+      },
+      "accent-ink": {
+        "role": "primary",
+        "displayName": "Cobalt Ink",
+        "canonical": "oklch(42% 0.17 262)",
+        "dark": "oklch(80% 0.1 245)",
+        "tonalRamp": [
+          "oklch(15% 0.17 262)",
+          "oklch(26% 0.17 262)",
+          "oklch(37% 0.17 262)",
+          "oklch(48% 0.17 262)",
+          "oklch(60% 0.17 262)",
+          "oklch(72% 0.17 262)",
+          "oklch(84% 0.17 262)",
+          "oklch(95% 0.17 262)"
+        ]
+      },
+      "hatch-line": {
+        "role": "neutral",
+        "displayName": "Hatch Stripe",
+        "canonical": "oklch(90.5% 0.018 255)",
+        "dark": "oklch(29% 0.008 255)",
+        "tonalRamp": [
+          "oklch(15% 0.018 255)",
+          "oklch(26% 0.018 255)",
+          "oklch(37% 0.018 255)",
+          "oklch(48% 0.018 255)",
+          "oklch(60% 0.018 255)",
+          "oklch(72% 0.018 255)",
+          "oklch(84% 0.018 255)",
+          "oklch(95% 0.018 255)"
+        ]
+      },
+      "rail-bg": {
+        "role": "secondary",
+        "displayName": "Blueprint Slate",
+        "canonical": "oklch(27% 0.07 265)",
+        "dark": "oklch(14.5% 0.006 255)",
+        "tonalRamp": [
+          "oklch(15% 0.07 265)",
+          "oklch(26% 0.07 265)",
+          "oklch(37% 0.07 265)",
+          "oklch(48% 0.07 265)",
+          "oklch(60% 0.07 265)",
+          "oklch(72% 0.07 265)",
+          "oklch(84% 0.07 265)",
+          "oklch(95% 0.07 265)"
+        ]
+      },
+      "rail-card": {
+        "role": "secondary",
+        "displayName": "Blueprint Slate Card",
+        "canonical": "oklch(32% 0.075 265)",
+        "dark": "oklch(21% 0.008 255)",
+        "tonalRamp": [
+          "oklch(15% 0.075 265)",
+          "oklch(26% 0.075 265)",
+          "oklch(37% 0.075 265)",
+          "oklch(48% 0.075 265)",
+          "oklch(60% 0.075 265)",
+          "oklch(72% 0.075 265)",
+          "oklch(84% 0.075 265)",
+          "oklch(95% 0.075 265)"
+        ]
+      },
+      "rail-ink": {
+        "role": "secondary",
+        "displayName": "Rail Ink",
+        "canonical": "oklch(96% 0.01 250)",
+        "dark": "oklch(93% 0.005 255)",
+        "tonalRamp": [
+          "oklch(15% 0.01 250)",
+          "oklch(26% 0.01 250)",
+          "oklch(37% 0.01 250)",
+          "oklch(48% 0.01 250)",
+          "oklch(60% 0.01 250)",
+          "oklch(72% 0.01 250)",
+          "oklch(84% 0.01 250)",
+          "oklch(95% 0.01 250)"
+        ]
+      },
+      "rail-ink-2": {
+        "role": "secondary",
+        "displayName": "Rail Ink Two",
+        "canonical": "oklch(80% 0.035 255)",
+        "dark": "oklch(76% 0.008 255)",
+        "tonalRamp": [
+          "oklch(15% 0.035 255)",
+          "oklch(26% 0.035 255)",
+          "oklch(37% 0.035 255)",
+          "oklch(48% 0.035 255)",
+          "oklch(60% 0.035 255)",
+          "oklch(72% 0.035 255)",
+          "oklch(84% 0.035 255)",
+          "oklch(95% 0.035 255)"
+        ]
+      },
+      "rail-ink-3": {
+        "role": "secondary",
+        "displayName": "Rail Ink Three",
+        "canonical": "oklch(66% 0.05 260)",
+        "dark": "oklch(58% 0.012 255)",
+        "tonalRamp": [
+          "oklch(15% 0.05 260)",
+          "oklch(26% 0.05 260)",
+          "oklch(37% 0.05 260)",
+          "oklch(48% 0.05 260)",
+          "oklch(60% 0.05 260)",
+          "oklch(72% 0.05 260)",
+          "oklch(84% 0.05 260)",
+          "oklch(95% 0.05 260)"
+        ]
+      },
+      "rail-line": {
+        "role": "secondary",
+        "displayName": "Rail Rule Line",
+        "canonical": "oklch(40% 0.075 265)",
+        "dark": "oklch(28% 0.01 255)",
+        "tonalRamp": [
+          "oklch(15% 0.075 265)",
+          "oklch(26% 0.075 265)",
+          "oklch(37% 0.075 265)",
+          "oklch(48% 0.075 265)",
+          "oklch(60% 0.075 265)",
+          "oklch(72% 0.075 265)",
+          "oklch(84% 0.075 265)",
+          "oklch(95% 0.075 265)"
+        ]
+      },
+      "rail-hover": {
+        "role": "secondary",
+        "displayName": "Rail Hover",
+        "canonical": "oklch(37% 0.075 265)",
+        "dark": "oklch(25% 0.01 255)",
+        "tonalRamp": [
+          "oklch(15% 0.075 265)",
+          "oklch(26% 0.075 265)",
+          "oklch(37% 0.075 265)",
+          "oklch(48% 0.075 265)",
+          "oklch(60% 0.075 265)",
+          "oklch(72% 0.075 265)",
+          "oklch(84% 0.075 265)",
+          "oklch(95% 0.075 265)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The survivor count on the rail. Nowhere else."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "The wordmark only."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Model names in table rows."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Explanations, table cells, control text. Prose capped at 65-75ch."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase section headers and table column headers."
+      },
+      "data": {
+        "displayName": "Data",
+        "purpose": "Every rate, score, date, count, and id. Always tabular figures."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "ease-out-quart",
+        "value": "cubic-bezier(0.25, 1, 0.5, 1)",
+        "purpose": "The one curve. Count tween and the rule-fire flash."
+      },
+      {
+        "name": "state-150",
+        "value": "150ms",
+        "purpose": "Color, border, and transform transitions on every control."
+      },
+      {
+        "name": "count-tween-360",
+        "value": "360ms",
+        "purpose": "The survivor count animating toward its new value via rAF."
+      },
+      {
+        "name": "rule-fire-700",
+        "value": "700ms",
+        "purpose": "A rail row whose state just changed: accent-soft fading to transparent."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms",
+        "purpose": "Every animation and transition under prefers-reduced-motion. Function is never lost."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "page-max",
+        "value": "1600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Rail Facet Row",
+      "kind": "custom",
+      "refersTo": "rule-card",
+      "description": "One of the ten rule kinds on the rail. The whole row is the button; the caret rotates when open.",
+      "html": "<div class=\"ds-rail\"><div class=\"ds-rail-card\"><button class=\"ds-rail-row\"><span class=\"ds-rail-row-head\"><span class=\"ds-rail-row-name\">Price ceiling</span><span class=\"ds-rail-caret\">&rsaquo;</span></span><span class=\"ds-rail-row-sum\">Input at or under $3.00 / 1M</span></button></div></div>",
+      "css": ".ds-rail { background: var(--rail-bg); padding: 16px; border-radius: 12px; } .ds-rail-card { background: var(--rail-card); border: 1px solid var(--rail-line); border-radius: 8px; } .ds-rail-row { display: block; width: 100%; padding: 8px 12px; text-align: left; background: transparent; border: 0; border-radius: 8px; cursor: pointer; transition: background-color 150ms; font-family: var(--font-geist-sans), system-ui, sans-serif; } .ds-rail-row:hover { background: var(--rail-hover); } .ds-rail-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-rail-row-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; } .ds-rail-row-name { font-size: 14px; font-weight: 500; color: var(--rail-ink); } .ds-rail-caret { font-size: 12px; color: var(--rail-ink-3); transition: transform 150ms; } .ds-rail-row-sum { display: block; margin-top: 2px; font-size: 12px; color: var(--rail-ink); }"
+    },
+    {
+      "name": "Facet Chip",
+      "kind": "chip",
+      "refersTo": "chip-rule-active",
+      "description": "A rail pick, rest and active. An active chip still turns off, so its hover thickens the border with a ring.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\">Tool calling</button><button class=\"ds-chip ds-chip-on\">Reasoning</button></div>",
+      "css": ".ds-chips { display: flex; gap: 6px; background: var(--rail-card); padding: 12px; border-radius: 8px; } .ds-chip { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--rail-line); background: transparent; color: var(--rail-ink); font-size: 14px; cursor: pointer; transition: color 150ms, background-color 150ms, border-color 150ms, box-shadow 150ms; font-family: var(--font-geist-sans), system-ui, sans-serif; } .ds-chip:hover { border-color: var(--accent); } .ds-chip-on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); } .ds-chip-on:hover { box-shadow: 0 0 0 1px var(--accent); } .ds-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Blend Chip with Steppers",
+      "kind": "chip",
+      "refersTo": "stepper",
+      "description": "One score category with its weight and two 24px steppers. The stepper hover is a full accent fill, because the chip it sits on is already accent-soft.",
+      "html": "<div class=\"ds-blend\"><span class=\"ds-blend-chip ds-blend-on\">Coding <span class=\"ds-blend-w\">3</span><button class=\"ds-step\" aria-label=\"Less Coding\">&minus;</button><button class=\"ds-step\" aria-label=\"More Coding\">+</button></span><span class=\"ds-blend-chip\">Math<button class=\"ds-step\" aria-label=\"Less Math\" disabled>&minus;</button><button class=\"ds-step\" aria-label=\"More Math\">+</button></span></div>",
+      "css": ".ds-blend { display: flex; gap: 6px; } .ds-blend-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--line); color: var(--ink-2); font-size: 14px; font-family: var(--font-geist-sans), system-ui, sans-serif; } .ds-blend-on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); } .ds-blend-w { font-size: 12px; font-family: var(--font-geist-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; } .ds-step { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; min-height: 24px; margin: -2px 0; padding: 0 4px; border: 0; border-radius: 4px; background: transparent; color: inherit; font-size: 12px; cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-step:hover { background: var(--accent); color: var(--card); } .ds-step:disabled { opacity: 0.3; cursor: default; } .ds-step:disabled:hover { background: transparent; color: inherit; } .ds-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Segmented Score Source",
+      "kind": "nav",
+      "refersTo": "segment-active",
+      "description": "Two whole-cell buttons in one bordered group. The group never clips its corners; each end segment rounds itself, because an option's tooltip is positioned inside it.",
+      "html": "<div class=\"ds-seg\" role=\"group\" aria-label=\"Score source\"><div class=\"ds-seg-cell\"><button class=\"ds-seg-btn ds-seg-l ds-seg-on\" aria-pressed=\"true\">LMArena</button><span class=\"ds-seg-i\"><span class=\"ds-i\">i</span></span></div><div class=\"ds-seg-cell ds-seg-div\"><button class=\"ds-seg-btn ds-seg-r\" aria-pressed=\"false\">Artificial Analysis</button><span class=\"ds-seg-i\"><span class=\"ds-i\">i</span></span></div></div>",
+      "css": ".ds-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; } .ds-seg-cell { position: relative; display: flex; } .ds-seg-div { border-left: 1px solid var(--line); } .ds-seg-btn { width: 100%; padding: 4px 32px 4px 10px; text-align: left; white-space: nowrap; font-size: 12px; background: transparent; border: 0; color: var(--ink-2); cursor: pointer; transition: background-color 150ms, color 150ms; font-family: var(--font-geist-sans), system-ui, sans-serif; } .ds-seg-l { border-radius: 5px 0 0 5px; } .ds-seg-r { border-radius: 0 5px 5px 0; } .ds-seg-btn:hover { background: var(--bench-2); color: var(--ink); } .ds-seg-on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 500; } .ds-seg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-seg-i { position: absolute; inset-block: 0; right: 8px; display: flex; align-items: center; } .ds-i { display: flex; align-items: center; justify-content: center; width: 15px; height: 15px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink-3); font-size: 10.4px; font-family: var(--font-geist-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Info Hover with Tip",
+      "kind": "custom",
+      "refersTo": "tooltip",
+      "description": "The one tooltip pattern. A 15px circled i whose invisible pad makes a 27px target; hover, focus, and click open it, Escape closes it.",
+      "html": "<span class=\"ds-info\"><button class=\"ds-info-btn\" aria-label=\"About the catalog\" aria-expanded=\"true\">i</button><span class=\"ds-tip\" role=\"tooltip\"><span class=\"ds-tip-body\">Catalog from models.dev, fetched 2026-09-01.</span></span></span>",
+      "css": ".ds-info { position: relative; display: inline-flex; padding-bottom: 64px; } .ds-info-btn { position: relative; display: flex; align-items: center; justify-content: center; width: 15px; height: 15px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink-3); font-size: 10.4px; cursor: pointer; transition: background-color 150ms, border-color 150ms, color 150ms; font-family: var(--font-geist-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; } .ds-info-btn::before { content: \"\"; position: absolute; inset: -6px; } .ds-info-btn:hover, .ds-info-btn:focus-visible { border-color: var(--accent); background: var(--accent); color: var(--card); } .ds-tip { position: absolute; top: 100%; left: 0; z-index: 40; width: 288px; padding-top: 6px; } .ds-tip-body { display: block; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink-2); font-size: 12px; font-family: var(--font-geist-sans), system-ui, sans-serif; }"
+    },
+    {
+      "name": "Bench Search Input",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Search over the whole catalog, including models the rules cut.",
+      "html": "<input class=\"ds-search\" type=\"search\" placeholder=\"Find a model in the whole catalog\" aria-label=\"Find a model in the whole catalog\" />",
+      "css": ".ds-search { width: 100%; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); font-size: 14px; transition: border-color 150ms; font-family: var(--font-geist-sans), system-ui, sans-serif; } .ds-search::placeholder { color: var(--ink-3); } .ds-search:hover { border-color: var(--line-2); } .ds-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Rail Input",
+      "kind": "input",
+      "refersTo": "input-rail",
+      "description": "A numeric fence or roster search on the dark rail. Commits on blur and on Enter, never keyed on its applied value.",
+      "html": "<div class=\"ds-railwrap\"><input class=\"ds-railinput\" type=\"text\" value=\"3.00\" aria-label=\"Input price ceiling\" /></div>",
+      "css": ".ds-railwrap { background: var(--rail-card); padding: 12px; border-radius: 8px; } .ds-railinput { width: 64px; padding: 4px 8px; border: 1px solid var(--rail-line); border-radius: 6px; background: var(--rail-hover); color: var(--rail-ink); font-size: 12px; transition: border-color 150ms; font-family: var(--font-geist-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; } .ds-railinput::placeholder { color: var(--rail-ink-3); } .ds-railinput:hover { border-color: var(--rail-ink-3); } .ds-railinput:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Unknown Chip",
+      "kind": "chip",
+      "refersTo": "chip-unknown",
+      "description": "The product thesis rendered. Absent data is its own state: hatched fill plus a lowercase word, never a zero and never an error color.",
+      "html": "<span class=\"ds-unknown\">unrated</span>",
+      "css": ".ds-unknown { display: inline-block; padding: 2px 6px; border-radius: 4px; color: var(--ink-2); font-size: 12px; background: repeating-linear-gradient(-45deg, transparent 0 4px, var(--hatch-line) 4px 6px); font-family: var(--font-geist-sans), system-ui, sans-serif; }"
+    },
+    {
+      "name": "Count Readout",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "The live survivor count on the rail. It tweens over 360ms as rules fire; the tweening figure is hidden from the accessibility tree and a live region announces the settled value.",
+      "html": "<div class=\"ds-count\"><p class=\"ds-count-n\">1,284</p><p class=\"ds-count-s\">of 2,021 models pass your rules</p><p class=\"ds-count-t\">3,912 of 7,478 listings</p></div>",
+      "css": ".ds-count { background: var(--rail-bg); padding: 16px; border-radius: 12px; } .ds-count-n { margin: 0; font-size: 36px; font-weight: 600; line-height: 1.1; letter-spacing: -0.025em; color: var(--rail-ink); font-family: var(--font-geist-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; } .ds-count-s { margin: 2px 0 0; font-size: 12px; color: var(--rail-ink-2); font-family: var(--font-geist-sans), system-ui, sans-serif; } .ds-count-t { margin: 4px 0 0; font-size: 12px; color: var(--rail-ink-3); font-family: var(--font-geist-sans), system-ui, sans-serif; }"
+    },
+    {
+      "name": "Score Band",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Where a model's score sits across all rated survivors. It renders beside the number, never instead of it, and it is decorative to the accessibility tree.",
+      "html": "<span class=\"ds-score\"><span class=\"ds-score-n\">1412</span><span class=\"ds-score-track\" aria-hidden=\"true\"><span class=\"ds-score-fill\"></span></span></span>",
+      "css": ".ds-score { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-size: 14px; font-family: var(--font-geist-sans), system-ui, sans-serif; } .ds-score-n { font-weight: 500; font-family: var(--font-geist-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; } .ds-score-track { position: relative; display: inline-block; width: 64px; height: 6px; border-radius: 999px; background: var(--bench-2); } .ds-score-fill { position: absolute; inset-block: 0; left: 12%; right: 26%; border-radius: 999px; background: var(--accent); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Instrument Bench",
+    "overview": "A calm workbench where a developer assembles a decision. The bench itself is quiet: cool blueprint-tinted paper, generous space, nothing shouting. The instruments on it are exact: aligned monospace numbers, a source and a measurement date beside every figure, unknowns labeled as unknowns rather than filled in. Delight lives in the hands, not the chrome. The survivor count tweens as gates fire, a rule row flashes when its state changes, and the readouts stay as sober as a Stripe dashboard.\n\nThe page is two surfaces and nothing else: a dark rules rail on the left carrying the live count and the ten facet rows, and a light bench on the right carrying the header receipt, the search and score-source toolbar, the score blend, and one long virtualized table. There is no navigation, no dashboard, no modal. Every control applies instantly; nothing waits for a submit.\n\nTwo committed themes share every token through light-dark(): Blueprint (light: cool drafting paper, structural cobalt) and Night (dark: neutral graphite, cool blue). The OS picks by default and html[data-theme] overrides, so a switcher is a hook away. This system explicitly rejects the AI-tool SaaS template (dark purple gradients, glassmorphism, hero metrics, sparkle icons), leaderboard trophy energy, enterprise BI walls of charts, and anything resembling a chatbot.",
+    "keyCharacteristics": [
+      "Quiet shell, exact data, instant application of every rule",
+      "One cobalt accent, used sparingly and meaningfully",
+      "Numbers in monospace with tabular figures; they align or they are wrong",
+      "Unknown is a designed state (hatched, labeled), distinct from empty and from zero",
+      "The rules rail is its own dark surface in both themes; the live count sits on it",
+      "Provenance is visible by default; only the catalog receipt hides behind an info hover",
+      "Every visual decision lands as a token, so recolor and theming are swaps, not rewrites"
+    ],
+    "rules": [
+      {
+        "name": "The Token Door Rule",
+        "body": "Every color exists only as a CSS custom property. Recoloring or adding a theme is a token swap, never a screen edit. A hardcoded color in a component is prohibited.",
+        "section": "colors"
+      },
+      {
+        "name": "The Quiet Bench Rule",
+        "body": "The accent appears on at most one class of element per screen. If two things compete for the accent, one of them does not get it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Unrated Hue Rule",
+        "body": "Unknown renders as the hatched treatment plus a lowercase label (\"unrated\", \"price unknown\"), never gray-as-afterthought and never red-as-error.",
+        "section": "colors"
+      },
+      {
+        "name": "The Dark Rail Rule",
+        "body": "The rules rail is a visibly different, darker surface in both themes. The survivor count lives on it, beside the rules that cause it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Distinct Hover Rule",
+        "body": "A hover treatment must differ from the resting background of every surface the control can sit on. A soft accent wash on a control that already sits on accent-soft is invisible, which is why the steppers hover with a full accent fill.",
+        "section": "colors"
+      },
+      {
+        "name": "The Measured Mono Rule",
+        "body": "Rates, scores, dates, model ids, and counts are always tabular figures, monospace wherever they sit in a column. If columns of numbers do not align, the type is wrong.",
+        "section": "typography"
+      },
+      {
+        "name": "The Reserved Slot Rule",
+        "body": "A number that can appear and disappear (a cut count, a weight, a status note) reserves its space at rest. Text that pushes its neighbours sideways when it lands makes a control move under the pointer, which is a bug.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Surfaces are flat at rest and stay flat on hover. A shadow on a row, card, chip, or button is a bug. If an element needs to read as above another, it takes a z-index and a border, not a shadow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The No-Transform-Under-A-Tip Rule",
+        "body": "An element that hosts a tooltip is never centered with a transform. A transform starts a stacking context and the tip's z-index then loses to whatever is above its parent. Center with absolute inset-y-0 flex items-center instead.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do put the source name and measurement date beside every number, in the UI itself.",
+      "Do render an absent value as the hatched unknown chip with its own words.",
+      "Do reserve the space a number will occupy, so nothing shifts when it lands.",
+      "Do give every pointer interaction a keyboard path, and announce state changes in a live region.",
+      "Do route every color through a token; light-dark() carries both themes.",
+      "Do keep each control's box at 24px or larger, with a hover state and the hand cursor."
+    ],
+    "donts": [
+      "Don't use the AI-tool SaaS template: dark purple gradients, glassmorphism, hero metrics, sparkle icons.",
+      "Don't ship leaderboard trophy energy or any rank-1 visual emphasis.",
+      "Don't build enterprise BI walls of charts.",
+      "Don't add a chatbot, a prose input box, or conversational framing anywhere.",
+      "Don't use pure #000 or #fff, side-stripe borders, gradient text, or em dashes in copy.",
+      "Don't put the accent on two competing element classes on one screen (Quiet Bench Rule).",
+      "Don't render a measured value without tabular figures (Measured Mono Rule).",
+      "Don't hover a control with a wash that matches any surface it can rest on (Distinct Hover Rule).",
+      "Don't center a tooltip host with a transform (No-Transform-Under-A-Tip Rule).",
+      "Don't hide provenance behind a hover beyond the one catalog receipt in the header."
+    ]
+  }
+}
