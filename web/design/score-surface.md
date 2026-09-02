@@ -45,8 +45,10 @@ effects. Every flip goes through it.
 - **An active score floor is cleared on every source change.** The floor names a metric, and
   the metric names change with the source; carrying it over would silently filter on a metric
   that no longer exists.
-- The mix is always spoken as percentages beside the chips ("= 60% Coding + 40% Math"), even
-  when one category carries the whole score.
+- The mix is always spoken, in words, on its own line under the chips. One weighted category is
+  named rather than measured ("Every score is the Overall rating"), because a percentage of a
+  single thing reads as a score and not as a mix; two or more are shares that always total 100,
+  the last one absorbing the rounding.
 - A model rated on only some weighted metrics still scores, and its cell says so
   ("2/3 weighted metrics"). Rated on none, it is unrated, which is a state and not a zero.
 
@@ -63,11 +65,16 @@ effects. Every flip goes through it.
 ## The last-good set
 
 `servingLastGood` in `web/core/benchmark-source.ts` wraps the live fetch. The memory is
-module-level in `web/lib/benchmarks.ts`, because react's `cache` is per-request.
+module-level in `web/lib/benchmarks.ts`, because react's `cache` is per-request, and under that
+memory sits a committed floor: `web/lib/arena-snapshot.json`, a dated curated set.
 
-- Three states: `ok` (fresh), `stale` (the live fetch failed and the last good set stood in),
-  `unavailable` (it failed with nothing to stand in, which is what a cold start plus a failed
-  fetch looks like).
+- Three states: `ok` (fresh), `stale` (the live fetch failed and an older set stood in),
+  `unavailable` (it failed with nothing at all to stand in, which now means the floor was
+  removed).
+- **The floor exists because a build worker is cold by definition.** LMArena answers a build's
+  fetch with 429 often enough that a deployment shipped with no score column, no band, no blend
+  editor and no score floor rule, for its whole revalidate hour, on 2026-09-02. Refresh the
+  snapshot when it feels old; the page says the date it is serving.
 - **A stale set still scores.** Only `unavailable` empties the score column.
 - **A covered failure logs `console.warn`; an uncovered one logs `console.error`.** A recovery
   is not a page error, and Next's dev overlay treats an error as one.
@@ -94,8 +101,8 @@ module-level in `web/lib/benchmarks.ts`, because react's `cache` is per-request.
 - Per-axis sorting and the rank column: slice D, `prototypes/web/design/sorting-spec.md`.
 - The browser-side last-good copy in `localStorage`: slice E. One key, no chunking (the
   curated set is 276 KB; the full set is 1.2 MB against a 5 MB budget). The order is live
-  fetch, then the server's memory, then the browser copy, and the caption must say which one is
-  on screen.
+  fetch, then the server's memory, then the browser copy, then the committed floor, and the
+  caption must say which one is on screen.
 - A scale legend for the Elo-to-index jump on a source flip: parked at the above-table
   critique.
 - BYOD upload and its partial-match repair screen (9.13), which is what adds the third segment.
