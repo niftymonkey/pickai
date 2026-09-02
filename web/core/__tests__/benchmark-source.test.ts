@@ -93,3 +93,32 @@ test("a thrown non-error still carries a readable reason", async () => {
   }, vi.fn());
   await expect(load()).resolves.toEqual({ status: "unavailable", reason: "socket hang up" });
 });
+
+test("a floor stands in for a cold process whose very first fetch fails", async () => {
+  // A build worker is cold by definition, and a build that cannot reach the source
+  // would otherwise prerender a page with no scores for its whole revalidate hour.
+  const report = vi.fn();
+  const load = servingLastGood(
+    async () => {
+      throw new Error("HTTP 429");
+    },
+    report,
+    setOf("2026-09-01"),
+  );
+  await expect(load()).resolves.toEqual({
+    status: "stale",
+    set: setOf("2026-09-01"),
+    reason: "HTTP 429",
+  });
+  expect(report).toHaveBeenCalledWith({
+    status: "stale",
+    set: setOf("2026-09-01"),
+    reason: "HTTP 429",
+  });
+});
+
+test("a live fetch replaces the floor rather than sitting behind it", async () => {
+  // The floor is the oldest acceptable answer, never the preferred one.
+  const load = servingLastGood(async () => setOf("2026-09-02"), vi.fn(), setOf("2026-09-01"));
+  await expect(load()).resolves.toEqual({ status: "ok", set: setOf("2026-09-02") });
+});

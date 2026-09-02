@@ -15,14 +15,17 @@ type FailedLoad = Exclude<BenchmarkSource, { status: "ok" }>;
 
 /**
  * Wraps a live fetch so a failed load serves the last set that succeeded.
- * The memory lives for the life of the process, so a cold start that fails has
- * nothing to serve and reports the failure instead.
+ * The memory lives for the life of the process, so a cold start has none of its
+ * own: the floor is what it serves instead. Without a floor, a cold start whose
+ * fetch fails has nothing to stand in and reports the failure. A build worker is
+ * cold by definition, which is how a whole deployment once shipped scoreless.
  */
 const servingLastGood = (
   fetchSet: () => Promise<BenchmarkSet>,
   reportFailure: (failure: FailedLoad) => void,
+  floor: BenchmarkSet | null = null,
 ): SourceLoader => {
-  let lastGood: BenchmarkSet | null = null;
+  let lastGood: BenchmarkSet | null = floor;
   return async () => {
     try {
       const set = await fetchSet();
