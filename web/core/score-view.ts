@@ -221,8 +221,9 @@ interface EmptiedBy {
   cutModels: number;
 }
 
-const counted = (count: number, noun: string): string =>
-  `${count.toLocaleString("en-US")} ${noun}${count === 1 ? "" : "s"}`;
+// The plural is given, never derived: "match" plus an s is "matchs".
+const counted = (count: number, singular: string, plural: string): string =>
+  `${count.toLocaleString("en-US")} ${count === 1 ? singular : plural}`;
 
 /** What the results region is currently showing the rows of. */
 interface ResultsContext {
@@ -242,10 +243,12 @@ const resultsSummary = (rows: ScoredRow[], { emptiedBy, searching }: ResultsCont
     if (searching) return "No match among the models that pass your rules.";
     return emptiedBy === null
       ? "No models pass your rules."
-      : `No models pass your rules. ${emptiedBy.label} cut the most, ${counted(emptiedBy.cutModels, "model")}.`;
+      : `No models pass your rules. ${emptiedBy.label} cut the most, ${counted(emptiedBy.cutModels, "model", "models")}.`;
   }
   const unrated = rows.filter(({ score }) => score.kind === "unrated").length;
-  const held = counted(rows.length, searching ? "match" : "model");
+  const held = searching
+    ? counted(rows.length, "match", "matches")
+    : counted(rows.length, "model", "models");
   return unrated === 0 ? held : `${held}, ${unrated.toLocaleString("en-US")} unrated`;
 };
 

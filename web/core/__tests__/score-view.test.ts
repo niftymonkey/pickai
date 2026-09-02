@@ -279,4 +279,8 @@ test("a search that matches nothing blames the search, not the rules", () => {
   expect(resultsSummary(board.rows.slice(0, 1), { emptiedBy: null, searching: true })).toBe(
     "1 match",
   );
+  // "match" plus an s is "matchs", so the plural is given rather than derived.
+  expect(resultsSummary(board.rows.slice(0, 2), { emptiedBy: null, searching: true })).toBe(
+    "2 matches",
+  );
 });
