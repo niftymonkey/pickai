@@ -34,6 +34,15 @@ export interface ModelModalities {
  * `id` is the models.dev ID, which matches direct provider API / AI SDK format.
  * `openRouterId` is the OpenRouter API slug, derived at parse time.
  */
+/**
+ * A published way to steer a model's reasoning. `effort` carries the named levels
+ * the model accepts, `budgetTokens` a token range, and `toggle` is on or off.
+ */
+export type ReasoningOption =
+  | { kind: "effort"; values: string[] }
+  | { kind: "budgetTokens"; min?: number; max?: number }
+  | { kind: "toggle" };
+
 export interface Model {
   /** models.dev ID: "claude-sonnet-4-5", "gpt-4o", "gemini-2.5-flash" */
   id: string;
@@ -59,6 +68,10 @@ export interface Model {
   openWeights?: boolean;
   /** Supports file/image attachments */
   attachment?: boolean;
+  /** Accepts a temperature setting */
+  temperature?: boolean;
+  /** How the model's reasoning is steered, when the source publishes it */
+  reasoningOptions?: ReasoningOption[];
   /** Model family: "claude", "gpt", "gemini" */
   family?: string;
   /** Knowledge cutoff date: "2024-06", "2025-03" */

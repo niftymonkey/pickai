@@ -32,6 +32,8 @@ type ScoreCell =
 
 interface ScoredRow extends CatalogRow {
   score: ScoreCell;
+  /** Every metric the source measured for this model; the panel breaks them out. */
+  ratings: Record<string, MetricRating> | undefined;
 }
 
 interface ScoreBoard {
@@ -309,23 +311,71 @@ const catalogReceipt = ({
   return `${n(listings)} listings \u2192 ${n(models)} models \u00b7 ${n(scored)} scored \u00b7 ${n(models - scored)} unscored`;
 };
 
-/** A hair of minimum width keeps a tight interval visible on the band. */
-const BAND_MIN_WIDTH_PCT = 3;
+// The panel's bar fills from the scale's low end to the value, so its length is
+// the score. The floating-interval band it replaces drew only the confidence
+// interval, which read as a stray dot on a scale 400 points wide.
+const FILL_MIN_PCT = 1.5;
+
+/** How much of a metric bar is filled, as a percentage of the shared scale. */
+const fillPercent = (value: number, scale: { min: number; max: number }): number => {
+  const span = scale.max - scale.min;
+  if (span <= 0) return 100;
+  return Math.min(100, Math.max(FILL_MIN_PCT, ((value - scale.min) / span) * 100));
+};
 
 /**
- * Where a score's interval sits on the shared band scale, as percentages.
- * The span is clamped to stay inside the track: a top score whose interval is a
- * point starts at the scale's max, and an unclamped left would leave no width.
+ * One scale for every metric, not one per metric. All of a source's categories
+ * are the same unit, and per-metric scales made lengths look comparable down a
+ * panel when they were not: a lower math score drew a longer bar than a higher
+ * coding one.
  */
-const bandSpan = (
-  score: { low: number; high: number },
-  scale: { min: number; max: number },
-): { left: number; width: number } => {
-  const span = scale.max - scale.min;
-  if (span <= 0) return { left: 0, width: 100 };
-  const width = Math.min(100, Math.max(BAND_MIN_WIDTH_PCT, ((score.high - score.low) / span) * 100));
-  const left = Math.min(100 - width, Math.max(0, ((score.low - scale.min) / span) * 100));
-  return { left, width };
+const sharedScale = (
+  identities: ScorableIdentity[],
+): { min: number; max: number } | null => {
+  let scale: { min: number; max: number } | null = null;
+  for (const { ratings } of identities) {
+    if (ratings === undefined) continue;
+    for (const name in ratings) {
+      const { best } = ratings[name];
+      scale =
+        scale === null
+          ? { min: best, max: best }
+          : { min: Math.min(scale.min, best), max: Math.max(scale.max, best) };
+    }
+  }
+  return scale;
+};
+
+/**
+ * Each model's place per metric, among the models the source measured in that
+ * category. Ties share the better place, and the count is per metric because a
+ * source does not measure every model in every category.
+ */
+const metricRanks = (
+  identities: ScorableIdentity[],
+): Record<string, { places: Record<string, number>; measured: number }> => {
+  const byMetric: Record<string, { key: string; value: number }[]> = {};
+  for (const { key, ratings } of identities) {
+    if (ratings === undefined) continue;
+    for (const name in ratings) {
+      byMetric[name] ??= [];
+      byMetric[name].push({ key, value: ratings[name].best });
+    }
+  }
+  const ranked: Record<string, { places: Record<string, number>; measured: number }> = {};
+  for (const name in byMetric) {
+    const ordered = [...byMetric[name]].sort((a, b) => b.value - a.value);
+    const places: Record<string, number> = {};
+    ordered.forEach((entry, index) => {
+      const previous = ordered[index - 1];
+      places[entry.key] =
+        previous !== undefined && previous.value === entry.value
+          ? places[previous.key]
+          : index + 1;
+    });
+    ranked[name] = { places, measured: ordered.length };
+  }
+  return ranked;
 };
 
 const votesNote = (votes: number | undefined): string | null =>
@@ -416,6 +466,7 @@ const scoreBoard = (
     (identity): ScoredRow => ({
       ...rowFromIdentity(identity),
       score: scoreCell(blendRatings(identity.ratings, weights)),
+      ratings: identity.ratings,
     }),
   );
   const rated = scored
@@ -452,7 +503,9 @@ export {
   topKeys,
   topRows,
   catalogReceipt,
-  bandSpan,
+  fillPercent,
+  sharedScale,
+  metricRanks,
   resultsSummary,
   scoreBoard,
 };

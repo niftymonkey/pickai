@@ -1,17 +1,25 @@
 // The catalog as a grouped table: one row per model identity, virtualized so
 // only the rows in view (plus overscan) reach the DOM; spacer rows keep the
-// scroll geometry of the full list.
+// scroll geometry of the full list. A row opens a panel holding everything about
+// that model that is not worth a column of its own.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { formatCutoff, formatPrice, formatReleased, formatTokens } from "@/core/format";
-import { bandSpan, resultsSummary } from "@/core/score-view";
-import type { EmptiedBy, ScoreCell, ScoredRow } from "@/core/score-view";
+import { formatPrice, formatTokens } from "@/core/format";
+import { resultsSummary } from "@/core/score-view";
+import type { EmptiedBy, Metric, ScoredRow } from "@/core/score-view";
+import { ModelPanel } from "./model-panel";
 
 interface CatalogTableProps {
   rows: ScoredRow[];
-  /** The band scale across every rated survivor; null when none are rated. */
+  /** The metrics the current source publishes, in display order. */
+  metrics: Metric[];
+  /** Each metric's places and how many models the source measured in it. */
+  ranks: Record<string, { places: Record<string, number>; measured: number }>;
+  /** One scale across every metric of every rated model; null when none are rated. */
   scale: { min: number; max: number } | null;
+  sourceName: string | null;
+  measuredAt: string | null;
   /** The rule that cut the most, when the rules left nothing standing. */
   emptiedBy?: EmptiedBy;
   /** True while a search narrows the rows; an empty result is then the search's doing. */
@@ -19,13 +27,12 @@ interface CatalogTableProps {
 }
 
 // The table layout is fixed, because with only visible rows in the DOM an
-// automatic layout would resize columns as rows scroll in and out. The numeric
-// columns are pinned at the full catalog's natural max-content widths, and the
-// Model column has a floor of its own: the name is what the reader came for, so
-// it never yields its width to a column of digits. The table is then wider than
-// most windows, which is why the name column is also sticky.
-const MODEL_COLUMN_WIDTH = 260;
-const COLUMN_WIDTHS: (number | undefined)[] = [undefined, 150, 168, 78, 117, 117, 87, 104, 89, 89];
+// automatic layout would resize columns as rows scroll in and out. A column earns
+// its place only if it is scanned across rows while deciding; everything else
+// about a model lives in that model's panel. Five columns fit a 1024 window with
+// no sideways scroll, which is what makes a narrow layout possible at all.
+const MODEL_COLUMN_WIDTH = 280;
+const COLUMN_WIDTHS: (number | undefined)[] = [undefined, 130, 120, 120, 100];
 const COLUMN_COUNT = COLUMN_WIDTHS.length;
 const TABLE_MIN_WIDTH =
   MODEL_COLUMN_WIDTH + COLUMN_WIDTHS.reduce((sum: number, width) => sum + (width ?? 0), 0);
@@ -35,8 +42,10 @@ const TABLE_MIN_WIDTH =
 const stickyName = "sticky left-0 border-r border-line bg-card";
 
 // Rows measure 37px, or 38px when a hatched unknown chip stretches the line
-// box; this seeds the virtualizer and measureElement refines per row.
+// box; this seeds the virtualizer and measureElement refines per row. A panel is
+// far taller, and its own estimate keeps the scrollbar honest before it measures.
 const ESTIMATED_ROW_HEIGHT = 38;
+const ESTIMATED_PANEL_HEIGHT = 260;
 
 const Unknown = ({ label }: { label: string }) => (
   <span className="hatch inline-block rounded-sm px-1.5 py-0.5 text-xs text-ink-2">{label}</span>
@@ -45,31 +54,19 @@ const Unknown = ({ label }: { label: string }) => (
 const fact = <T,>(value: T | null, render: (value: T) => string, unknownLabel: string) =>
   value === null ? <Unknown label={unknownLabel} /> : render(value);
 
-const Band = ({ score, scale }: { score: { low: number; high: number }; scale: { min: number; max: number } }) => {
-  const { left, width } = bandSpan(score, scale);
-  return (
-    <span aria-hidden className="relative inline-block h-1.5 w-16 shrink-0 rounded-full bg-bench-2">
-      <span
-        className="absolute inset-y-0 rounded-full bg-accent"
-        style={{ left: `${left}%`, width: `${width}%` }}
-      />
-    </span>
-  );
-};
-
-const ScoreFact = ({ score, scale }: { score: ScoreCell; scale: { min: number; max: number } | null }) => {
-  if (score.kind === "unrated") return <Unknown label="unrated" />;
-  const notes = [score.note, score.configNote].filter((note) => note !== null).join(" · ");
-  return (
-    <div className="flex flex-col">
-      <span className="flex items-center gap-2">
-        <span className="tnum font-medium">{score.value}</span>
-        {scale !== null && <Band score={score} scale={scale} />}
-      </span>
-      {notes !== "" && <span className="tnum text-xs text-ink-2">{notes}</span>}
-    </div>
-  );
-};
+// A closed disclosure points at what it will reveal, and turns to point at it
+// once it is open.
+const Chevron = () => (
+  <svg
+    width="10"
+    height="10"
+    viewBox="0 0 10 10"
+    aria-hidden
+    className="shrink-0 text-ink-3 transition-transform duration-150 group-aria-expanded:rotate-90 group-aria-expanded:text-accent-ink"
+  >
+    <path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+  </svg>
+);
 
 /** The full-width row between rated and unrated rows; absent data ranks nowhere (rule 1). */
 const UnratedDivider = ({ count, last }: { count: number; last: boolean }) => (
@@ -90,24 +87,48 @@ const numericHead = "border-b border-line-2 px-3 py-2 text-right font-medium";
 // How long the scrollbar stays visible after the last scroll event.
 const SCROLLBAR_LINGER_MS = 800;
 
-/** A display line: a model row, or the one divider that opens the unrated bucket. */
+/** A display line: a model row, its open panel, or the divider that opens the unrated bucket. */
 type TableEntry =
   | { kind: "model"; row: ScoredRow }
+  | { kind: "panel"; row: ScoredRow }
   | { kind: "divider"; count: number };
 
-const tableEntries = (rows: ScoredRow[]): TableEntry[] => {
+const tableEntries = (rows: ScoredRow[], open: ReadonlySet<string>): TableEntry[] => {
+  const entries: TableEntry[] = [];
   const firstUnrated = rows.findIndex(({ score }) => score.kind === "unrated");
-  if (firstUnrated === -1) return rows.map((row) => ({ kind: "model", row }));
-  return [
-    ...rows.slice(0, firstUnrated).map((row): TableEntry => ({ kind: "model", row })),
-    { kind: "divider", count: rows.length - firstUnrated },
-    ...rows.slice(firstUnrated).map((row): TableEntry => ({ kind: "model", row })),
-  ];
+  rows.forEach((row, index) => {
+    if (index === firstUnrated) {
+      entries.push({ kind: "divider", count: rows.length - firstUnrated });
+    }
+    entries.push({ kind: "model", row });
+    if (open.has(row.key)) entries.push({ kind: "panel", row });
+  });
+  return entries;
 };
 
-const CatalogTable = ({ rows, scale, emptiedBy, searching }: CatalogTableProps) => {
+const CatalogTable = ({
+  rows,
+  metrics,
+  ranks,
+  scale,
+  sourceName,
+  measuredAt,
+  emptiedBy,
+  searching,
+}: CatalogTableProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const entries = tableEntries(rows);
+  // Which panels are open is this table's own view state: it reaches no sibling
+  // and changes no data, so it does not travel up to the driver.
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  const entries = tableEntries(rows, open);
+
+  const togglePanel = (key: string) => {
+    setOpen((current) => {
+      const next = new Set(current);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
+  };
 
   // Syncs with the DOM scroll state: the classes ride the element directly so
   // neither scrolling nor resizing re-renders the table. A region with columns off
@@ -141,7 +162,8 @@ const CatalogTable = ({ rows, scale, emptiedBy, searching }: CatalogTableProps) 
   const virtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
     count: entries.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    estimateSize: (index) =>
+      entries[index].kind === "panel" ? ESTIMATED_PANEL_HEIGHT : ESTIMATED_ROW_HEIGHT,
     overscan: 10,
     useFlushSync: false,
   });
@@ -184,15 +206,10 @@ const CatalogTable = ({ rows, scale, emptiedBy, searching }: CatalogTableProps) 
             <th className={`${stickyName} z-20 border-b border-line-2 px-3 py-2 text-left font-medium`}>
               Model
             </th>
-            <th className="border-b border-line-2 px-3 py-2 text-left font-medium">Maker</th>
             <th className="border-b border-line-2 px-3 py-2 text-left font-medium">Score</th>
-            <th className={numericHead}>Sellers</th>
             <th className={numericHead}>Input $/M</th>
             <th className={numericHead}>Output $/M</th>
             <th className={numericHead}>Context</th>
-            <th className={numericHead}>Max output</th>
-            <th className={numericHead}>Released</th>
-            <th className={numericHead}>Cutoff</th>
           </tr>
         </thead>
         <tbody>
@@ -213,48 +230,72 @@ const CatalogTable = ({ rows, scale, emptiedBy, searching }: CatalogTableProps) 
           {items.map((item) => {
             const entry = entries[item.index];
             const last = item.index === entries.length - 1;
+            const rowProps = {
+              ref: virtualizer.measureElement,
+              "data-index": item.index,
+              "aria-rowindex": item.index + 2,
+            };
             if (entry.kind === "divider") {
               return (
-                <tr
-                  key="unrated-divider"
-                  ref={virtualizer.measureElement}
-                  data-index={item.index}
-                  aria-rowindex={item.index + 2}
-                >
+                <tr key="unrated-divider" {...rowProps}>
                   <UnratedDivider count={entry.count} last={last} />
                 </tr>
               );
             }
+            if (entry.kind === "panel") {
+              return (
+                <tr key={`${entry.row.key}-panel`} {...rowProps}>
+                  <td
+                    colSpan={COLUMN_COUNT}
+                    className="border-b-2 border-line-2 bg-bench-2 p-0"
+                  >
+                    <ModelPanel
+                      row={entry.row}
+                      metrics={metrics}
+                      ranks={ranks}
+                      scale={scale}
+                      sourceName={sourceName}
+                      measuredAt={measuredAt}
+                    />
+                  </td>
+                </tr>
+              );
+            }
             const { row } = entry;
+            const expanded = open.has(row.key);
             return (
-              <tr
-                key={row.key}
-                ref={virtualizer.measureElement}
-                data-index={item.index}
-                aria-rowindex={item.index + 2}
-              >
-                <td
-                  className={`${stickyName} ${rowBorder(last)}truncate px-3 py-2 font-medium`}
-                  title={row.name}
-                >
-                  {row.name}
-                </td>
-                <td
-                  className={`${rowBorder(last)}truncate px-3 py-2 text-ink-2`}
-                  title={row.maker ?? undefined}
-                >
-                  {fact(row.maker, (maker) => maker, "unknown")}
+              <tr key={row.key} {...rowProps} className={expanded ? "bg-accent-soft" : undefined}>
+                <td className={`${stickyName} ${rowBorder(last)}px-3 py-1.5 ${expanded ? "bg-accent-soft" : ""}`}>
+                  <button
+                    type="button"
+                    aria-expanded={expanded}
+                    onClick={() => togglePanel(row.key)}
+                    className="group flex w-full items-center gap-2 overflow-hidden text-left"
+                  >
+                    <Chevron />
+                    <span className="min-w-0">
+                      <span
+                        className={`block truncate font-medium ${expanded ? "text-accent-ink" : ""}`}
+                        title={row.name}
+                      >
+                        {row.name}
+                      </span>
+                      <span className="block truncate text-xs text-ink-3">
+                        {row.maker ?? "maker unknown"}
+                      </span>
+                    </span>
+                  </button>
                 </td>
                 <td className={`${rowBorder(last)}px-3 py-2`}>
-                  <ScoreFact score={row.score} scale={scale} />
+                  {row.score.kind === "unrated" ? (
+                    <Unknown label="unrated" />
+                  ) : (
+                    <span className="tnum font-medium">{row.score.value}</span>
+                  )}
                 </td>
-                <td className={numericCell(last)}>{row.sellerCount}</td>
                 <td className={numericCell(last)}>{fact(row.costIn, formatPrice, "price unknown")}</td>
                 <td className={numericCell(last)}>{fact(row.costOut, formatPrice, "price unknown")}</td>
                 <td className={numericCell(last)}>{fact(row.context, formatTokens, "unknown")}</td>
-                <td className={numericCell(last)}>{fact(row.output, formatTokens, "unknown")}</td>
-                <td className={numericCell(last)}>{fact(row.released, formatReleased, "unknown")}</td>
-                <td className={numericCell(last)}>{fact(row.cutoff, formatCutoff, "unknown")}</td>
               </tr>
             );
           })}

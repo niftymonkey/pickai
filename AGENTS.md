@@ -6,6 +6,8 @@ The library is the root package: source in `src/`, built with tsup. `docs/` is t
 
 `design/` holds the project's thinking: `v3-north-star.md` (why pickai exists), `v3-decisions.md` (everything settled, with rationale), `v3-api-surface.md` (the settled v3 surface), `v3-api-findings.md` (what building the prototype proved the library must do). Read them before proposing design changes.
 
+**`web/design/remaining-work.md` is the ordered list of what is left to build in the web app.** It is the canonical work list and it is not rewritten by session handoffs; read it before asking what comes next.
+
 ## Writing code here
 
 **Read `design/agents/feature-playbook.md` before planning or writing any code.** It defines how work is defined, verified, test-planned, and handed off.

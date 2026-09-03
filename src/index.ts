@@ -1,5 +1,5 @@
 // Types
-export type { Model, ModelCost, ModelLimit, ModelModalities } from "./types";
+export type { Model, ModelCost, ModelLimit, ModelModalities, ReasoningOption } from "./types";
 
 // Source
 export { fromModelsDev } from "./source";

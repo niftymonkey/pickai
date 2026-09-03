@@ -16,6 +16,8 @@ import {
   deltaNote,
   metricLabel,
   metricList,
+  metricRanks,
+  sharedScale,
   rateIdentities,
   scoreBoard,
   topKeys,
@@ -153,6 +155,10 @@ const DecisionSurface = ({ identities, arena, fetchedAt }: DecisionSurfaceProps)
     .slice(0, 5);
 
   const board = useMemo(() => scoreBoard(result.survivors, weights), [result, weights]);
+  // The panel's bars and places read the whole rated set, not the rows on screen,
+  // so they answer "where does this sit among everything measured".
+  const panelScale = useMemo(() => sharedScale(result.survivors), [result]);
+  const ranks = useMemo(() => metricRanks(result.survivors), [result]);
   // The new board is only available during render, so the note is settled here, the way
   // the rail's fence fields settle their drafts.
   if (pending !== null) {
@@ -281,7 +287,11 @@ const DecisionSurface = ({ identities, arena, fetchedAt }: DecisionSurfaceProps)
           <SearchHints cutMatches={cutMatches} nothingFound={searching && hits.length === 0} />
           <CatalogTable
             rows={shownRows}
-            scale={board.scale}
+            metrics={metrics}
+            ranks={ranks}
+            scale={panelScale}
+            sourceName={activeSet?.source ?? null}
+            measuredAt={activeSet?.measuredAt ?? null}
             emptiedBy={emptiedBy}
             searching={searching}
           />

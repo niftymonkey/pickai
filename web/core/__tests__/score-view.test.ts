@@ -1,7 +1,9 @@
 import { expect, test } from "vitest";
 import type { BenchmarkSet, Model, ModelIdentity } from "pickai";
 import {
-  bandSpan,
+  fillPercent,
+  sharedScale,
+  metricRanks,
   blendSentence,
   catalogReceipt,
   decisionSentence,
@@ -14,6 +16,7 @@ import {
   scoreBoard,
   stepWeight,
 } from "../score-view";
+import type { ScorableIdentity } from "../score-view";
 
 // Fixture ids checked against normalizeModelId: each folds to itself.
 const listing = (id: string, name: string, provider: string): Model => ({
@@ -29,6 +32,17 @@ const identity = (id: string, name: string, maker: string): ModelIdentity => {
   const representative = listing(id, name, maker);
   return { key: id, maker, representative, listings: [representative] };
 };
+
+// A rated identity built straight from best values, for the scale and rank maths.
+const ratedIdentity = (id: string, bests: Record<string, number>): ScorableIdentity => ({
+  ...identity(id, id, "maker"),
+  ratings: Object.fromEntries(
+    Object.entries(bests).map(([name, best]) => [
+      name,
+      { best, bestConfig: id, low: best, high: best, min: best, max: best, configs: 1 },
+    ]),
+  ),
+});
 
 const gpt = identity("gpt-4o", "GPT-4o", "openai");
 const sonnet = identity("claude-sonnet-4-5", "Claude Sonnet 4.5", "anthropic");
@@ -308,24 +322,63 @@ test("a complete blend carries no note and rounds its value", () => {
   });
 });
 
-test("the top score's band stays inside the track when its interval is a point", () => {
-  // Artificial Analysis publishes point scores, so the best model's low equals the
-  // scale's max. An unclamped left of 100% left the winner with a zero-width band.
-  const span = bandSpan({ low: 63, high: 63 }, { min: 20, max: 63 });
-  expect(span).toEqual({ left: 97, width: 3 });
+test("a bar's length is where its value sits on the shared scale", () => {
+  // Half way up a 0-100 scale.
+  expect(fillPercent(50, { min: 0, max: 100 })).toBe(50);
 });
 
-test("a band sits where its interval sits on the shared scale", () => {
-  // Half way up a 0-100 scale, spanning a tenth of it.
-  expect(bandSpan({ low: 45, high: 55 }, { min: 0, max: 100 })).toEqual({ left: 45, width: 10 });
+test("a bar keeps a sliver of length at the bottom of the scale", () => {
+  // The lowest measured model still has to be visible as a bar.
+  expect(fillPercent(0, { min: 0, max: 100 })).toBe(1.5);
 });
 
-test("a scale with no span fills the track", () => {
+test("a scale with no span fills the bar", () => {
   // One rated survivor: there is no spread to place it against.
-  expect(bandSpan({ low: 1400, high: 1400 }, { min: 1400, max: 1400 })).toEqual({
-    left: 0,
-    width: 100,
-  });
+  expect(fillPercent(1400, { min: 1400, max: 1400 })).toBe(100);
+});
+
+test("one scale spans every metric of every rated model", () => {
+  // Per-metric scales made lengths look comparable down a panel when they were
+  // not: a lower math score drew a longer bar than a higher coding one.
+  const scale = sharedScale([
+    ratedIdentity("a", { overall: 1400, coding: 1500 }),
+    ratedIdentity("b", { overall: 1200, math: 1450 }),
+  ]);
+  expect(scale).toEqual({ min: 1200, max: 1500 });
+});
+
+test("a catalog with no ratings has no scale", () => {
+  expect(sharedScale([])).toBeNull();
+});
+
+test("a model's place is its rank among the models measured in that category", () => {
+  const ranks = metricRanks([
+    ratedIdentity("a", { coding: 1500 }),
+    ratedIdentity("b", { coding: 1400 }),
+    ratedIdentity("c", { coding: 1600 }),
+  ]);
+  expect(ranks.coding.places).toEqual({ c: 1, a: 2, b: 3 });
+  expect(ranks.coding.measured).toBe(3);
+});
+
+test("tied scores share the better place", () => {
+  const ranks = metricRanks([
+    ratedIdentity("a", { coding: 1500 }),
+    ratedIdentity("b", { coding: 1500 }),
+    ratedIdentity("c", { coding: 1400 }),
+  ]);
+  expect(ranks.coding.places).toEqual({ a: 1, b: 1, c: 3 });
+});
+
+test("each category counts only the models the source measured in it", () => {
+  // A source does not rate every model in every category, so the denominator is
+  // per metric: "#4 of 165" beside "#2 of 169" is the honest pair.
+  const ranks = metricRanks([
+    ratedIdentity("a", { overall: 1500, math: 1500 }),
+    ratedIdentity("b", { overall: 1400 }),
+  ]);
+  expect(ranks.overall.measured).toBe(2);
+  expect(ranks.math.measured).toBe(1);
 });
 
 const plain = { emptiedBy: null, searching: false };

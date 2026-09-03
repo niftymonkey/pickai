@@ -5,7 +5,7 @@
  * fromModelsDev() fetches from models.dev/api.json.
  */
 
-import type { Model, ModelCost, ModelLimit, ModelModalities } from "./types";
+import type { Model, ModelCost, ModelLimit, ModelModalities, ReasoningOption } from "./types";
 import { deriveOpenRouterId } from "./identity/deriveOpenRouterId";
 
 // ---------------------------------------------------------------------------
@@ -29,6 +29,13 @@ interface ModelsDevModalitiesRaw {
   output?: string[];
 }
 
+interface ModelsDevReasoningOptionRaw {
+  type?: string;
+  values?: string[];
+  min?: number;
+  max?: number;
+}
+
 interface ModelsDevModelRaw {
   name?: string;
   description?: string;
@@ -40,6 +47,8 @@ interface ModelsDevModelRaw {
   structured_output?: boolean;
   open_weights?: boolean;
   attachment?: boolean;
+  temperature?: boolean;
+  reasoning_options?: ModelsDevReasoningOptionRaw[];
   family?: string;
   knowledge?: string;
   release_date?: string;
@@ -59,6 +68,29 @@ export type ModelsDevData = Record<string, ModelsDevProviderRaw>;
 // ---------------------------------------------------------------------------
 // Parsing
 // ---------------------------------------------------------------------------
+
+// An option whose type this parser does not know is dropped rather than guessed
+// at: a steering control we cannot describe is worse than none.
+function parseReasoningOptions(
+  raw: ModelsDevReasoningOptionRaw[] | undefined,
+): ReasoningOption[] {
+  if (raw == null) return [];
+  const parsed: ReasoningOption[] = [];
+  for (const option of raw) {
+    if (option.type === "effort" && option.values != null && option.values.length > 0) {
+      parsed.push({ kind: "effort", values: option.values });
+    } else if (option.type === "budget_tokens") {
+      parsed.push({
+        kind: "budgetTokens",
+        ...(option.min != null && { min: option.min }),
+        ...(option.max != null && { max: option.max }),
+      });
+    } else if (option.type === "toggle") {
+      parsed.push({ kind: "toggle" });
+    }
+  }
+  return parsed;
+}
 
 function parseModel(
   modelId: string,
@@ -83,6 +115,8 @@ function parseModel(
     output: rawLimit?.output ?? 0,
   };
 
+  const reasoningOptions = parseReasoningOptions(raw.reasoning_options);
+
   const rawModalities = raw.modalities;
   const modalities: ModelModalities = {
     input: rawModalities?.input ?? ["text"],
@@ -103,6 +137,8 @@ function parseModel(
     ...(raw.structured_output != null && { structuredOutput: raw.structured_output }),
     ...(raw.open_weights != null && { openWeights: raw.open_weights }),
     ...(raw.attachment != null && { attachment: raw.attachment }),
+    ...(raw.temperature != null && { temperature: raw.temperature }),
+    ...(reasoningOptions.length > 0 && { reasoningOptions }),
     ...(raw.family != null && { family: raw.family }),
     ...(raw.knowledge != null && { knowledge: raw.knowledge }),
     ...(raw.release_date != null && { releaseDate: raw.release_date }),

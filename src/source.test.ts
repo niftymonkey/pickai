@@ -237,3 +237,62 @@ describe("fromModelsDev live fetch", () => {
     fetchSpy.mockRestore();
   });
 });
+
+describe("steering and temperature", () => {
+  // models.dev publishes how a model's reasoning is steered; absent stays absent,
+  // because a capability nobody stated is not a capability the model lacks.
+  it("keeps temperature and reasoning options out when the source never states them", () => {
+    const [model] = parseModelsDevData({
+      anthropic: { models: { "opus-x": { name: "Opus X" } } },
+    });
+    expect(model.temperature).toBeUndefined();
+    expect(model.reasoningOptions).toBeUndefined();
+  });
+
+  it("reads a stated false temperature as a no, not as silence", () => {
+    const [model] = parseModelsDevData({
+      anthropic: { models: { "opus-x": { name: "Opus X", temperature: false } } },
+    });
+    expect(model.temperature).toBe(false);
+  });
+
+  it("carries the named effort levels a model accepts", () => {
+    const [model] = parseModelsDevData({
+      anthropic: {
+        models: {
+          "opus-x": {
+            name: "Opus X",
+            reasoning_options: [{ type: "effort", values: ["low", "high"] }],
+          },
+        },
+      },
+    });
+    expect(model.reasoningOptions).toEqual([{ kind: "effort", values: ["low", "high"] }]);
+  });
+
+  it("carries a thinking budget's range", () => {
+    const [model] = parseModelsDevData({
+      anthropic: {
+        models: {
+          "opus-x": {
+            name: "Opus X",
+            reasoning_options: [{ type: "budget_tokens", min: 1024, max: 32000 }],
+          },
+        },
+      },
+    });
+    expect(model.reasoningOptions).toEqual([{ kind: "budgetTokens", min: 1024, max: 32000 }]);
+  });
+
+  // A steering control we cannot describe is worse than none, so it is dropped.
+  it("drops an option whose type it does not know", () => {
+    const [model] = parseModelsDevData({
+      anthropic: {
+        models: {
+          "opus-x": { name: "Opus X", reasoning_options: [{ type: "telepathy" }] },
+        },
+      },
+    });
+    expect(model.reasoningOptions).toBeUndefined();
+  });
+});

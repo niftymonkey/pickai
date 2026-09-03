@@ -54,8 +54,42 @@ test("a row carries the representative's facts and the identity's maker and sell
       output: 16_384,
       released: "2024-05-13",
       cutoff: "2023-10",
+      about: null,
+      family: null,
+      updated: null,
+      cacheRead: null,
+      cacheWrite: null,
+      modalitiesIn: ["text"],
+      modalitiesOut: ["text"],
+      capabilityValues: {
+        reasoning: undefined,
+        toolCall: undefined,
+        structuredOutput: undefined,
+        attachment: undefined,
+        openWeights: undefined,
+        temperature: undefined,
+      },
+      reasoningOptions: undefined,
+      deprecated: false,
     },
   );
+});
+
+test("a row carries the description the source publishes", () => {
+  const row = rowFromIdentity(
+    identity({ representative: listing({ description: "Fast, intelligent model" }) }),
+  );
+  expect(row.about).toBe("Fast, intelligent model");
+});
+
+// A rule that reads silence as a no cuts models for never having been labelled.
+test("a row keeps a capability the source never stated apart from one it denied", () => {
+  const silent = rowFromIdentity(identity({ representative: listing() }));
+  const denied = rowFromIdentity(
+    identity({ representative: listing({ structuredOutput: false }) }),
+  );
+  expect(silent.capabilityValues.structuredOutput).toBeUndefined();
+  expect(denied.capabilityValues.structuredOutput).toBe(false);
 });
 test("absent cost marks both prices unknown", () => {
   const row = rowFromIdentity(identity({ representative: listing({ cost: undefined }) }));
