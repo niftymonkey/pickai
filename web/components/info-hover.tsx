@@ -2,10 +2,22 @@
 
 import { useEffect, useId, useState } from "react";
 
+/**
+ * A tip's content. The status line says where the numbers came from; the body is one
+ * paragraph per group of related facts, never one per sentence. Splitting on every full
+ * stop is not grouping, it is just line breaks.
+ */
+interface Tip {
+  /** Where the numbers came from, or what went wrong. Leads the tip, above a rule. */
+  status?: string;
+  /** One paragraph per group of related facts. Two is usually plenty. */
+  body: string[];
+}
+
 interface InfoHoverProps {
   /** The trigger's accessible name, e.g. "About the catalog". */
   label: string;
-  tip: string;
+  tip: Tip;
   /** Which edge of the trigger the tip hangs from. */
   align?: "left" | "right";
 }
@@ -51,10 +63,25 @@ const InfoHover = ({ label, tip, align = "left" }: InfoHoverProps) => {
         <span
           role="tooltip"
           id={id}
-          className={`absolute top-full z-40 w-72 pt-1.5 ${align === "right" ? "right-0" : "left-0"}`}
+          className={`absolute top-full z-40 w-80 pt-1.5 ${align === "right" ? "right-0" : "left-0"}`}
         >
-          <span className="block rounded-lg border border-line bg-card px-2.5 py-2 text-xs text-ink-2">
-            {tip}
+          {/* font-sans is stated, not inherited: this tip hangs off a trigger that sits
+              inside a monospace receipt line, and it picked the mono face up from it. */}
+          <span className="block rounded-lg border border-line bg-card px-3 py-2.5 font-sans">
+            {/* One typeface throughout. The status carries tabular figures for its date,
+                not a second font: a mono label beside sans prose reads as a mistake. */}
+            {tip.status !== undefined && (
+              <span className="tnum mb-2 block border-b border-line pb-2 text-[11px] font-medium text-ink">
+                {tip.status}
+              </span>
+            )}
+            <span className="flex flex-col gap-2">
+              {tip.body.map((paragraph) => (
+                <span key={paragraph} className="block text-xs leading-[1.55] text-ink-2">
+                  {paragraph}
+                </span>
+              ))}
+            </span>
           </span>
         </span>
       )}
@@ -63,3 +90,4 @@ const InfoHover = ({ label, tip, align = "left" }: InfoHoverProps) => {
 };
 
 export { InfoHover };
+export type { Tip };

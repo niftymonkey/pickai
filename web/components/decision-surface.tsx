@@ -7,21 +7,35 @@ import { useMemo, useState } from "react";
 import { applyRules, fromOpenRouter, ruleLabel } from "pickai";
 import type { ModelIdentity } from "pickai";
 import { catalogCounts } from "@/core/catalog-view";
-import { EMPTY_FACETS, biggestCut, deriveRules, searchModels, withoutSelection } from "@/core/decision";
+import { EMPTY_FACETS, biggestCut, changedFacet, deriveRules, facetSummary, searchModels } from "@/core/decision";
 import type { FacetState } from "@/core/decision";
-import { defaultWeights, metricList, rateIdentities, scoreBoard } from "@/core/score-view";
+import {
+  catalogReceipt,
+  decisionSentence,
+  defaultWeights,
+  deltaNote,
+  metricLabel,
+  metricList,
+  rateIdentities,
+  scoreBoard,
+  topKeys,
+  topRows,
+} from "@/core/score-view";
+import type { BoardAction, DeltaNote } from "@/core/score-view";
+import type { Tip } from "./info-hover";
 import { INITIAL_SOURCE, fetchFailed, fetchLanded, pickSource, retryFetch } from "@/core/source-switch";
 import type { ScoreSourceId, SourceState, SourceStep } from "@/core/source-switch";
 import type { BenchmarkSource } from "@/lib/benchmarks";
 import { BlendEditor } from "./blend-editor";
 import { CatalogHeader } from "./catalog-header";
-import { CatalogSearch } from "./catalog-search";
+import { CatalogSearch, SearchHints } from "./catalog-search";
+import { DecisionLine } from "./decision-line";
 import { CatalogTable } from "./catalog-table";
-import { CountHinge } from "./count-hinge";
+import { InfoHover } from "./info-hover";
 import { RuleRail } from "./rule-rail";
 import type { EmptiedBy, RuleOptions } from "./rule-rail";
 import type { CutCount } from "./facet-row";
-import { ScoreSource } from "./score-source";
+import { ScoreSource, ScoreSourceNote } from "./score-source";
 
 interface DecisionSurfaceProps {
   identities: ModelIdentity[];
@@ -30,16 +44,29 @@ interface DecisionSurfaceProps {
   fetchedAt: string;
 }
 
-const BLEND_TIPS: Record<ScoreSourceId, string> = {
-  arena:
-    "People vote between two models' answers on LMArena. Each category here is its own Elo rating, computed only from the votes on that kind of prompt.",
-  openrouter:
-    "Each Artificial Analysis category is its own 0-100 index, computed from that suite's benchmark runs.",
+const BLEND_TIPS: Record<ScoreSourceId, Tip> = {
+  arena: {
+    status: "Weights, not percentages",
+    body: [
+      "Each category is its own Elo rating, from the votes on that kind of prompt alone. Raising one says it matters more, and the line at the top of the page spells out the order that buys.",
+    ],
+  },
+  openrouter: {
+    status: "Weights, not percentages",
+    body: [
+      "Each category is its own 0-100 index, from that suite's runs alone. Raising one says it matters more, and the line at the top of the page spells out the order that buys.",
+    ],
+  },
+};
+
+const SOURCE_LABELS: Record<ScoreSourceId, string> = {
+  arena: "LMArena",
+  openrouter: "Artificial Analysis",
 };
 
 const distinctSorted = (values: string[]): string[] => [...new Set(values)].sort();
 
-const catalogOptions = (identities: ModelIdentity[]): Omit<RuleOptions, "metrics"> => ({
+const catalogOptions = (identities: ModelIdentity[]): RuleOptions => ({
   sellers: distinctSorted(
     identities.flatMap(({ listings }) => listings.map(({ provider }) => provider)),
   ),
@@ -61,6 +88,14 @@ const DecisionSurface = ({ identities, arena, fetchedAt }: DecisionSurfaceProps)
   const [weightsBySource, setWeightsBySource] = useState<
     Partial<Record<ScoreSourceId, Record<string, number>>>
   >({});
+  // What the last move did to the top of the board. The baseline is the top ten as it
+  // stood before that move, kept here because only the driver sees both boards.
+  const [shift, setShift] = useState<{ top: string[]; note: DeltaNote | null; seeded: boolean }>({
+    top: [],
+    note: null,
+    seeded: false,
+  });
+  const [pending, setPending] = useState<BoardAction | null>(null);
 
   const { source, openRouter } = sourceState;
   // A stale arena set still scores: the caption says it is old, the board stays populated.
@@ -76,8 +111,13 @@ const DecisionSurface = ({ identities, arena, fetchedAt }: DecisionSurfaceProps)
   const totals = useMemo(() => catalogCounts(identities), [identities]);
   const remaining = useMemo(() => catalogCounts(result.survivors), [result]);
   const metrics = useMemo(() => metricList(activeSet), [activeSet]);
-  const baseOptions = useMemo(() => catalogOptions(identities), [identities]);
-  const options: RuleOptions = { ...baseOptions, metrics };
+  const options = useMemo(() => catalogOptions(identities), [identities]);
+  const scored = scorable.filter(({ ratings }) => ratings !== undefined).length;
+  const census = catalogReceipt({
+    listings: totals.listings,
+    models: totals.models,
+    scored,
+  });
 
   const cuts: Record<string, CutCount> = Object.fromEntries(
     derived.map(({ facet, selection }, index) => [
@@ -113,15 +153,19 @@ const DecisionSurface = ({ identities, arena, fetchedAt }: DecisionSurfaceProps)
     .slice(0, 5);
 
   const board = useMemo(() => scoreBoard(result.survivors, weights), [result, weights]);
+  // The new board is only available during render, so the note is settled here, the way
+  // the rail's fence fields settle their drafts.
+  if (pending !== null) {
+    const action: BoardAction =
+      pending.kind === "source" ? { ...pending, rated: scored } : pending;
+    setShift({ top: topKeys(board.rows), note: deltaNote(action, shift.top, topRows(board.rows)), seeded: true });
+    setPending(null);
+  } else if (!shift.seeded && board.rows.length > 0) {
+    setShift({ top: topKeys(board.rows), note: null, seeded: true });
+  }
   const shownRows = searching
     ? board.rows.filter(({ key }) => survivingHitKeys.has(key))
     : board.rows;
-
-  // The metric vocabulary changes with the source, so an active floor cannot carry over.
-  const clearFloor = () =>
-    setFacets((prev) =>
-      prev.metricFloor === null ? prev : withoutSelection(prev, "metricFloor", "value"),
-    );
 
   // The async callbacks step the machine through functional updates: the captured
   // sourceState is stale by the time the fetch settles.
@@ -129,7 +173,7 @@ const DecisionSurface = ({ identities, arena, fetchedAt }: DecisionSurfaceProps)
     fromOpenRouter()
       .then((set) => {
         setSourceState((prev) => fetchLanded(prev, set).state);
-        clearFloor();
+        setPending({ kind: "source", label: SOURCE_LABELS.openrouter, rated: 0 });
       })
       .catch((error: unknown) => {
         const reason = error instanceof Error ? error.message : String(error);
@@ -138,61 +182,103 @@ const DecisionSurface = ({ identities, arena, fetchedAt }: DecisionSurfaceProps)
   };
 
   const applyStep = (step: SourceStep) => {
+    if (step.state.source !== source) {
+      setPending({ kind: "source", label: SOURCE_LABELS[step.state.source], rated: 0 });
+    }
     setSourceState(step.state);
-    if (step.sourceChanged) clearFloor();
     if (step.beginFetch) beginBrowserFetch();
+  };
+
+  const applyFacets = (next: FacetState) => {
+    const facet = changedFacet(facets, next);
+    if (facet !== null) {
+      const after = facetSummary(next, facet);
+      const words = after ?? facetSummary(facets, facet) ?? "";
+      setPending({ kind: "rule", words, on: after !== null });
+    }
+    setFacets(next);
+  };
+
+  const applyWeights = (next: Record<string, number>) => {
+    const moved = Object.keys(next).find((name) => next[name] !== (weights[name] ?? 0));
+    if (moved !== undefined) setPending({ kind: "weight", label: metricLabel(moved) });
+    setWeightsBySource({ ...weightsBySource, [source]: next });
   };
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6">
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         <aside className="flex flex-col gap-5 rounded-xl bg-rail-bg p-4 lg:sticky lg:top-6">
-          <CountHinge
-            survivors={remaining.models}
-            total={totals.models}
-            listings={remaining.listings}
-            totalListings={totals.listings}
-            ruleCount={derived.length}
-          />
           <RuleRail
             state={facets}
             cuts={cuts}
             options={options}
             activeRuleCount={derived.length}
+            survivors={remaining.models}
+            total={totals.models}
+            listings={remaining.listings}
+            totalListings={totals.listings}
             emptiedBy={emptiedBy}
-            onChange={setFacets}
+            onChange={applyFacets}
           />
         </aside>
         <main className="min-w-0">
-          <CatalogHeader
-            totalModels={totals.models}
-            totalListings={totals.listings}
-            fetchedAt={fetchedAt}
+          <CatalogHeader />
+          <DecisionLine
+            sentence={decisionSentence({
+              survivors: remaining.models,
+              total: totals.models,
+              ruleCount: derived.length,
+              weights,
+            })}
+            note={shift.note}
           />
-          {/* Search takes every pixel the source switch does not need; narrow windows stack. */}
-          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:gap-x-6">
-            <div className="min-w-0 flex-1">
-              <CatalogSearch
-                query={query}
-                cutMatches={cutMatches}
-                nothingFound={searching && hits.length === 0}
-                onQueryChange={setQuery}
+          {/* Both jobs are permanently visible and named: the rail is Model requirements,
+              the bench is Score. The source sits beside the heading, never in a labelled
+              row beneath it, and Score never folds. */}
+          <section aria-labelledby="score-heading" className="mb-3">
+            <div className="mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <h2 id="score-heading" className="text-[17px] font-semibold tracking-tight">
+                Score
+              </h2>
+              <ScoreSource
+                state={sourceState}
+                arena={arena}
+                onPick={(next) => applyStep(pickSource(sourceState, next))}
+                onRetry={() => applyStep(retryFetch(sourceState))}
               />
             </div>
-            <div aria-hidden className="mt-[5px] hidden h-7 w-[2px] shrink-0 bg-line-2 md:block" />
-            <ScoreSource
-              state={sourceState}
-              arena={arena}
-              onPick={(next) => applyStep(pickSource(sourceState, next))}
-              onRetry={() => applyStep(retryFetch(sourceState))}
+            <ScoreSourceNote state={sourceState} arena={arena} />
+            <BlendEditor
+              metrics={metrics}
+              weights={weights}
+              tip={BLEND_TIPS[source]}
+              onChange={applyWeights}
             />
+          </section>
+          {/* Search first, because it is the control; the census sits right, because it is
+              a receipt. No "Results" label: the table is directly below it. The box grows
+              to a cap rather than to half the row, and it is the half that shrinks when
+              the window narrows, so the numbers stay whole to the last moment. */}
+          <div className="mt-3.5 mb-1.5 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="min-w-[12rem] max-w-[26rem] flex-1">
+              <CatalogSearch query={query} onQueryChange={setQuery} />
+            </div>
+            <span className="tnum ml-auto flex flex-wrap items-center gap-x-1.5 font-mono text-[11.5px] text-ink-3 sm:shrink-0">
+              {census}
+              <InfoHover
+                label="About the catalog"
+                align="right"
+                tip={{
+                  status: `models.dev, fetched ${fetchedAt}`,
+                  body: [
+                    "Every model, price and limit on this page. A listing is one model as one seller sells it; models are those listings folded by identity.",
+                  ],
+                }}
+              />
+            </span>
           </div>
-          <BlendEditor
-            metrics={metrics}
-            weights={weights}
-            tip={BLEND_TIPS[source]}
-            onChange={(next) => setWeightsBySource({ ...weightsBySource, [source]: next })}
-          />
+          <SearchHints cutMatches={cutMatches} nothingFound={searching && hits.length === 0} />
           <CatalogTable
             rows={shownRows}
             scale={board.scale}

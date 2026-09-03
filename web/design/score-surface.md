@@ -6,6 +6,9 @@ shipped in `3e3c4bd36d` (above-table rework), `ce55a92e98` (last-good fallback),
 `35dcf67793` (source face rebuild). Decision 9.34 and findings in `design/v3-api-findings.md`
 sit behind it; the library adapters live in `src/benchmark/`.
 
+Everything here describes shipped behavior. The decision-line prototype's decisions
+(2026-09-02) landed in `web/` on 2026-09-03.
+
 ## One source at a time
 
 - The board is fed by exactly one benchmark source. There is no cross-source blend, ever.
@@ -42,15 +45,130 @@ effects. Every flip goes through it.
   the board always has a score to sort by.
 - Weights are held per source. Flipping to Artificial Analysis and back restores the LMArena
   mix, because the two vocabularies are different sets of names.
-- **An active score floor is cleared on every source change.** The floor names a metric, and
-  the metric names change with the source; carrying it over would silently filter on a metric
-  that no longer exists.
-- The mix is always spoken, in words, on its own line under the chips. One weighted category is
-  named rather than measured ("Every score is the Overall rating"), because a percentage of a
-  single thing reads as a score and not as a mix; two or more are shares that always total 100,
-  the last one absorbing the rounding.
+- The mix is always spoken, in words. Where it is spoken, and in what words, is
+  "What the blend sentence says" below.
 - A model rated on only some weighted metrics still scores, and its cell says so
   ("2/3 weighted metrics"). Rated on none, it is unrated, which is a state and not a zero.
+
+## What the blend sentence says
+
+Settled 2026-09-02, built 2026-09-03. Percentages were replaced because they
+describe the arithmetic and not the intent: "67% Coding, 33% Intelligence" never says that
+coding matters most and intelligence still counts.
+
+- The sentence is a **ladder read against the biggest weight, not against 100**.
+- One weighted category is named, not measured: "Ordered by Overall rating."
+- All weights equal: **"X and Y equally"**.
+- The leader holding half the total weight or more is **"X above all"**, and then every other
+  category is seasoning, however close the runner-up sits. A leader under half is **"X first"**,
+  and the categories holding at least half of what it holds each take a **"then Y"** rung.
+- Everything below that rung is gathered at the end as **"with some Z"**, joined with "and".
+- **A chip label is not always a sentence word.** LMArena's "Overall" is a fine chip and a bad
+  noun, so a category may carry a prose form used only inside the sentence: the chip says
+  Overall, the sentence says "overall rating".
+
+Worked examples, which are the acceptance cases:
+
+| Weights | The sentence |
+| --- | --- |
+| Overall 1 | Ordered by Overall rating. |
+| Coding 2, Intelligence 1 | Ordered by Coding above all, with some Intelligence. |
+| Coding 5, Intelligence 1 | Ordered by Coding above all, with some Intelligence. |
+| Coding 3, Math 3 | Ordered by Coding and Math equally. |
+| Coding 4, Following 3, Terminal 2, Intelligence 1 | Ordered by Coding first, then Instruction following, then Terminal tasks, with some Intelligence. |
+| Coding 5, Math 1, Creative 1 | Ordered by Coding above all, with some Math and Creative writing. |
+
+The known weakness, accepted by Mark: 2-to-1 and 5-to-1 read identically, because both are
+"above all with some". A third leader word for the extreme was offered and left out.
+
+## The decision line, the receipt, and the two headings
+
+Settled 2026-09-02, built 2026-09-03. This supersedes the doors design that both
+design agents converged on, which Mark rejected in use.
+
+- **The doors are dead.** "Narrow them" and "Change the order" were a pair of buttons in the
+  decision line that opened a job's controls and then vanished for the session. They failed on
+  three counts: the narrow door had to guess a rule to open, so the click taught nothing;
+  "change the order" framed the act as fiddling rather than as stating what matters; and a
+  control that lives in a sentence and then disappears has no stable home.
+- **Discovery rests on both jobs being permanently visible and named.** The rail is headed
+  **Model requirements** (it was "Narrow" until 2026-09-03). The bench is headed **Score**.
+- **Score replaces Rank**, because the library already calls it scoring, the table column is
+  already Score, and both children were already named for score.
+- **Score never folds.** The collapsed one-line Rank block is gone.
+- **The source control sits beside the Score heading**, not in a labelled row beneath it.
+- **The blend carries no visible label.** With Score above it and the source beside that, the
+  chips name themselves; "Blend" only parsed for people who already knew the design. The chip
+  group keeps an accessible name.
+- **The census is a receipt, not a sentence.** One dim monospace line directly above the
+  table, right-aligned: listings, models, scored, unscored. It is a
+  fact about the data, so it does not move as rules are applied. Its scored and unscored halves
+  do follow the active source.
+- **The page header carries no counts.** The catalog total appeared in the header and again in
+  the decision line, which at first paint are the same number printed twice.
+- **The decision line does not count the catalog at first paint.** With no rule active it is
+  only the order sentence. A count enters it once a rule has cut something.
+- **The table shows where the scores run out.** Settled by Mark 2026-09-02: the board holds
+  every model that passes the rules, and a divider row after the last scored one names how many
+  follow it with no score from the active source. Opening on the scored models only was the
+  rejected alternative. The order never claims rows it cannot rank, and the receipt above the
+  table already states the coverage, so the sentence never has to confess.
+
+### What the decision line and the search row actually say
+
+Written 2026-09-03 from the prototype's own source, because the section above summarised
+these decisions without recording the words, and the words were then missed in the build.
+The order above the table is: decision line, change note, rule, Score heading with the
+source beside it, blend chips, search row, table.
+
+**The decision line** is one sentence at 17px, directly under the wordmark.
+
+- No rule active: `Ordered by {order clause}.`
+- Any rule active: `{survivors} of {total} models pass your {n} rule|rules, ordered by
+  {order clause}.`
+- The order clause is the blend sentence with its own "Ordered by" and full stop removed,
+  so the two never disagree. The blend row carries no sentence of its own.
+
+**The change note** is the line under it, at 13px, its lead in accent ink and its second
+half in quiet ink, with its slot reserved so an arriving line never pushes the page down.
+It says what the last move did to the top ten, which the board alone cannot say.
+
+| The move | The line |
+| --- | --- |
+| A rule applied, top ten unchanged | `{rule words}: same top 10.` + `Everything at the top already qualified.` |
+| A rule applied, top ten moved | `{rule words} replaced {n} of the top 10.` + `Brought in {a}, {b}, {c} and {n} more.` |
+| A rule removed | `{rule words} removed.` |
+| A weight moved, top ten unchanged | `Weighting changed.` + `Same top 10.` |
+| A weight moved, top ten moved | `{category} now carries the order.` + `It moved {n} of the top 10.` |
+| The source flipped | `Now ordering by {source}.` + `{n} models carry a score there.` |
+
+- Arrivals are named three at a time and the rest counted.
+- A move that changes more than one row at once names no rule, because a note that names
+  the wrong rule is worse than no note.
+
+**The row above the table** holds the search box on the left and the census receipt on
+the right, on one line. There is no "Results" label: the table is directly below it. The
+search grows to a 26rem cap rather than to half the row, and it is the half that shrinks
+as the window narrows, so the numbers keep their space to the last moment; below 640px the
+row wraps and the receipt wraps with it. The receipt reads
+`{listings} listings → {models} models · {scored} scored · {unscored} unscored`. It does
+not name the source: the switch a few lines above already says who is scoring.
+The search's cut-match hints open below that row, not beside the box.
+
+**The Score heading sits level with the toggle.** The switch's trouble note is a sibling
+below the head row, never a member of it: inside the row it changed the row's height and
+dropped the heading ten pixels the moment a source went stale.
+
+**An info hover is structured, not a paragraph.** A state line in monospace above a rule,
+then one idea per paragraph, in a 320px box. A wall of sentences in a narrow box is
+unreadable, which is what the first build shipped.
+
+**The Score heading carries no "Score source" label.** The heading names it. The per-option
+info hovers stay, because they carry the measured dates and the Artificial Analysis terms.
+
+**The survivor count is not printed above the table.** The decision line holds it. What
+stays above the table is the guidance for a board with nothing on it, which neither the
+decision line nor the receipt can say.
 
 ## Which categories are offered
 
@@ -98,6 +216,21 @@ memory sits a committed floor: `web/lib/arena-snapshot.json`, a dated curated se
 
 ## Deferred
 
+- **Cost as a weight, not only as a fence.** Found by Mark 2026-09-02 and not yet designed.
+  His words: "We are not including cost. We, in our library examples in version one and version
+  two of this library, have had cost be part of what is used when you want to weight the scores
+  against each other, because being able to do these things but also not have it cost way, way,
+  way too much is important." He reached it by noticing the blend surface felt wrong and not
+  being able to say why. v1
+  and v2 carried `costEfficiency` as a weighted criterion, and every Purpose profile included
+  it as a low-weight tiebreaker; v3 deleted the built-in criteria, so cost now survives only as
+  the rail's hard price fence. A fence and a weight are different promises: "never above $1"
+  against "cheaper is better, all else equal". The blend needs the second one back. Open with
+  it: what the chip is called, how a price normalises against an Elo or an index, whether it is
+  offered per source or once, and how it reads in the blend sentence.
+- **Artificial Analysis in the prototype is placeholder data**: six invented metric names and
+  an invented count of 341 scored models. Its real coverage against the folded catalog has
+  never been measured. The shipped app offers three AA categories, not six.
 - Per-axis sorting and the rank column: slice D, `prototypes/web/design/sorting-spec.md`.
 - The browser-side last-good copy in `localStorage`: slice E. One key, no chunking (the
   curated set is 276 KB; the full set is 1.2 MB against a 5 MB budget). The order is live

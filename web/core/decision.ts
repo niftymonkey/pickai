@@ -1,8 +1,7 @@
-// The decision in progress: the nine facet rows' state, and the rules and words derived from it.
+// The decision in progress: the facet rows' state, and the rules and words derived from it.
 
 import { explainCut, ruleLabel } from "pickai";
 import type { Capability, FilterStep, ModelIdentity, Rule } from "pickai";
-import { metricLabel } from "./score-view";
 
 type RosterMode = "allow" | "exclude";
 
@@ -21,8 +20,7 @@ type Facet =
   | "sellers"
   | "costFence"
   | "minKnowledge"
-  | "excludeDeprecated"
-  | "metricFloor";
+  | "excludeDeprecated";
 
 /** The whole rail's live state; every row is present, active or not. */
 interface FacetState {
@@ -35,7 +33,6 @@ interface FacetState {
   fences: { input: number | null; output: number | null };
   minKnowledge: string | null;
   excludeDeprecated: boolean;
-  metricFloor: { metric: string; min: number } | null;
 }
 
 const EMPTY_FACETS: FacetState = {
@@ -48,7 +45,6 @@ const EMPTY_FACETS: FacetState = {
   fences: { input: null, output: null },
   minKnowledge: null,
   excludeDeprecated: false,
-  metricFloor: null,
 };
 
 /** One derived rule, addressable by its row and the selection within it. */
@@ -148,15 +144,6 @@ const deriveRules = (state: FacetState): DerivedRule[] => [
         } satisfies DerivedRule,
       ]
     : []),
-  ...(state.metricFloor === null
-    ? []
-    : [
-        {
-          facet: "metricFloor",
-          selection: "value",
-          rule: { kind: "metric", metric: state.metricFloor.metric, min: state.metricFloor.min },
-        } satisfies DerivedRule,
-      ]),
 ];
 
 const toggled = <T extends string>(names: T[], name: T): T[] =>
@@ -193,8 +180,6 @@ const withoutSelection = (state: FacetState, facet: Facet, selection: string): F
       return { ...state, minKnowledge: null };
     case "excludeDeprecated":
       return { ...state, excludeDeprecated: false };
-    case "metricFloor":
-      return { ...state, metricFloor: null };
   }
 };
 
@@ -225,10 +210,6 @@ const facetSummary = (state: FacetState, facet: Facet): string | null => {
       );
       return parts.length === 0 ? null : parts.join(" · ");
     }
-    case "metricFloor":
-      return state.metricFloor === null
-        ? null
-        : `${metricLabel(state.metricFloor.metric)} at least ${state.metricFloor.min}`;
     default: {
       const derived = deriveRules(state).filter((entry) => entry.facet === facet);
       return derived.length === 0 ? null : derived.map(({ rule }) => ruleLabel(rule)).join(" · ");
@@ -255,6 +236,31 @@ const searchModels = (identities: ModelIdentity[], rules: Rule[], query: string)
     .map((identity) => ({ identity, cutBy: explainCut(identity, rules) }));
 };
 
+/** Every row, in rail order: the vocabulary a whole-state diff walks. */
+const ALL_FACETS: Facet[] = [
+  "capability",
+  "modality",
+  "minContext",
+  "minOutput",
+  "costFence",
+  "makers",
+  "sellers",
+  "minKnowledge",
+  "excludeDeprecated",
+];
+
+/**
+ * The one row whose state moved between two rail states, so the change note can name
+ * it. Null when nothing moved or when several rows did, because a note that names the
+ * wrong rule is worse than no note.
+ */
+const changedFacet = (before: FacetState, after: FacetState): Facet | null => {
+  const moved = ALL_FACETS.filter(
+    (facet) => facetSummary(before, facet) !== facetSummary(after, facet),
+  );
+  return moved.length === 1 ? moved[0] : null;
+};
+
 export {
   EMPTY_FACETS,
   CAPABILITY_ORDER,
@@ -262,6 +268,7 @@ export {
   toggled,
   withoutSelection,
   facetSummary,
+  changedFacet,
   biggestCut,
   searchModels,
 };

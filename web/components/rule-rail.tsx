@@ -1,4 +1,5 @@
-// The dark rail: nine permanent facet rows in three quiet groups; a rule is a row's live state.
+// The dark rail: the permanent facet rows in two named groups plus a More disclosure.
+// A rule is a row's live state.
 
 import { useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -9,22 +10,19 @@ import {
   FacetRow,
   FenceBody,
   KnowledgeBody,
-  MetricFloorBody,
   ModalityBody,
   ToggleRow,
   TokenFloorBody,
 } from "./facet-row";
 import type { CutCount } from "./facet-row";
 import { RosterChecklist } from "./roster-checklist";
-import type { Metric } from "@/core/score-view";
 
-/** The option lists the rows offer, drawn from the live catalog and score source by the driver. */
+/** The option lists the rows offer, drawn from the live catalog by the driver. */
 interface RuleOptions {
   sellers: string[];
   makers: string[];
   inputModalities: string[];
   outputModalities: string[];
-  metrics: Metric[];
 }
 
 /** Present only when the rules cut everything: the heaviest cutter, offered for removal. */
@@ -41,6 +39,11 @@ interface RuleRailProps {
   cuts: Record<string, CutCount>;
   options: RuleOptions;
   activeRuleCount: number;
+  /** The survivor counts, announced but not painted: the rail carries no big number. */
+  survivors: number;
+  total: number;
+  listings: number;
+  totalListings: number;
   emptiedBy?: EmptiedBy;
   onChange: (state: FacetState) => void;
 }
@@ -57,15 +60,17 @@ const ROW_NAMES: Record<Exclude<Facet, "excludeDeprecated">, string> = {
   sellers: "Sellers",
   costFence: "Price fence",
   minKnowledge: "Knowledge cutoff",
-  metricFloor: "Score floor",
 };
 
+// Every group holds more than one row. A heading over a single row is a container
+// holding one thing, which is what condemned the old "Measured score" group.
 const GROUPS: { title: string; facets: Facet[] }[] = [
-  { title: "What it must do", facets: ["capability", "modality", "minContext", "minOutput"] },
-  { title: "Who made it, who sells it", facets: ["makers", "sellers"] },
-  { title: "Cost and housekeeping", facets: ["costFence", "minKnowledge", "excludeDeprecated"] },
-  { title: "Measured score", facets: ["metricFloor"] },
+  { title: "What it must do", facets: ["capability", "modality"] },
+  { title: "How big, how cheap", facets: ["minContext", "minOutput", "costFence"] },
 ];
+
+// Context floor is not in here: it gets regular use, so it stays out in the open.
+const MORE_FACETS: Facet[] = ["makers", "sellers", "minKnowledge", "excludeDeprecated"];
 
 const headerId = (facet: Facet): string => `facet-header-${facet}`;
 
@@ -102,13 +107,24 @@ const EmptiedByCard = ({ emptiedBy, onRemove }: { emptiedBy: EmptiedBy; onRemove
   </div>
 );
 
-const RuleRail = ({ state, cuts, options, activeRuleCount, emptiedBy, onChange }: RuleRailProps) => {
-  const [open, setOpen] = useState<Partial<Record<Facet, boolean>>>({});
+const RuleRail = ({
+  state,
+  cuts,
+  options,
+  activeRuleCount,
+  survivors,
+  total,
+  listings,
+  totalListings,
+  emptiedBy,
+  onChange,
+}: RuleRailProps) => {
+  // One row open at a time: it is the height lever Mark chose over letting the rail scroll.
+  const [open, setOpen] = useState<Facet | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  const toggleOpen = (facet: Facet) =>
-    setOpen((current) => ({ ...current, [facet]: !current[facet] }));
-  const close = (facet: Facet) => setOpen((current) => ({ ...current, [facet]: false }));
+  const toggleOpen = (facet: Facet) => setOpen((current) => (current === facet ? null : facet));
 
   const clearAll = () => {
     onChange(EMPTY_FACETS);
@@ -126,7 +142,6 @@ const RuleRail = ({ state, cuts, options, activeRuleCount, emptiedBy, onChange }
         return (
           <CapabilityBody
             picked={state.capabilities}
-            cuts={cuts}
             onToggle={(capability) =>
               onChange({ ...state, capabilities: toggled(state.capabilities, capability) })
             }
@@ -138,7 +153,6 @@ const RuleRail = ({ state, cuts, options, activeRuleCount, emptiedBy, onChange }
             picked={state.modalities}
             inputNames={options.inputModalities}
             outputNames={options.outputModalities}
-            cuts={cuts}
             onToggle={(side, modality) =>
               onChange({
                 ...state,
@@ -154,6 +168,7 @@ const RuleRail = ({ state, cuts, options, activeRuleCount, emptiedBy, onChange }
         return (
           <TokenFloorBody
             prompt="Context window at least"
+            group="floor-context"
             stops={CONTEXT_STOPS}
             value={state.minContext}
             onSet={(tokens) => onChange({ ...state, minContext: tokens })}
@@ -163,6 +178,7 @@ const RuleRail = ({ state, cuts, options, activeRuleCount, emptiedBy, onChange }
         return (
           <TokenFloorBody
             prompt="Max output at least"
+            group="floor-output"
             stops={OUTPUT_STOPS}
             value={state.minOutput}
             onSet={(tokens) => onChange({ ...state, minOutput: tokens })}
@@ -202,26 +218,45 @@ const RuleRail = ({ state, cuts, options, activeRuleCount, emptiedBy, onChange }
             onSet={(date) => onChange({ ...state, minKnowledge: date })}
           />
         );
-      case "metricFloor":
-        return (
-          <MetricFloorBody
-            metrics={options.metrics}
-            floor={state.metricFloor}
-            onSet={(metricFloor) => onChange({ ...state, metricFloor })}
-          />
-        );
     }
   };
 
+  const row = (facet: Facet): ReactNode =>
+    facet === "excludeDeprecated" ? (
+      <ToggleRow
+        key={facet}
+        name="No deprecated models"
+        active={state.excludeDeprecated}
+        cut={rowCut(cuts, facet)}
+        headerId={headerId(facet)}
+        onToggle={() => onChange({ ...state, excludeDeprecated: !state.excludeDeprecated })}
+      />
+    ) : (
+      <FacetRow
+        key={facet}
+        name={ROW_NAMES[facet]}
+        summary={facetSummary(state, facet)}
+        cut={rowCut(cuts, facet)}
+        open={open === facet}
+        headerId={headerId(facet)}
+        onToggle={() => toggleOpen(facet)}
+        onClose={() => setOpen(null)}
+      >
+        {body(facet)}
+      </FacetRow>
+    );
+
+  const moreActive = MORE_FACETS.filter((facet) => facetSummary(state, facet) !== null).length;
+
   return (
-    <section aria-label="Your rules" className="flex flex-col gap-2">
+    <section aria-label="Model requirements" className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between">
         <h2
           ref={headingRef}
           tabIndex={-1}
           className="text-xs font-medium tracking-wider text-rail-ink-3 uppercase"
         >
-          Your rules
+          Model requirements
         </h2>
         {activeRuleCount > 0 && (
           <button
@@ -234,44 +269,41 @@ const RuleRail = ({ state, cuts, options, activeRuleCount, emptiedBy, onChange }
         )}
       </div>
 
-      {activeRuleCount === 0 && (
-        <p className="text-sm text-rail-ink-2">No rules yet. The whole catalog is on the bench.</p>
-      )}
+      {/* The rail paints no count. The survivor number lives above the table; this line
+          keeps the hinge audible without taking a pixel of rail height. */}
+      <p className="sr-only" aria-live="polite">
+        {activeRuleCount === 0
+          ? `${counted(survivors, "model")} in the catalog across ${counted(totalListings, "listing")}, before any rules`
+          : `${survivors.toLocaleString("en-US")} of ${counted(total, "model")} pass your ${
+              activeRuleCount === 1 ? "rule" : "rules"
+            }, ${listings.toLocaleString("en-US")} of ${counted(totalListings, "listing")}`}
+      </p>
 
       {GROUPS.map((group) => (
         <div key={group.title}>
-          <p className="mt-1 mb-1.5 text-xs text-rail-ink-3">{group.title}</p>
-          <ul className="flex flex-col gap-2">
-            {group.facets.map((facet) =>
-              facet === "excludeDeprecated" ? (
-                <ToggleRow
-                  key={facet}
-                  name="No deprecated models"
-                  active={state.excludeDeprecated}
-                  cut={rowCut(cuts, facet)}
-                  headerId={headerId(facet)}
-                  onToggle={() =>
-                    onChange({ ...state, excludeDeprecated: !state.excludeDeprecated })
-                  }
-                />
-              ) : (
-                <FacetRow
-                  key={facet}
-                  name={ROW_NAMES[facet]}
-                  summary={facetSummary(state, facet)}
-                  cut={rowCut(cuts, facet)}
-                  open={open[facet] === true}
-                  headerId={headerId(facet)}
-                  onToggle={() => toggleOpen(facet)}
-                  onClose={() => close(facet)}
-                >
-                  {body(facet)}
-                </FacetRow>
-              ),
-            )}
-          </ul>
+          <p className="mt-1 mb-1.5 text-xs tracking-wider text-rail-ink-3 uppercase">{group.title}</p>
+          <ul className="flex flex-col gap-2">{group.facets.map(row)}</ul>
         </div>
       ))}
+
+      <div>
+        <button
+          type="button"
+          aria-expanded={moreOpen}
+          onClick={() => setMoreOpen(!moreOpen)}
+          className="-mx-1.5 mt-1 flex w-[calc(100%+0.75rem)] items-center gap-2 rounded-md px-1.5 py-1.5 text-xs tracking-wider text-rail-ink-3 uppercase transition-colors duration-150 hover:bg-rail-hover hover:text-rail-ink"
+        >
+          <span>More rules</span>
+          {moreActive > 0 && <span className="tnum normal-case">{moreActive} on</span>}
+          <span
+            aria-hidden
+            className={`ml-auto transition-transform duration-150 ${moreOpen ? "rotate-90" : ""}`}
+          >
+            &#9656;
+          </span>
+        </button>
+        {moreOpen && <ul className="mt-1.5 flex flex-col gap-2">{MORE_FACETS.map(row)}</ul>}
+      </div>
 
       {/* Always present so the zero-survivor guidance is announced when it appears. */}
       <div aria-live="polite">

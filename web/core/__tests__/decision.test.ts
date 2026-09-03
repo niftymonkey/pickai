@@ -5,6 +5,7 @@ import {
   biggestCut,
   deriveRules,
   facetSummary,
+  changedFacet,
   searchModels,
   toggled,
   withoutSelection,
@@ -107,23 +108,13 @@ const fullState: FacetState = {
   fences: { input: 5, output: 15 },
   minKnowledge: "2025-01",
   excludeDeprecated: true,
-  metricFloor: { metric: "overall", min: 1400 },
 };
 
-test("the metric floor derives its rule last in rail order", () => {
-  expect(deriveRules({ ...EMPTY_FACETS, metricFloor: { metric: "coding", min: 1450 } })).toEqual([
-    {
-      facet: "metricFloor",
-      selection: "value",
-      rule: { kind: "metric", metric: "coding", min: 1450 },
-    },
-  ]);
-});
-
-test("the metric floor summarizes with its display label", () => {
-  expect(
-    facetSummary({ ...EMPTY_FACETS, metricFloor: { metric: "overall", min: 1400 } }, "metricFloor"),
-  ).toBe("Overall at least 1400");
+// The score floor was deleted: "We don't need a score floor. That seems completely
+// unnecessary." This fails if a metric floor ever grows back into the rail's state.
+test("the rail carries no score floor", () => {
+  expect(Object.keys(EMPTY_FACETS)).not.toContain("metricFloor");
+  expect(deriveRules(fullState).map(({ facet }) => facet)).not.toContain("metricFloor");
 });
 
 test("a full state derives in rail order", () => {
@@ -140,7 +131,6 @@ test("a full state derives in rail order", () => {
     "costFence:output",
     "minKnowledge:value",
     "excludeDeprecated:value",
-    "metricFloor:value",
   ]);
 });
 
@@ -176,7 +166,6 @@ test("an off facet summarizes to null", () => {
     "costFence",
     "minKnowledge",
     "excludeDeprecated",
-    "metricFloor",
   ] as const) {
     expect(facetSummary(EMPTY_FACETS, facet)).toBeNull();
   }
@@ -277,4 +266,13 @@ test("a survivor reports none", () => {
   const [hit] = searchModels(catalog, [neverOpenai], "grok");
   expect(hit.identity.key).toBe("grok-4");
   expect(hit.cutBy).toBeUndefined();
+});
+
+test("changedFacet names the one row that moved, and stays quiet when several did", () => {
+  // A note that names the wrong rule is worse than no note.
+  const one = { ...EMPTY_FACETS, minContext: 128_000 };
+  expect(changedFacet(EMPTY_FACETS, one)).toBe("minContext");
+  expect(changedFacet(one, EMPTY_FACETS)).toBe("minContext");
+  expect(changedFacet(EMPTY_FACETS, EMPTY_FACETS)).toBeNull();
+  expect(changedFacet(EMPTY_FACETS, { ...one, excludeDeprecated: true })).toBeNull();
 });

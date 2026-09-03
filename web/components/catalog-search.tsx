@@ -15,16 +15,26 @@ interface CatalogSearchProps {
   onQueryChange: (query: string) => void;
 }
 
-const CatalogSearch = ({ query, cutMatches, nothingFound, onQueryChange }: CatalogSearchProps) => (
-  <div className="mb-3">
-    <input
-      type="search"
-      value={query}
-      onChange={(event) => onQueryChange(event.target.value)}
-      placeholder="Find a model in the whole catalog"
-      aria-label="Find a model in the whole catalog"
-      className="w-full rounded-lg border border-line bg-card px-3 py-1.5 text-sm text-ink transition-colors duration-150 placeholder:text-ink-3 hover:border-line-2"
-    />
+const CatalogSearch = ({
+  query,
+  onQueryChange,
+}: Pick<CatalogSearchProps, "query" | "onQueryChange">) => (
+  <input
+    type="search"
+    value={query}
+    onChange={(event) => onQueryChange(event.target.value)}
+    placeholder="Find a model in the whole catalog"
+    aria-label="Find a model in the whole catalog"
+    className="w-full rounded-lg border border-line bg-card px-3 py-1.5 text-sm text-ink transition-colors duration-150 placeholder:text-ink-3 hover:border-line-2"
+  />
+);
+
+// The honest answer for a model the rules cut: it exists, and here is what removed it.
+const SearchHints = ({
+  cutMatches,
+  nothingFound,
+}: Pick<CatalogSearchProps, "cutMatches" | "nothingFound">) => (
+  <>
     {cutMatches.length > 0 && (
       <div className="mt-2 max-w-xl rounded-lg border border-line bg-card px-3 py-2">
         <p className="text-xs font-medium text-ink-2">In the catalog, but cut by your rules:</p>
@@ -41,8 +51,8 @@ const CatalogSearch = ({ query, cutMatches, nothingFound, onQueryChange }: Catal
     {nothingFound && (
       <p className="mt-2 text-sm text-ink-2">No model by that name in the catalog.</p>
     )}
-  </div>
+  </>
 );
 
-export { CatalogSearch };
+export { CatalogSearch, SearchHints };
 export type { CutMatch };

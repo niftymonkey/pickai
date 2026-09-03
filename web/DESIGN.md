@@ -142,9 +142,10 @@ labeled as unknowns rather than filled in. Delight lives in the hands, not the c
 survivor count tweens as gates fire, a rule row flashes when its state changes, and the readouts
 stay as sober as a Stripe dashboard.
 
-The page is two surfaces and nothing else: a dark rules rail on the left carrying the live count
-and the ten facet rows, and a light bench on the right carrying the header receipt, the search
-and score-source toolbar, the score blend, and one long virtualized table. There is no
+The page is two surfaces and nothing else: a dark rail on the left headed Model requirements,
+carrying its rows in two named groups plus a More disclosure, and a light bench on the right
+headed Score, carrying the search, the score source beside that heading, the blend, the census
+receipt, and one long virtualized table. There is no
 navigation, no dashboard, no modal. Every control applies instantly; nothing waits for a submit.
 
 Two committed themes share every token through `light-dark()`: **Blueprint** (light: cool
@@ -159,7 +160,8 @@ a chatbot.
 - One cobalt accent, used sparingly and meaningfully
 - Numbers in monospace with tabular figures; they align or they are wrong
 - Unknown is a designed state (hatched, labeled), distinct from empty and from zero
-- The rules rail is its own dark surface in both themes; the live count sits on it
+- The rules rail is its own dark surface in both themes, and it paints no count: the survivor
+  number lives with the results, above the table
 - Provenance is visible by default; only the catalog receipt hides behind an info hover
 - Every visual decision lands as a token, so recolor and theming are swaps, not rewrites
 

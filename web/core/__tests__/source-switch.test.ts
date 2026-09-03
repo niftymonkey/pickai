@@ -25,21 +25,18 @@ test("the first pick of Artificial Analysis begins the fetch and keeps LMArena o
   const step = pickSource(INITIAL_SOURCE, "openrouter");
   expect(step.state).toEqual({ source: "arena", openRouter: { phase: "loading" } });
   expect(step.beginFetch).toBe(true);
-  expect(step.sourceChanged).toBe(false);
 });
 
 test("a landed fetch flips the source and reports the vocabulary change", () => {
   const loading: SourceState = { source: "arena", openRouter: { phase: "loading" } };
   const step = fetchLanded(loading, aaSet);
   expect(step.state).toEqual({ source: "openrouter", openRouter: { phase: "ok", set: aaSet } });
-  expect(step.sourceChanged).toBe(true);
 });
 
 test("a failed fetch keeps LMArena active and preserves the reason", () => {
   const loading: SourceState = { source: "arena", openRouter: { phase: "loading" } };
   const step = fetchFailed(loading, "HTTP 500");
   expect(step.state).toEqual({ source: "arena", openRouter: { phase: "failed", reason: "HTTP 500" } });
-  expect(step.sourceChanged).toBe(false);
 });
 
 test("picking Artificial Analysis after a failure retries the fetch", () => {
@@ -61,11 +58,9 @@ test("with data already in hand the switch flips instantly, both ways, and repor
   const toAA = pickSource(cached, "openrouter");
   expect(toAA.state.source).toBe("openrouter");
   expect(toAA.beginFetch).toBe(false);
-  expect(toAA.sourceChanged).toBe(true);
   const back = pickSource(toAA.state, "arena");
   expect(back.state.source).toBe("arena");
   expect(back.state.openRouter).toEqual({ phase: "ok", set: aaSet });
-  expect(back.sourceChanged).toBe(true);
 });
 
 test("picking the source already active changes nothing", () => {
@@ -73,7 +68,6 @@ test("picking the source already active changes nothing", () => {
   const step = pickSource(active, "openrouter");
   expect(step.state).toEqual(active);
   expect(step.beginFetch).toBe(false);
-  expect(step.sourceChanged).toBe(false);
 });
 
 test("picks during a live fetch are inert", () => {

@@ -139,20 +139,174 @@ const listed = (parts: string[]): string =>
     ? (parts[0] ?? "")
     : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 
+// A chip label is not always a sentence word: "Overall" is a fine chip and a bad
+// noun. A category may carry a prose form used only inside the sentence.
+const SENTENCE_LABELS: Record<string, string> = {
+  overall: "Overall rating",
+};
+
+const sentenceLabel = (name: string): string => SENTENCE_LABELS[name] ?? metricLabel(name);
+
 /**
- * The blend spoken as a sentence. One weighted metric is that metric's rating,
- * not "100% of it": a percentage of a single thing reads as a score, not a mix.
- * The last share absorbs the rounding, so the shares always total 100.
+ * The blend spoken as intent, not as arithmetic. Percentages describe the sum and
+ * never say what matters: "67% Coding, 33% Intelligence" does not say that coding
+ * leads and intelligence still counts. The sentence is a ladder read against the
+ * biggest weight, not against 100.
  */
 const blendSentence = (weights: Record<string, number>): string | null => {
   const positive = positiveInDisplayOrder(weights);
   if (positive.length === 0) return null;
-  if (positive.length === 1) return `Every score is the ${metricLabel(positive[0].name)} rating.`;
-  const total = positive.reduce((sum, { weight }) => sum + weight, 0);
-  const shares = positive.map(({ weight }) => Math.round((weight / total) * 100));
-  shares[shares.length - 1] = 100 - shares.slice(0, -1).reduce((sum, share) => sum + share, 0);
-  const parts = positive.map(({ name }, index) => `${shares[index]}% ${metricLabel(name)}`);
-  return `Every score is ${listed(parts)}.`;
+  if (positive.length === 1) return `Ordered by ${sentenceLabel(positive[0].name)}.`;
+
+  const byWeight = [...positive].sort((a, b) => b.weight - a.weight);
+  const total = byWeight.reduce((sum, { weight }) => sum + weight, 0);
+  const leader = byWeight[0];
+  const rest = byWeight.slice(1);
+
+  if (rest.every(({ weight }) => weight === leader.weight)) {
+    return `Ordered by ${listed(byWeight.map(({ name }) => metricLabel(name)))} equally.`;
+  }
+
+  // A leader holding half the total or more stands above everything, however close
+  // the runner-up sits; every other category is seasoning.
+  if (leader.weight * 2 >= total) {
+    const seasoning = listed(rest.map(({ name }) => metricLabel(name)));
+    return `Ordered by ${metricLabel(leader.name)} above all, with some ${seasoning}.`;
+  }
+
+  // Otherwise the leader is first among rungs: a category holding at least half of
+  // what the leader holds earns its own rung, and the remainder is seasoning.
+  const rungs = rest.filter(({ weight }) => weight * 2 >= leader.weight);
+  const seasoning = rest.filter(({ weight }) => weight * 2 < leader.weight);
+  const ladder = [
+    `Ordered by ${metricLabel(leader.name)} first`,
+    ...rungs.map(({ name }) => `then ${metricLabel(name)}`),
+  ];
+  if (seasoning.length > 0) {
+    ladder.push(`with some ${listed(seasoning.map(({ name }) => metricLabel(name)))}`);
+  }
+  return `${ladder.join(", ")}.`;
+};
+
+/** The order clause alone, for a sentence that wraps it. No leading words, no stop. */
+const orderClause = (weights: Record<string, number>): string | null => {
+  const sentence = blendSentence(weights);
+  if (sentence === null) return null;
+  return sentence.replace(/^Ordered by /, "").replace(/\.$/, "");
+};
+
+/**
+ * The decision line: what the rules left standing and what puts it in that order, in
+ * one sentence. At first paint there is no count in it, because with no rule active a
+ * count of the whole catalog is the census printed twice.
+ */
+const decisionSentence = ({
+  survivors,
+  total,
+  ruleCount,
+  weights,
+}: {
+  survivors: number;
+  total: number;
+  ruleCount: number;
+  weights: Record<string, number>;
+}): string => {
+  const clause = orderClause(weights);
+  const order = clause === null ? "in catalog order" : `ordered by ${clause}`;
+  if (ruleCount === 0) {
+    return clause === null ? "In catalog order." : `Ordered by ${clause}.`;
+  }
+  const n = (value: number): string => value.toLocaleString("en-US");
+  return `${n(survivors)} of ${n(total)} models pass your ${ruleCount} ${
+    ruleCount === 1 ? "rule" : "rules"
+  }, ${order}.`;
+};
+
+/** What just happened to the top of the board, and why it is worth a line. */
+type BoardAction =
+  | { kind: "rule"; words: string; on: boolean }
+  | { kind: "weight"; label: string }
+  | { kind: "source"; label: string; rated: number };
+
+interface DeltaNote {
+  /** The lead clause, in accent ink. */
+  lead: string;
+  /** The quieter half; null when the lead says it all. */
+  quiet: string | null;
+}
+
+const TOP_ROWS = 10;
+const NAMED_ARRIVALS = 3;
+
+const arrivalWords = (names: string[]): string =>
+  names.length <= NAMED_ARRIVALS
+    ? listed(names)
+    : `${names.slice(0, NAMED_ARRIVALS).join(", ")} and ${names.length - NAMED_ARRIVALS} more`;
+
+/**
+ * The change note under the decision line: what the last move did to the top of the
+ * board. A rule that cuts thousands and leaves the top ten untouched has taught you
+ * something, and the board alone cannot say it.
+ */
+const deltaNote = (
+  action: BoardAction,
+  before: string[],
+  after: { key: string; name: string }[],
+): DeltaNote => {
+  if (action.kind === "source") {
+    return {
+      lead: `Now ordering by ${action.label}.`,
+      quiet: `${action.rated.toLocaleString("en-US")} models carry a score there.`,
+    };
+  }
+  const known = new Set(before);
+  const arrivals = after.filter(({ key }) => !known.has(key));
+  if (action.kind === "weight") {
+    return arrivals.length === 0
+      ? { lead: "Weighting changed.", quiet: "Same top 10." }
+      : {
+          lead: `${action.label} now carries the order.`,
+          quiet: `It moved ${arrivals.length} of the top ${TOP_ROWS}.`,
+        };
+  }
+  if (!action.on) return { lead: `${action.words} removed.`, quiet: null };
+  if (arrivals.length === 0) {
+    return {
+      lead: `${action.words}: same top ${TOP_ROWS}.`,
+      quiet: "Everything at the top already qualified.",
+    };
+  }
+  return {
+    lead: `${action.words} replaced ${arrivals.length} of the top ${TOP_ROWS}.`,
+    quiet: `Brought in ${arrivalWords(arrivals.map(({ name }) => name))}.`,
+  };
+};
+
+/** The keys of the rows the change note compares, newest board first. */
+const topKeys = (rows: { key: string }[]): string[] =>
+  rows.slice(0, TOP_ROWS).map(({ key }) => key);
+
+/** The top rows the change note names, newest board first. */
+const topRows = (rows: { key: string; name: string }[]): { key: string; name: string }[] =>
+  rows.slice(0, TOP_ROWS).map(({ key, name }) => ({ key, name }));
+
+/**
+ * The catalog census: a receipt about the data, not about the rules, so it does
+ * not move as rules are applied. Its scored and unscored halves follow the active
+ * source.
+ */
+const catalogReceipt = ({
+  listings,
+  models,
+  scored,
+}: {
+  listings: number;
+  models: number;
+  scored: number;
+}): string => {
+  const n = (value: number): string => value.toLocaleString("en-US");
+  // The source is not named here: the switch a few lines up already says who is scoring.
+  return `${n(listings)} listings \u2192 ${n(models)} models \u00b7 ${n(scored)} scored \u00b7 ${n(models - scored)} unscored`;
 };
 
 /** A hair of minimum width keeps a tight interval visible on the band. */
@@ -291,8 +445,15 @@ export {
   keepMetrics,
   stepWeight,
   blendSentence,
+  sentenceLabel,
+  orderClause,
+  decisionSentence,
+  deltaNote,
+  topKeys,
+  topRows,
+  catalogReceipt,
   bandSpan,
   resultsSummary,
   scoreBoard,
 };
-export type { ScorableIdentity, Metric, ScoreCell, ScoredRow, ScoreBoard, EmptiedBy, ResultsContext };
+export type { BoardAction, DeltaNote, ScorableIdentity, Metric, ScoreCell, ScoredRow, ScoreBoard, EmptiedBy, ResultsContext };

@@ -152,10 +152,14 @@ const CatalogTable = ({ rows, scale, emptiedBy, searching }: CatalogTableProps) 
 
   return (
     <>
-      {/* The results say how many rows they hold, in the results, not only on the rail. */}
-      <p aria-live="polite" className="tnum mb-1.5 text-xs text-ink-2">
-        {resultsSummary(rows, { emptiedBy: emptiedBy ?? null, searching })}
-      </p>
+      {/* The count and the census live in the decision line and the Results row above.
+          What is left here is the guidance for a board with nothing on it, which neither
+          of those can say. */}
+      {rows.length === 0 && (
+        <p aria-live="polite" className="mb-1.5 text-sm text-ink-2">
+          {resultsSummary(rows, { emptiedBy: emptiedBy ?? null, searching })}
+        </p>
+      )}
       <div
         ref={scrollRef}
         tabIndex={0}

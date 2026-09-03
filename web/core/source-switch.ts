@@ -22,8 +22,6 @@ interface SourceStep {
   state: SourceState;
   /** True when the shell should start the browser-side fetch. */
   beginFetch: boolean;
-  /** True when the active source changed, so the metric vocabulary changed with it. */
-  sourceChanged: boolean;
 }
 
 const INITIAL_SOURCE: SourceState = { source: "arena", openRouter: { phase: "idle" } };
@@ -31,7 +29,6 @@ const INITIAL_SOURCE: SourceState = { source: "arena", openRouter: { phase: "idl
 const still = (state: SourceState): SourceStep => ({
   state,
   beginFetch: false,
-  sourceChanged: false,
 });
 
 const pickSource = (state: SourceState, next: ScoreSourceId): SourceStep => {
@@ -39,16 +36,15 @@ const pickSource = (state: SourceState, next: ScoreSourceId): SourceStep => {
     return {
       state: { source: "arena", openRouter: state.openRouter },
       beginFetch: false,
-      sourceChanged: state.source !== "arena",
     };
   }
   if (state.source === "openrouter") return still(state);
   switch (state.openRouter.phase) {
     case "ok":
-      return { state: { source: "openrouter", openRouter: state.openRouter }, beginFetch: false, sourceChanged: true };
+      return { state: { source: "openrouter", openRouter: state.openRouter }, beginFetch: false };
     case "idle":
     case "failed":
-      return { state: { source: "arena", openRouter: { phase: "loading" } }, beginFetch: true, sourceChanged: false };
+      return { state: { source: "arena", openRouter: { phase: "loading" } }, beginFetch: true };
     case "loading":
       return still(state);
   }
@@ -57,13 +53,12 @@ const pickSource = (state: SourceState, next: ScoreSourceId): SourceStep => {
 // The retry button after a failed fetch.
 const retryFetch = (state: SourceState): SourceStep =>
   state.openRouter.phase === "failed"
-    ? { state: { source: state.source, openRouter: { phase: "loading" } }, beginFetch: true, sourceChanged: false }
+    ? { state: { source: state.source, openRouter: { phase: "loading" } }, beginFetch: true }
     : still(state);
 
 const fetchLanded = (state: SourceState, set: BenchmarkSet): SourceStep => ({
   state: { source: "openrouter", openRouter: { phase: "ok", set } },
   beginFetch: false,
-  sourceChanged: state.source !== "openrouter",
 });
 
 const fetchFailed = (state: SourceState, reason: string): SourceStep =>

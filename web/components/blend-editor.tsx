@@ -1,14 +1,15 @@
 // The score blend: one chip per metric with weight steppers, and the mix spoken as a sentence.
 
-import { blendSentence, stepWeight } from "@/core/score-view";
+import { stepWeight } from "@/core/score-view";
 import type { Metric } from "@/core/score-view";
 import { InfoHover } from "./info-hover";
+import type { Tip } from "./info-hover";
 
 interface BlendEditorProps {
   metrics: Metric[];
   weights: Record<string, number>;
-  /** One sentence on where this source's category scores come from. */
-  tip: string;
+  /** Where this source's category scores come from. */
+  tip: Tip;
   onChange: (weights: Record<string, number>) => void;
 }
 
@@ -72,16 +73,10 @@ const BlendChip = ({
 
 const BlendEditor = ({ metrics, weights, tip, onChange }: BlendEditorProps) => {
   if (metrics.length < 2) return null;
-  const sentence = blendSentence(weights);
+  // The mix is spoken in the decision line, not here: the order belongs in the sentence
+  // that says what you are looking at, and saying it twice says it worse.
   return (
-    <section aria-label="Score blend" className="mb-3">
-      {/* The heading takes its own line: sharing the chips' row cost them the width
-          that decides whether all six fit on one, and a wrapped orphan chip reads
-          as an accident rather than as a row. */}
-      <div className="mb-1.5 flex items-center gap-1.5">
-        <h2 className="text-xs font-medium tracking-wider text-ink-2 uppercase">Score blend</h2>
-        <InfoHover label="About these categories" tip={tip} />
-      </div>
+    <section aria-label="Score blend">
       <div className="flex flex-wrap items-center gap-1.5">
         {metrics.map((metric) => (
           <BlendChip
@@ -92,11 +87,10 @@ const BlendEditor = ({ metrics, weights, tip, onChange }: BlendEditorProps) => {
             onChange={onChange}
           />
         ))}
+        {/* Hangs from its right edge: this trigger sits at the end of the row, and a
+            left-hung tip runs off the viewport. */}
+        <InfoHover label="About these categories" tip={tip} align="right" />
       </div>
-      {/* Its own line, so the sentence keeps one place whatever the chips do when they wrap. */}
-      <p aria-live="polite" className="mt-1.5 min-h-4 text-xs text-ink-2">
-        {sentence}
-      </p>
     </section>
   );
 };

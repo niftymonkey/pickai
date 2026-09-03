@@ -3,6 +3,9 @@ import type { BenchmarkSet, Model, ModelIdentity } from "pickai";
 import {
   bandSpan,
   blendSentence,
+  catalogReceipt,
+  decisionSentence,
+  deltaNote,
   resultsSummary,
   defaultWeights,
   keepMetrics,
@@ -122,17 +125,96 @@ test("stepWeight refuses to zero the last positive weight", () => {
   expect(stepWeight({ overall: 2, coding: 0 }, "overall", -1)).toEqual({ overall: 1, coding: 0 });
 });
 
-test("the blend speaks its mix as a sentence, and the shares total 100", () => {
-  // A percentage of one thing reads as a score, so a lone metric is named, not measured.
-  expect(blendSentence({ overall: 1, coding: 0 })).toBe("Every score is the Overall rating.");
-  expect(blendSentence({ overall: 1, coding: 1, math: 0 })).toBe(
-    "Every score is 50% Overall and 50% Coding.",
+test("the blend sentence says intent, and never a percentage", () => {
+  // Percentages describe the arithmetic and never say what matters, so the sentence
+  // is a ladder read against the biggest weight. These are the acceptance cases.
+  expect(blendSentence({ overall: 1, coding: 0 })).toBe("Ordered by Overall rating.");
+  expect(blendSentence({ coding: 2, intelligence_index: 1 })).toBe(
+    "Ordered by Coding above all, with some Intelligence.",
   );
-  // Thirds round to 33 each; the last share absorbs the remainder so they still make 100.
-  expect(blendSentence({ overall: 1, coding: 1, math: 1 })).toBe(
-    "Every score is 33% Overall, 33% Coding and 34% Math.",
+  // A leader at half or more stands above everything, however close the runner-up sits,
+  // so 2-to-1 and 5-to-1 read the same. Known and accepted.
+  expect(blendSentence({ coding: 5, intelligence_index: 1 })).toBe(
+    "Ordered by Coding above all, with some Intelligence.",
+  );
+  expect(blendSentence({ coding: 3, math: 3 })).toBe("Ordered by Coding and Math equally.");
+  expect(
+    blendSentence({ coding: 4, instruction_following: 3, agentic_index: 2, intelligence_index: 1 }),
+  ).toBe(
+    "Ordered by Coding first, then Instruction following, then Agentic, with some Intelligence.",
+  );
+  expect(blendSentence({ coding: 5, math: 1, creative_writing: 1 })).toBe(
+    "Ordered by Coding above all, with some Math and Creative writing.",
   );
   expect(blendSentence({})).toBeNull();
+});
+
+test("the catalog receipt states the data, not the rules", () => {
+  expect(catalogReceipt({ listings: 7495, models: 1711, scored: 398 })).toBe(
+    "7,495 listings \u2192 1,711 models \u00b7 398 scored \u00b7 1,313 unscored",
+  );
+});
+
+test("the decision line counts nothing until a rule has cut something", () => {
+  // At first paint a count of the whole catalog is the census printed twice.
+  expect(decisionSentence({ survivors: 1711, total: 1711, ruleCount: 0, weights: { overall: 1 } })).toBe(
+    "Ordered by Overall rating.",
+  );
+  expect(
+    decisionSentence({
+      survivors: 425,
+      total: 1721,
+      ruleCount: 3,
+      weights: { coding: 3, instruction_following: 2 },
+    }),
+  ).toBe(
+    "425 of 1,721 models pass your 3 rules, ordered by Coding above all, with some Instruction following.",
+  );
+  expect(decisionSentence({ survivors: 40, total: 1711, ruleCount: 1, weights: { overall: 1 } })).toBe(
+    "40 of 1,711 models pass your 1 rule, ordered by Overall rating.",
+  );
+});
+
+const top = (...names: string[]) => names.map((name) => ({ key: name, name }));
+
+test("the change note says what the last move did to the top of the board", () => {
+  // A rule that cuts thousands and leaves the top untouched has taught you something.
+  expect(
+    deltaNote({ kind: "rule", words: "Only anthropic", on: true }, ["a", "b"], top("a", "b")),
+  ).toEqual({
+    lead: "Only anthropic: same top 10.",
+    quiet: "Everything at the top already qualified.",
+  });
+  expect(
+    deltaNote({ kind: "rule", words: "Only meta", on: true }, ["a", "b"], top("x", "y", "b")),
+  ).toEqual({ lead: "Only meta replaced 2 of the top 10.", quiet: "Brought in x and y." });
+  expect(
+    deltaNote({ kind: "rule", words: "Only meta", on: false }, ["a"], top("a", "b")),
+  ).toEqual({ lead: "Only meta removed.", quiet: null });
+  expect(deltaNote({ kind: "weight", label: "Coding" }, ["a", "b"], top("a", "b"))).toEqual({
+    lead: "Weighting changed.",
+    quiet: "Same top 10.",
+  });
+  expect(deltaNote({ kind: "weight", label: "Coding" }, ["a"], top("z", "a"))).toEqual({
+    lead: "Coding now carries the order.",
+    quiet: "It moved 1 of the top 10.",
+  });
+  expect(
+    deltaNote({ kind: "source", label: "Artificial Analysis", rated: 341 }, [], []),
+  ).toEqual({
+    lead: "Now ordering by Artificial Analysis.",
+    quiet: "341 models carry a score there.",
+  });
+});
+
+test("the change note names three arrivals and counts the rest", () => {
+  expect(
+    deltaNote(
+      { kind: "rule", words: "Cheap", on: true },
+      [],
+      top("a", "b", "c", "d", "e"),
+    ).quiet,
+  ).toBe("Brought in a, b, c and 2 more.");
 });
 
 const rated = rateIdentities([grok, sonnet, gpt], arenaSet);

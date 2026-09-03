@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import type { Capability } from "pickai";
 import { formatTokens } from "@/core/format";
-import type { Metric } from "@/core/score-view";
 
 interface CutCount {
   cutModels: number;
@@ -147,10 +146,56 @@ const chipClass = (active: boolean): string =>
 const railInputClass =
   "rounded-md border border-rail-line bg-rail-hover text-rail-ink transition-colors duration-150 placeholder:text-rail-ink-3 hover:border-rail-ink-3";
 
-const ChipCut = ({ cut }: { cut: CutCount | undefined }) =>
-  cut === undefined ? null : (
-    <span className="tnum ml-1 text-xs opacity-80">· cut {cut.cutModels.toLocaleString("en-US")}</span>
-  );
+// Lined-up options. A control inside a row must not look like the row's own readout,
+// and a count that lives inside a control grows it on pick and slides its neighbours,
+// so a box carries a label and nothing else. State rides on the box and the ink; never
+// on font weight, because bold is wider and a wider label moves what follows it.
+const optionRowClass = (on: boolean): string =>
+  `-mx-1.5 flex min-h-[26px] cursor-pointer items-center gap-2 rounded px-1.5 text-sm transition-colors duration-150 hover:bg-rail-hover ${
+    on ? "text-rail-ink" : "text-rail-ink-2"
+  }`;
+
+const OptionList = ({ children }: { children: ReactNode }) => (
+  <div className="flex flex-col">{children}</div>
+);
+
+const CheckRow = ({
+  label,
+  checked,
+  onToggle,
+}: {
+  label: string;
+  checked: boolean;
+  onToggle: () => void;
+}) => (
+  <label className={optionRowClass(checked)}>
+    <input type="checkbox" checked={checked} onChange={onToggle} className="accent-accent" />
+    <span>{label}</span>
+  </label>
+);
+
+const RadioRow = ({
+  group,
+  label,
+  checked,
+  onPick,
+}: {
+  group: string;
+  label: string;
+  checked: boolean;
+  onPick: () => void;
+}) => (
+  <label className={optionRowClass(checked)}>
+    <input
+      type="radio"
+      name={group}
+      checked={checked}
+      onChange={onPick}
+      className="accent-accent"
+    />
+    <span>{label}</span>
+  </label>
+);
 
 const promptClass = "text-xs text-rail-ink-3";
 
@@ -163,29 +208,23 @@ const CAPABILITIES: { capability: Capability; label: string }[] = [
 
 const CapabilityBody = ({
   picked,
-  cuts,
   onToggle,
 }: {
   picked: Capability[];
-  cuts: Record<string, CutCount>;
   onToggle: (capability: Capability) => void;
 }) => (
   <div className="flex flex-col gap-1.5">
-    <p className={promptClass}>Needs which capabilities? Toggle all that apply.</p>
-    <div className="flex flex-wrap gap-1.5">
+    <p className={promptClass}>Needs which capabilities? Tick all that apply.</p>
+    <OptionList>
       {CAPABILITIES.map(({ capability, label }) => (
-        <button
+        <CheckRow
           key={capability}
-          type="button"
-          aria-pressed={picked.includes(capability)}
-          onClick={() => onToggle(capability)}
-          className={chipClass(picked.includes(capability))}
-        >
-          {label}
-          {picked.includes(capability) && <ChipCut cut={cuts[`capability:${capability}`]} />}
-        </button>
+          label={label}
+          checked={picked.includes(capability)}
+          onToggle={() => onToggle(capability)}
+        />
       ))}
-    </div>
+    </OptionList>
   </div>
 );
 
@@ -193,31 +232,27 @@ const ModalitySide = ({
   side,
   picked,
   names,
-  cuts,
   onToggle,
 }: {
   side: "input" | "output";
   picked: string[];
   names: string[];
-  cuts: Record<string, CutCount>;
   onToggle: (side: "input" | "output", modality: string) => void;
 }) => (
   <div className="flex flex-col gap-1.5">
-    <p className={promptClass}>{side === "input" ? "Must take which input?" : "Must give which output?"}</p>
-    <div className="flex flex-wrap gap-1.5">
+    <p className={promptClass}>
+      {side === "input" ? "Must take which input?" : "Must give which output?"}
+    </p>
+    <OptionList>
       {names.map((modality) => (
-        <button
+        <CheckRow
           key={modality}
-          type="button"
-          aria-pressed={picked.includes(modality)}
-          onClick={() => onToggle(side, modality)}
-          className={chipClass(picked.includes(modality))}
-        >
-          {modality}
-          {picked.includes(modality) && <ChipCut cut={cuts[`modality:${side}:${modality}`]} />}
-        </button>
+          label={modality}
+          checked={picked.includes(modality)}
+          onToggle={() => onToggle(side, modality)}
+        />
       ))}
-    </div>
+    </OptionList>
   </div>
 );
 
@@ -225,47 +260,48 @@ const ModalityBody = ({
   picked,
   inputNames,
   outputNames,
-  cuts,
   onToggle,
 }: {
   picked: { input: string[]; output: string[] };
   inputNames: string[];
   outputNames: string[];
-  cuts: Record<string, CutCount>;
   onToggle: (side: "input" | "output", modality: string) => void;
 }) => (
   <div className="flex flex-col gap-2.5">
-    <ModalitySide side="input" picked={picked.input} names={inputNames} cuts={cuts} onToggle={onToggle} />
-    <ModalitySide side="output" picked={picked.output} names={outputNames} cuts={cuts} onToggle={onToggle} />
+    <ModalitySide side="input" picked={picked.input} names={inputNames} onToggle={onToggle} />
+    <ModalitySide side="output" picked={picked.output} names={outputNames} onToggle={onToggle} />
   </div>
 );
 
 const TokenFloorBody = ({
   prompt,
+  group,
   stops,
   value,
   onSet,
 }: {
   prompt: string;
+  /** Names the radio group, so two floor rows never share one. */
+  group: string;
   stops: number[];
   value: number | null;
   onSet: (tokens: number | null) => void;
 }) => (
   <div className="flex flex-col gap-1.5">
     <p className={promptClass}>{prompt}</p>
-    <div className="flex flex-wrap gap-1.5">
+    <OptionList>
+      {/* A radio cannot be un-picked by clicking it again, so the list carries its own off row. */}
+      <RadioRow group={group} label="No floor" checked={value === null} onPick={() => onSet(null)} />
       {stops.map((tokens) => (
-        <button
+        <RadioRow
           key={tokens}
-          type="button"
-          aria-pressed={tokens === value}
-          onClick={() => onSet(tokens === value ? null : tokens)}
-          className={`${chipClass(tokens === value)} font-mono text-xs`}
-        >
-          {formatTokens(tokens)}
-        </button>
+          group={group}
+          label={formatTokens(tokens)}
+          checked={tokens === value}
+          onPick={() => onSet(tokens)}
+        />
       ))}
-    </div>
+    </OptionList>
   </div>
 );
 
@@ -289,7 +325,7 @@ const FenceSide = ({
 }) => {
   const [text, setText] = useState(value === null ? "" : String(value));
   const [syncedValue, setSyncedValue] = useState(value);
-  // Outside changes (a stop click, the zero-survivor card) refresh the draft during render,
+  // Outside changes (a stop pick, the zero-survivor card) refresh the draft during render,
   // keeping the input mounted so focus survives a commit.
   if (value !== syncedValue) {
     setSyncedValue(value);
@@ -304,34 +340,42 @@ const FenceSide = ({
     }
     if (ceiling !== value) onSet(side, ceiling);
   };
+  const group = `fence-${side}`;
   return (
     <div className="flex flex-col gap-1.5">
-      <p className={promptClass}>{side === "input" ? "Input, $ per 1M tokens" : "Output, $ per 1M tokens"}</p>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {stops.map((ceiling) => (
-          <button
-            key={ceiling}
-            type="button"
-            aria-pressed={ceiling === value}
-            onClick={() => onSet(side, ceiling === value ? null : ceiling)}
-            className={`${chipClass(ceiling === value)} font-mono text-xs`}
-          >
-            ${ceiling}
-          </button>
-        ))}
-        <input
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          inputMode="decimal"
-          aria-label={`${side === "input" ? "Input" : "Output"} ceiling, dollars per million tokens`}
-          placeholder="any"
-          onBlur={commit}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") commit();
-          }}
-          className={`${railInputClass} w-16 px-2 py-1 font-mono text-xs`}
+      <p className={promptClass}>
+        {side === "input" ? "Input, $ per 1M tokens" : "Output, $ per 1M tokens"}
+      </p>
+      <OptionList>
+        {/* A radio cannot be un-picked by clicking it again, so the list carries its own off row. */}
+        <RadioRow
+          group={group}
+          label="No ceiling"
+          checked={value === null}
+          onPick={() => onSet(side, null)}
         />
-      </div>
+        {stops.map((ceiling) => (
+          <RadioRow
+            key={ceiling}
+            group={group}
+            label={`$${ceiling}`}
+            checked={ceiling === value}
+            onPick={() => onSet(side, ceiling)}
+          />
+        ))}
+      </OptionList>
+      <input
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        inputMode="decimal"
+        aria-label={`${side === "input" ? "Input" : "Output"} ceiling, dollars per million tokens`}
+        placeholder="Or a ceiling in dollars"
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") commit();
+        }}
+        className={`${railInputClass} w-full px-2 py-1 text-xs`}
+      />
     </div>
   );
 };
@@ -379,88 +423,6 @@ const KnowledgeBody = ({
   </div>
 );
 
-type MetricFloor = { metric: string; min: number } | null;
-
-const parsedFloor = (text: string): number | null => {
-  const trimmed = text.trim();
-  if (trimmed === "") return null;
-  const min = Number(trimmed);
-  return Number.isFinite(min) ? min : null;
-};
-
-const MetricFloorBody = ({
-  metrics,
-  floor,
-  onSet,
-}: {
-  metrics: Metric[];
-  floor: MetricFloor;
-  onSet: (floor: MetricFloor) => void;
-}) => {
-  const [text, setText] = useState(floor === null ? "" : String(floor.min));
-  const [chosen, setChosen] = useState(floor?.metric ?? metrics[0]?.name ?? "");
-  const [syncedFloor, setSyncedFloor] = useState(floor);
-  // Outside changes (the zero-survivor card, a source switch) refresh the draft during render,
-  // keeping the input mounted so focus survives a commit.
-  if (floor !== syncedFloor) {
-    setSyncedFloor(floor);
-    setText(floor === null ? "" : String(floor.min));
-    if (floor !== null) setChosen(floor.metric);
-  }
-  if (metrics.length === 0) {
-    return <p className={promptClass}>No measured metrics this load, so there is nothing to rule on.</p>;
-  }
-  const commit = () => {
-    const min = parsedFloor(text);
-    if (min === null && text.trim() !== "") {
-      // An unparseable floor reverts to the applied value; nothing changes silently.
-      setText(floor === null ? "" : String(floor.min));
-      return;
-    }
-    const next: MetricFloor = min === null ? null : { metric: chosen, min };
-    if (next?.metric !== floor?.metric || next?.min !== floor?.min) onSet(next);
-  };
-  const chooseMetric = (metric: string) => {
-    setChosen(metric);
-    // An applied floor follows the metric change instantly; a bare draft waits for its value.
-    if (floor !== null && metric !== floor.metric) onSet({ metric, min: floor.min });
-  };
-  return (
-    <div className="flex flex-col gap-1.5">
-      <p className={promptClass}>
-        Keep models whose score on one metric is at least this. Models the metric never measured
-        survive and stay unrated.
-      </p>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <select
-          value={chosen}
-          aria-label="Metric to rule on"
-          onChange={(event) => chooseMetric(event.target.value)}
-          className={`${railInputClass} px-2 py-1 text-xs`}
-        >
-          {metrics.map(({ name, label }) => (
-            <option key={name} value={name}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <input
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          inputMode="decimal"
-          aria-label="Minimum score"
-          placeholder="any"
-          onBlur={commit}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") commit();
-          }}
-          className={`${railInputClass} w-20 px-2 py-1 font-mono text-xs`}
-        />
-      </div>
-    </div>
-  );
-};
-
 export {
   chipClass,
   railInputClass,
@@ -471,6 +433,5 @@ export {
   TokenFloorBody,
   FenceBody,
   KnowledgeBody,
-  MetricFloorBody,
 };
 export type { CutCount };
