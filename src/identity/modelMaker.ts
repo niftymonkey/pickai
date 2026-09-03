@@ -158,14 +158,33 @@ const makerOfToken = (token: string): string | null => {
   return prefix ? MAKER_BY_FAMILY[prefix] : null;
 };
 
-const modelMaker = (modelId: string): string | null => {
-  for (const token of normalizeModelId(modelId).split("-")) {
+const makerOfFirstResolvingToken = (tokens: string[]): string | null => {
+  for (const token of tokens) {
     const maker = makerOfToken(token);
     if (maker) {
       return maker;
     }
   }
   return null;
+};
+
+// An entry whose family token is its maker's own name is an organization byline,
+// not a model family. A byline in front is a reseller only when the very next
+// token names a different maker's family: "databricks-claude-opus-4-7" is
+// Anthropic's model resold, while "deepseek-r1-distill-llama-70b" is DeepSeek's
+// own. Stripping the byline any wider is unsafe, because a maker's own name is
+// usually the leading token of its own ids (issue #25).
+const startsWithResellerByline = (tokens: string[]): boolean => {
+  const [byline, family] = tokens;
+  if (byline === undefined || family === undefined) return false;
+  if (MAKER_BY_FAMILY[byline] !== byline) return false;
+  const familyMaker = makerOfToken(family);
+  return familyMaker !== null && familyMaker !== byline;
+};
+
+const modelMaker = (modelId: string): string | null => {
+  const tokens = normalizeModelId(modelId).split("-");
+  return makerOfFirstResolvingToken(startsWithResellerByline(tokens) ? tokens.slice(1) : tokens);
 };
 
 export { modelMaker };

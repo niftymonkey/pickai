@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, test } from "vitest";
 import { modelMaker } from "../modelMaker";
 
 describe("modelMaker", () => {
@@ -33,5 +33,34 @@ describe("modelMaker", () => {
     // Unknown maker has to stay unknown: finding 14 lets it survive an exclude
     // rule and fail an allow rule, and a seller standing in for it breaks both.
     expect(modelMaker("deepinfra/some-unknown-model")).toBeNull();
+  });
+
+  it("reports the model's maker, not the reseller written in front of it", () => {
+    // Issue #25: databricks resells other makers' models under its own byline.
+    // A leading organization name followed by another maker's family is a
+    // reseller, and the family behind it is who built the model.
+    expect(modelMaker("databricks-claude-opus-4-7")).toBe("anthropic");
+    expect(modelMaker("databricks-glm-5-2")).toBe("zhipuai");
+    expect(modelMaker("snowflake-llama3-3-70b")).toBe("meta");
+  });
+
+  it("still reports the maker when the maker wrote its own name in front", () => {
+    expect(modelMaker("anthropic-claude-opus-4-7")).toBe("anthropic");
+    expect(modelMaker("meta-llama-3-3-70b-instruct")).toBe("meta");
+    expect(modelMaker("alibaba-qwen3-32b")).toBe("alibaba");
+  });
+
+  it("still reports a reseller as the maker of the models it built itself", () => {
+    // The byline is only dropped when another maker's family follows it, so a
+    // reseller's own model keeps its maker and "deepseek-v4-flash" never
+    // degrades to the nonsense key its stripped form would leave behind.
+    expect(modelMaker("dbrx")).toBe("databricks");
+    expect(modelMaker("deepseek-v4-flash")).toBe("deepseek");
+    expect(modelMaker("deepseek-r1-distill-llama-70b")).toBe("deepseek");
+  });
+
+  it("reports no maker for an id whose leading name is all it has", () => {
+    expect(modelMaker("databricks-duo-standard")).toBe("databricks");
+    expect(modelMaker("acme-duo-standard")).toBeNull();
   });
 });
