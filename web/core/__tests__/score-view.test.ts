@@ -124,8 +124,8 @@ test("keepMetrics trims every score to the named metrics and drops scores left e
 });
 
 test("defaultWeights puts weight 1 on the first listed metric and 0 on the rest", () => {
-  expect(defaultWeights(metricSet("coding", "overall"))).toEqual({ overall: 1, coding: 0 });
-  expect(defaultWeights(null)).toEqual({});
+  expect(defaultWeights(metricList(metricSet("coding", "overall")))).toEqual({ overall: 1, coding: 0 });
+  expect(defaultWeights(metricList(null))).toEqual({});
 });
 test("stepWeight clamps at 0 and at 5", () => {
   expect(stepWeight({ overall: 1, coding: 2 }, "coding", 1)).toEqual({ overall: 1, coding: 3 });

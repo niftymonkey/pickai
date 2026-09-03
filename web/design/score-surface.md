@@ -214,20 +214,53 @@ memory sits a committed floor: `web/lib/arena-snapshot.json`, a dated curated se
 - The blend row carries its own hover explaining what a category score is for the active
   source.
 
+## Price as a weight
+
+Settled and built 2026-09-03, on Mark's instruction to have something working by morning. He found
+the gap on 2026-09-02 by noticing the blend surface felt wrong and not being able to say why. His
+words: "We are not including cost. We, in our library examples in version one and version two of
+this library, have had cost be part of what is used when you want to weight the scores against each
+other, because being able to do these things but also not have it cost way, way, way too much is
+important." v1 and v2 carried `costEfficiency` as a weighted criterion; v3 deleted the built-ins, so
+cost survived only as the rail's hard price fence. **A fence and a weight are different promises:**
+"never above $1" against "cheaper is better, all else equal".
+
+The four questions that were open, and their answers:
+
+- **What the chip is called: Price.** In the blend sentence it reads "lower prices", because a chip
+  says what the axis is and a sentence has to say which way is better. "Ordered by lower prices."
+- **How a price normalises against an Elo or an index: onto the score's own scale, on a log curve.**
+  The cheapest model in the surviving list sits where the best measured score sits and the dearest
+  where the worst one does, so the weighted average stays arithmetic instead of mixing units. Log,
+  because published rates run from $0.004 to $750 per million tokens: linearly, a $1 model and a $10
+  model both land at 98.8% of the scale and the whole cheap crowd stacks on one pixel.
+- **Offered once, weighted per source.** Price is not a source category, so the chip is always there;
+  its weight rides in the same per-source weights map as everything else, because splitting it out
+  would add a second storage concept for no gain.
+- **How it reads in the blend sentence:** through the existing ladder, with `price` given a prose form
+  in `SENTENCE_LABELS`. No ladder rule changed and the six pinned cases still pass.
+
+Three rulings that came out of building it:
+
+- **The price is input plus output per million tokens.** One number, stated in the blend hover, not
+  hidden behind an invented traffic ratio.
+- **A stated $0 is the cheapest; an absent price is uncovered.** 13% of the catalog publishes $0 on
+  both sides, and a published zero is a fact. An absent price contributes nothing and shows as a
+  blend shortfall, exactly as a missing benchmark category does. Never a zero (rule 1).
+- **Price only weighs models the source measured.** Found in the browser: with price weighted, the
+  top of the board filled with $0 routing entries nobody has benchmarked, because a model with only
+  a price rating blends to a full score. Cheapness is not a quality signal on its own. An unrated
+  model keeps no price rating and stays in the unrated bucket.
+
+The scale is the surviving list's, not the catalog's, so the promise is "cheaper than the rest of
+what passed your rules". That is the relative-scoring caveat the library already carries.
+
+**First thing to iterate:** weighting price alone makes the Score column show numbers on the Elo
+scale that were derived from a price. Internally consistent, and the sentence says "Ordered by lower
+prices", but a reader could mistake one for a rating.
+
 ## Deferred
 
-- **Cost as a weight, not only as a fence.** Found by Mark 2026-09-02 and not yet designed.
-  His words: "We are not including cost. We, in our library examples in version one and version
-  two of this library, have had cost be part of what is used when you want to weight the scores
-  against each other, because being able to do these things but also not have it cost way, way,
-  way too much is important." He reached it by noticing the blend surface felt wrong and not
-  being able to say why. v1
-  and v2 carried `costEfficiency` as a weighted criterion, and every Purpose profile included
-  it as a low-weight tiebreaker; v3 deleted the built-in criteria, so cost now survives only as
-  the rail's hard price fence. A fence and a weight are different promises: "never above $1"
-  against "cheaper is better, all else equal". The blend needs the second one back. Open with
-  it: what the chip is called, how a price normalises against an Elo or an index, whether it is
-  offered per source or once, and how it reads in the blend sentence.
 - **Artificial Analysis in the prototype is placeholder data**: six invented metric names and
   an invented count of 341 scored models. Its real coverage against the folded catalog has
   never been measured. The shipped app offers three AA categories, not six.

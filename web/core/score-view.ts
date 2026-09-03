@@ -87,8 +87,8 @@ const metricList = (set: BenchmarkSet | null): Metric[] => {
   return [...known, ...unknown];
 };
 
-const defaultWeights = (set: BenchmarkSet | null): Record<string, number> =>
-  Object.fromEntries(metricList(set).map(({ name }, index) => [name, index === 0 ? 1 : 0]));
+const defaultWeights = (metrics: Metric[]): Record<string, number> =>
+  Object.fromEntries(metrics.map(({ name }, index) => [name, index === 0 ? 1 : 0]));
 
 /**
  * The surface offers a curated slice of a set (the adapter itself emits every
@@ -145,6 +145,8 @@ const listed = (parts: string[]): string =>
 // noun. A category may carry a prose form used only inside the sentence.
 const SENTENCE_LABELS: Record<string, string> = {
   overall: "Overall rating",
+  // A chip says what the axis is; the sentence has to say which way is better.
+  price: "lower prices",
 };
 
 const sentenceLabel = (name: string): string => SENTENCE_LABELS[name] ?? metricLabel(name);

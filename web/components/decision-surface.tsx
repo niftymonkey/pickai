@@ -25,6 +25,7 @@ import {
 } from "@/core/score-view";
 import type { BoardAction, DeltaNote } from "@/core/score-view";
 import type { Tip } from "./info-hover";
+import { blendMetrics, withPriceRatings } from "@/core/price-metric";
 import { INITIAL_SOURCE, fetchFailed, fetchLanded, pickSource, retryFetch } from "@/core/source-switch";
 import type { ScoreSourceId, SourceState, SourceStep } from "@/core/source-switch";
 import type { BenchmarkSource } from "@/lib/benchmarks";
@@ -51,12 +52,14 @@ const BLEND_TIPS: Record<ScoreSourceId, Tip> = {
     status: "Weights, not percentages",
     body: [
       "Each category is its own Elo rating, from the votes on that kind of prompt alone. Raising one says it matters more, and the line at the top of the page spells out the order that buys.",
+      "Price is not measured by this source. It is the published rate for a million input tokens plus a million output tokens, ranked against the other scored models that pass your rules and spread on a log scale, because rates run from fractions of a cent to hundreds of dollars. A model the source never scored takes no price weighting: cheap is not a measure of good.",
     ],
   },
   openrouter: {
     status: "Weights, not percentages",
     body: [
       "Each category is its own 0-100 index, from that suite's runs alone. Raising one says it matters more, and the line at the top of the page spells out the order that buys.",
+      "Price is not measured by this source. It is the published rate for a million input tokens plus a million output tokens, ranked against the other scored models that pass your rules and spread on a log scale, because rates run from fractions of a cent to hundreds of dollars. A model the source never scored takes no price weighting: cheap is not a measure of good.",
     ],
   },
 };
@@ -104,7 +107,10 @@ const DecisionSurface = ({ identities, arena, fetchedAt }: DecisionSurfaceProps)
   const arenaSet = arena.status === "unavailable" ? null : arena.set;
   const activeSet =
     source === "arena" ? arenaSet : openRouter.phase === "ok" ? openRouter.set : null;
-  const weights = weightsBySource[source] ?? defaultWeights(activeSet);
+  // Price rides in the same weights map as the source's own metrics, so it persists
+  // per source exactly as they do.
+  const blendable = useMemo(() => blendMetrics(activeSet), [activeSet]);
+  const weights = weightsBySource[source] ?? defaultWeights(blendable);
 
   const scorable = useMemo(() => rateIdentities(identities, activeSet), [identities, activeSet]);
   const derived = useMemo(() => deriveRules(facets), [facets]);
@@ -154,11 +160,17 @@ const DecisionSurface = ({ identities, arena, fetchedAt }: DecisionSurfaceProps)
     )
     .slice(0, 5);
 
-  const board = useMemo(() => scoreBoard(result.survivors, weights), [result, weights]);
   // The panel's bars and places read the whole rated set, not the rows on screen,
-  // so they answer "where does this sit among everything measured".
+  // so they answer "where does this sit among everything measured". Both are taken
+  // before price joins, because price is mapped onto the measured scale and the
+  // panel shows only what the source measured.
   const panelScale = useMemo(() => sharedScale(result.survivors), [result]);
   const ranks = useMemo(() => metricRanks(result.survivors), [result]);
+  const rated = useMemo(
+    () => withPriceRatings(result.survivors, panelScale),
+    [result, panelScale],
+  );
+  const board = useMemo(() => scoreBoard(rated, weights), [rated, weights]);
   // The new board is only available during render, so the note is settled here, the way
   // the rail's fence fields settle their drafts.
   if (pending !== null) {
@@ -256,7 +268,7 @@ const DecisionSurface = ({ identities, arena, fetchedAt }: DecisionSurfaceProps)
             </div>
             <ScoreSourceNote state={sourceState} arena={arena} />
             <BlendEditor
-              metrics={metrics}
+              metrics={blendable}
               weights={weights}
               tip={BLEND_TIPS[source]}
               onChange={applyWeights}
